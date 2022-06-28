@@ -89,7 +89,7 @@ fn test_backend(test: &Test) {
     let backend = test.backend.clone().unwrap();
 
     if !Path::new(".backend").is_dir() {
-        let repo_uri = format!("git@github.com:odradev/odra-{}.git", backend);
+        let repo_uri = format!("https://github.com/odradev/odra-{}.git", backend);
         backend::pull_backend(&repo_uri);
     }
 
