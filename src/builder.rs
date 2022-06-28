@@ -72,7 +72,7 @@ pub(crate) fn copy_wasm_files(conf: &OdraConf) {
     fs::create_dir_all("target/debug").unwrap();
     fs::create_dir_all("wasm").unwrap();
     if !Path::new("wasm/getter_proxy.wasm").exists() {
-        let getter_proxy = attohttpc::get("https://github.com/odradev/sample-contract/raw/master/wasm/getter_proxy.wasm").send().unwrap().bytes().unwrap();
+        let getter_proxy = attohttpc::get("https://github.com/odradev/cargo-odra/blob/master/getter_proxy.wasm?raw=true").send().unwrap().bytes().unwrap();
         fs::write("wasm/getter_proxy.wasm", getter_proxy).unwrap();
     }
     for (_, contract) in conf.contracts.clone().into_iter() {
