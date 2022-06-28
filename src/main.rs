@@ -1,8 +1,14 @@
+mod builder;
+mod backend;
+mod odra_toml;
+mod cargo_toml;
+
 use std::ffi::OsString;
 use std::fs;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::os::unix::process::CommandExt;
+use std::path::Path;
 use std::process::Command;
 use clap::{Parser, Subcommand};
 use convert_case::{Case, Casing};
@@ -81,11 +87,34 @@ fn main() {
 
 fn test_backend(test: &Test) {
     let backend = test.backend.clone().unwrap();
-    println!("Test with backend {}", backend);
-    let test_args = get_test_args(test);
-    println!("With passthrough params:");
-    test_args.iter().for_each(|s| println!("{}", s));
+
+    if !Path::new(".backend").is_dir() {
+        let repo_uri = format!("git@github.com:odradev/odra-{}.git", backend);
+        backend::pull_backend(&repo_uri);
+    }
+
+    if !Path::new("target/debug/libodra_test_env.so").exists() {
+        backend::build_backend(&backend);
+    }
+
+    let odra_conf = odra_toml::load_odra_conf();
+
+    builder::prepare_builder(&backend, &odra_conf);
+
+    cargo_toml::build_cargo_toml(&backend, &odra_conf);
+
+    builder::build_wasm(&odra_conf);
+
+    builder::copy_wasm_files(&odra_conf);
+
+    let mut test_args = get_test_args(test);
+    test_args.append(&mut vec!["--no-default-features", "--features=wasm-test"]);
+
+    Command::new("cargo")
+        .args(test_args)
+        .exec();
 }
+
 
 fn test_mock_vm(test: &Test) {
     let test_args = get_test_args(test);
@@ -131,6 +160,16 @@ fn generate_contract(generate: &Generate) {
     writeln!(lib_rs, "{}", mod_line).unwrap();
     writeln!(lib_rs, "{}", use_line).unwrap();
     writeln!(lib_rs).unwrap();
+    lib_rs.flush().unwrap();
+
+    let mut odra_toml = OpenOptions::new()
+        .write(true)
+        .append(true)
+        .open("Odra.toml")
+        .unwrap();
+    let fqn = format!("{}::{}", odra_toml::load_odra_conf().name, generate.contract_name.to_case(Case::UpperCamel));
+    writeln!(odra_toml).unwrap();
+    writeln!(odra_toml, "{} = {{ path = \"src/{}.rs\", name = \"{}\", fqn = \"{}\"}}", generate.contract_name, generate.contract_name, generate.contract_name, fqn).unwrap();
     lib_rs.flush().unwrap();
 }
 
