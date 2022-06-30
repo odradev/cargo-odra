@@ -1,6 +1,6 @@
+use crate::odra_toml::OdraConf;
 use std::fs::File;
 use std::io::Write;
-use crate::odra_toml::OdraConf;
 
 pub(crate) fn build_cargo_toml(backend: &String, conf: &OdraConf) {
     let mut cargo_toml = cargo_toml()
@@ -8,7 +8,9 @@ pub(crate) fn build_cargo_toml(backend: &String, conf: &OdraConf) {
         .replace("#backend_name", backend);
 
     for (_, contract) in conf.contracts.clone().into_iter() {
-        cargo_toml += bin().replace("#contract_name", contract.name.as_str()).as_str();
+        cargo_toml += bin()
+            .replace("#contract_name", contract.name.as_str())
+            .as_str();
     }
 
     let mut file = File::create(".builder/Cargo.toml").unwrap();

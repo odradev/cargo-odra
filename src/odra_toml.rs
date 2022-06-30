@@ -1,11 +1,11 @@
+use serde_derive::Deserialize;
 use std::collections::HashMap;
 use std::fs;
-use serde_derive::Deserialize;
 
 #[derive(Deserialize, Debug, Clone)]
 pub(crate) struct OdraConf {
     pub name: String,
-    pub contracts: HashMap<String, Contract>
+    pub contracts: HashMap<String, Contract>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
