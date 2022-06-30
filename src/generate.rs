@@ -1,21 +1,68 @@
 use crate::Generate;
+use cargo_generate::{GenerateArgs, TemplatePath, Vcs};
 use convert_case::{Case, Casing};
 use std::fs;
 use std::fs::OpenOptions;
 use std::io::Write;
-use std::os::unix::process::CommandExt;
-use std::process::Command;
 
-pub(crate) fn new_project() {
-    Command::new("cargo")
-        .args(["generate", "odradev/odra-template"])
-        .exec();
+pub(crate) fn new_project(name: Option<String>) {
+    cargo_generate::generate(GenerateArgs {
+        template_path: TemplatePath {
+            auto_path: Some("odradev/odra-template".to_string()),
+            subfolder: None,
+            git: None,
+            branch: None,
+            path: None,
+            favorite: None,
+        },
+        list_favorites: false,
+        name,
+        force: false,
+        verbose: false,
+        template_values_file: None,
+        silent: false,
+        config: None,
+        vcs: Vcs::None,
+        lib: false,
+        bin: false,
+        ssh_identity: None,
+        define: vec![],
+        init: false,
+        destination: None,
+        force_git_init: false,
+        allow_commands: false,
+    })
+    .unwrap();
 }
 
 pub(crate) fn init_project() {
-    Command::new("cargo")
-        .args(["generate", "odradev/odra-template", "--init"])
-        .exec();
+    cargo_generate::generate(GenerateArgs {
+        template_path: TemplatePath {
+            auto_path: Some("odradev/odra-template".to_string()),
+            subfolder: None,
+            git: None,
+            branch: None,
+            path: None,
+            favorite: None,
+        },
+        list_favorites: false,
+        name: None,
+        force: false,
+        verbose: false,
+        template_values_file: None,
+        silent: false,
+        config: None,
+        vcs: Vcs::None,
+        lib: false,
+        bin: false,
+        ssh_identity: None,
+        define: vec![],
+        init: true,
+        destination: None,
+        force_git_init: false,
+        allow_commands: false,
+    })
+    .unwrap();
 }
 
 pub(crate) fn generate_contract(generate: &Generate) {
@@ -35,22 +82,18 @@ pub(crate) fn generate_contract(generate: &Generate) {
         "flipper",
         generate.contract_name.to_case(Case::Lower).as_str(),
     );
-    fs::write(
-        ("src/".to_string() + &generate.contract_name + ".rs").as_str(),
-        contract_body,
-    )
-    .unwrap();
+    fs::write(format!("src/{}.rs", &generate.contract_name), contract_body).unwrap();
     let mut lib_rs = OpenOptions::new()
         .write(true)
         .append(true)
         .open("src/lib.rs")
         .unwrap();
-    let mod_line = "pub mod ".to_string() + &generate.contract_name + ";";
-    let use_line = "pub use ".to_string()
-        + &generate.contract_name
-        + "::"
-        + &generate.contract_name.to_case(Case::UpperCamel)
-        + ";";
+    let mod_line = format!("pub mod {};", &generate.contract_name);
+    let use_line = format!(
+        "pub use {}::{};",
+        &generate.contract_name,
+        &generate.contract_name.to_case(Case::UpperCamel)
+    );
     writeln!(lib_rs).unwrap();
     writeln!(lib_rs, "{}", mod_line).unwrap();
     writeln!(lib_rs, "{}", use_line).unwrap();

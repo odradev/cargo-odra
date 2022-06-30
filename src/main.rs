@@ -88,8 +88,8 @@ fn main() {
         OdraSubcommand::Generate(generate) => {
             generate::generate_contract(&generate);
         }
-        OdraSubcommand::New(_) => {
-            generate::new_project();
+        OdraSubcommand::New(new) => {
+            generate::new_project(new.name);
         }
         OdraSubcommand::Init(_) => {
             generate::init_project();
