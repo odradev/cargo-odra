@@ -1,0 +1,36 @@
+name: ci-cargo-odra
+
+on:
+  push:
+    branches:
+      - master
+      - develop
+    paths-ignore:
+      - "**.md"
+
+  pull_request:
+    branches:
+      - master
+      - develop
+      - feature/*
+    paths-ignore:
+      - "**.md"
+
+jobs:
+  build_and_test:
+    name: Build and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+      - uses: Swatinem/rust-cache@v1
+      - run: make install
+      - run: cargo odra new -n plascoin && cd plascoin
+      - run: cargo odra generate -c plascoin
+        working-directory: ./plascoin
+      - run: cargo odra test
+        working-directory: ./plascoin
+      - run: cargo odra test -b casper
+        working-directory: ./plascoin
