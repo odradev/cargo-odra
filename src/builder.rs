@@ -1,5 +1,6 @@
+use crate::backend::Backend;
 use crate::odra_toml::OdraConf;
-use crate::{cargo_toml, odra_toml};
+use crate::{cargo_toml, odra_toml, Build};
 use std::fs;
 use std::fs::File;
 use std::io::Write;
@@ -35,7 +36,7 @@ fn create_build_files(backend: &String, builder_path: &str, conf: &OdraConf) {
 }
 
 fn def_rs() -> &'static str {
-r##"fn main() {
+    r##"fn main() {
     let contract_def = <#contract_fqn as odra::contract_def::HasContractDef>::contract_def();
     let code = #backend_name_backend::codegen::gen_contract(contract_def, "#contract_fqn".to_string());
 
@@ -133,21 +134,17 @@ pub(crate) fn copy_wasm_files(conf: &OdraConf) {
     }
 }
 
-pub(crate) fn build(backend: Option<String>) {
-    match backend {
+pub(crate) fn build(build: Build) {
+    match build.backend {
         None => {
             println!("Running cargo build...");
             Command::new("cargo").args(vec!["build"]).output().unwrap();
         }
         Some(backend_name) => {
-            if !Path::new(".backend").is_dir() {
-                let repo_uri = format!("https://github.com/odradev/odra-{}.git", backend_name);
-                crate::backend::pull_backend(&repo_uri);
-            }
+            let backend = Backend::new(backend_name.clone(), build.repo_uri);
 
-            if !Path::new("target/debug/libodra_test_env.so").exists() {
-                crate::backend::build_backend(&backend_name);
-            }
+            backend.pull_backend();
+            backend.build_backend();
 
             let odra_conf = odra_toml::load_odra_conf();
 

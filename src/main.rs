@@ -57,6 +57,9 @@ struct Build {
     /// Name of the backend that will be used for the build process (e.g. casper, near)
     #[clap(value_parser, long, short)]
     backend: Option<String>,
+    /// URI of the repository containing the backend code
+    #[clap(value_parser, long, short)]
+    repo_uri: Option<String>,
 }
 
 #[derive(clap::Args, Debug)]
@@ -64,6 +67,9 @@ struct Test {
     /// If set, tests will be run against a backend VM with given name (e.g. casper, near)
     #[clap(value_parser, long, short)]
     backend: Option<String>,
+    /// URI of the repository containing the backend code
+    #[clap(value_parser, long, short)]
+    repo_uri: Option<String>,
     /// A list of parameters that will be passed to the cargo test command
     #[clap(value_parser, long, short)]
     passthrough: Option<Vec<OsString>>,
@@ -80,7 +86,7 @@ fn main() {
     let Cargo::Odra(args) = Cargo::parse();
     match args.subcommand {
         OdraSubcommand::Build(build) => {
-            builder::build(build.backend);
+            builder::build(build);
         }
         OdraSubcommand::Test(test) => {
             tests::test(&test);

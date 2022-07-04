@@ -1,28 +1,67 @@
 use std::fs;
+use std::path::Path;
 use std::process::Command;
 
-pub(crate) fn pull_backend(repo_uri: &String) {
-    println!("Downloading repository from {}...", repo_uri);
-    Command::new("git")
-        .args(vec!["clone", repo_uri.as_str(), ".backend"])
-        .output()
-        .unwrap();
+pub(crate) struct Backend {
+    name: String,
+    repo_uri: String,
 }
 
-pub(crate) fn build_backend(backend: &String) {
-    println!("Building {} backend...", backend);
-    Command::new("cargo")
-        .current_dir(".backend/test_env")
-        .args(vec!["build"])
-        .output()
-        .expect("Couldn't build backend");
-    println!("Copying lib...");
-    fs::create_dir_all("./target/debug").unwrap();
-    Command::new("cp")
-        .args(vec![
-            ".backend/test_env/target/debug/libodra_test_env.so",
-            "./target/debug/libodra_test_env.so",
-        ])
-        .output()
-        .expect("Couldn't copy lib");
+impl Backend {
+    pub fn new(name: String, repo_uri: Option<String>) -> Backend {
+        let uri: String;
+        match repo_uri {
+            None => {
+                uri = format!("https://github.com/odradev/odra-{}.git", name);
+            }
+            Some(repo_uri) => {
+                uri = repo_uri;
+            }
+        }
+
+        Backend {
+            name,
+            repo_uri: uri,
+        }
+    }
+
+    pub fn path(&self) -> String {
+        format!(".backend_{}/", self.name)
+    }
+    pub fn test_env_path(&self) -> String {
+        format!("{}test_env/", self.path())
+    }
+
+    pub(crate) fn pull_backend(&self) {
+        if !Path::new(self.path().as_str()).is_dir() {
+            println!("Downloading repository from {}...", self.repo_uri);
+            Command::new("git")
+                .args(vec!["clone", self.repo_uri.as_str(), self.path().as_str()])
+                .output()
+                .unwrap();
+        }
+    }
+
+    pub(crate) fn build_backend(&self) {
+        if Path::new("target/debug/libodra_test_env.so").exists() {
+            return;
+        }
+
+        println!("Building {} backend...", self.name);
+        Command::new("cargo")
+            .current_dir(self.test_env_path())
+            .args(vec!["build"])
+            .output()
+            .expect("Couldn't build backend");
+        println!("Copying lib...");
+        fs::create_dir_all("./target/debug").unwrap();
+
+        let source = format!("{}target/debug/libodra_test_env.so", self.test_env_path());
+        let target = "./target/debug/libodra_test_env.so";
+
+        Command::new("cp")
+            .args(vec![source, target.to_string()])
+            .output()
+            .expect("Couldn't copy lib");
+    }
 }

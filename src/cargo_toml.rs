@@ -1,12 +1,13 @@
 use crate::odra_toml::OdraConf;
 use std::fs::File;
 use std::io::Write;
-use std::path::Path;
 
 pub(crate) fn build_cargo_toml(backend: &String, conf: &OdraConf) {
+    let backend_repo = "https://github.com/odradev/odra-casper";
     let mut cargo_toml = cargo_toml()
         .replace("#package_name", &conf.name)
-        .replace("#backend_name", backend);
+        .replace("#backend_name", backend)
+        .replace("#backend_repo", backend_repo);
 
     for (_, contract) in conf.contracts.clone().into_iter() {
         cargo_toml += bin()
@@ -19,20 +20,20 @@ pub(crate) fn build_cargo_toml(backend: &String, conf: &OdraConf) {
 }
 
 fn cargo_toml() -> &'static str {
-    r#"
+    r##"
 [package]
 name = "builder"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-#backend_name_backend = { git = "https://github.com/odradev/odra-casper", default-features = false, features = ["codegen", "backend"] }
+#backend_name_backend = { git = "#backend_repo", default-features = false, features = ["codegen", "backend"] }
 odra = { git = "https://github.com/odradev/odra", default-features = false, features = ["wasm"] }
 #package_name = { path = "..", default-features = false, features = ["wasm"] }
 
 [build-dependencies]
 quote = "1.0.18"
-    "#
+    "##
 }
 
 fn bin() -> &'static str {

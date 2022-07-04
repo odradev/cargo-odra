@@ -1,4 +1,4 @@
-use crate::{builder, Test};
+use crate::{builder, Build, Test};
 use std::os::unix::process::CommandExt;
 use std::process::Command;
 
@@ -14,7 +14,10 @@ pub(crate) fn test(test: &Test) {
 }
 
 fn test_backend(test: &Test) {
-    builder::build(test.backend.clone());
+    builder::build(Build {
+        backend: test.backend.clone(),
+        repo_uri: test.repo_uri.clone(),
+    });
 
     let mut test_args = get_test_args(test);
     test_args.append(&mut vec!["--no-default-features", "--features=wasm-test"]);
