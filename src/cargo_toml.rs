@@ -1,6 +1,7 @@
 use crate::odra_toml::OdraConf;
 use std::fs::File;
 use std::io::Write;
+use std::path::Path;
 
 pub(crate) fn build_cargo_toml(backend: &String, conf: &OdraConf) {
     let mut cargo_toml = cargo_toml()

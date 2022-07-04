@@ -23,25 +23,27 @@ pub(crate) fn prepare_builder(backend: &String, conf: &OdraConf) {
 fn create_build_files(backend: &String, builder_path: &str, conf: &OdraConf) {
     for (_, contract) in conf.contracts.clone().into_iter() {
         let path = builder_path.to_string() + "/" + contract.path.as_str();
-        let contents = def_rs()
-            .replace("#contract_fqn", &contract.fqn)
-            .replace("#contract_name", &contract.name)
-            .replace("#backend_name", backend);
-        let mut file = File::create(path).unwrap();
-        file.write_all(contents.as_bytes()).unwrap();
+        if !Path::new(&path).exists() {
+            let contents = def_rs()
+                .replace("#contract_fqn", &contract.fqn)
+                .replace("#contract_name", &contract.name)
+                .replace("#backend_name", backend);
+            let mut file = File::create(path).unwrap();
+            file.write_all(contents.as_bytes()).unwrap();
+        }
     }
 }
 
 fn def_rs() -> &'static str {
-    "fn main() {
-            let contract_def = <#contract_fqn as odra::contract_def::HasContractDef>::contract_def();
-            let code = #backend_name_backend::codegen::gen_contract(contract_def);
+r##"fn main() {
+    let contract_def = <#contract_fqn as odra::contract_def::HasContractDef>::contract_def();
+    let code = #backend_name_backend::codegen::gen_contract(contract_def, "#contract_fqn".to_string());
 
-            use std::fs::File;
-            use std::io::prelude::*;
-            let mut file = File::create(\"src/#contract_name_wasm.rs\").unwrap();
-            file.write_all(&code.to_string().into_bytes()).unwrap();
-        }"
+    use std::fs::File;
+    use std::io::prelude::*;
+    let mut file = File::create("src/#contract_name_wasm.rs").unwrap();
+    file.write_all(&code.to_string().into_bytes()).unwrap();
+}"##
 }
 
 pub(crate) fn build_wasm(conf: &OdraConf) {

@@ -90,9 +90,10 @@ pub(crate) fn generate_contract(generate: &Generate) {
         .unwrap();
     let mod_line = format!("pub mod {};", &generate.contract_name);
     let use_line = format!(
-        "pub use {}::{};",
+        "pub use {}::{{{}, {}}};",
         &generate.contract_name,
-        &generate.contract_name.to_case(Case::UpperCamel)
+        &generate.contract_name.to_case(Case::UpperCamel),
+        generate.contract_name.to_case(Case::UpperCamel) + "Ref"
     );
     writeln!(lib_rs).unwrap();
     writeln!(lib_rs, "{}", mod_line).unwrap();
