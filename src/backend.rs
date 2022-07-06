@@ -9,15 +9,12 @@ pub(crate) struct Backend {
 
 impl Backend {
     pub fn new(name: String, repo_uri: Option<String>) -> Backend {
-        let uri: String;
-        match repo_uri {
+        let uri = match repo_uri {
             None => {
-                uri = format!("https://github.com/odradev/odra-{}.git", name);
+                format!("https://github.com/odradev/odra-{}.git", name)
             }
-            Some(repo_uri) => {
-                uri = repo_uri;
-            }
-        }
+            Some(repo_uri) => repo_uri,
+        };
 
         Backend {
             name,

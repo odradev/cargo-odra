@@ -7,7 +7,7 @@ pub struct Tests {
 
 impl Tests {
     pub fn new(test: TestCommand) -> Tests {
-        Tests { test: test }
+        Tests { test }
     }
 
     pub(crate) fn test(&self) {

@@ -2,7 +2,7 @@ use crate::odra_toml::OdraConf;
 use std::fs::File;
 use std::io::Write;
 
-pub(crate) fn build_cargo_toml(backend: &String, conf: &OdraConf) {
+pub(crate) fn build_cargo_toml(backend: &str, conf: &OdraConf) {
     let backend_repo = "https://github.com/odradev/odra-casper";
     let mut cargo_toml = cargo_toml()
         .replace("#package_name", &conf.name)

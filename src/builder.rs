@@ -35,7 +35,7 @@ impl Builder {
         Builder::create_build_files(&name, builder_path, &self.conf);
     }
 
-    fn create_build_files(backend: &String, builder_path: &str, conf: &OdraConf) {
+    fn create_build_files(backend: &str, builder_path: &str, conf: &OdraConf) {
         for (_, contract) in conf.contracts.clone().into_iter() {
             let path = builder_path.to_string() + "/" + contract.path.as_str();
             if !Path::new(&path).exists() {
@@ -61,27 +61,13 @@ impl Builder {
 }"##
     }
 
-    pub(crate) fn build_wasm(&self, name: String) {
+    pub(crate) fn build_wasm(&self, _name: String) {
         println!("Building wasm files...");
         for (_, contract) in self.conf.contracts.clone().into_iter() {
             // cargo run -p casper_builder --bin contract_def
             Command::new("cargo")
                 .current_dir(".builder")
                 .args(["run", "--bin", format!("{}_build", &contract.name).as_str()])
-                .status()
-                .unwrap();
-        }
-
-        // Fix gdyż odra robi sample_contract
-        for (_, contract) in self.conf.contracts.clone().into_iter() {
-            Command::new("sed")
-                .current_dir(".builder/src")
-                .args([
-                    "-i",
-                    "--",
-                    format!("s/sample_contract/{}/g", self.conf.name).as_str(),
-                    format!("{}_wasm.rs", &contract.name).as_str(),
-                ])
                 .status()
                 .unwrap();
         }
@@ -103,7 +89,7 @@ impl Builder {
         }
     }
 
-    pub(crate) fn copy_wasm_files(&self, name: String) {
+    pub(crate) fn copy_wasm_files(&self, _name: String) {
         fs::create_dir_all("target/debug").unwrap();
         fs::create_dir_all("wasm").unwrap();
         if !Path::new("wasm/getter_proxy.wasm").exists() {
@@ -168,7 +154,7 @@ impl Builder {
 
                 self.build_wasm(backend_name.clone());
 
-                self.copy_wasm_files(backend_name.clone());
+                self.copy_wasm_files(backend_name);
             }
         }
     }

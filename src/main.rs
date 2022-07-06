@@ -96,10 +96,10 @@ fn main() {
             Generate::new(generate).generate_contract();
         }
         OdraSubcommand::New(init) => {
-            Init::new(init).new_project();
+            Init::new(init).generate_project(false);
         }
         OdraSubcommand::Init(init) => {
-            Init::new(init).init_project();
+            Init::new(init).generate_project(true);
         }
     }
 }
