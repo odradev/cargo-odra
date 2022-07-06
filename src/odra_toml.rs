@@ -16,8 +16,13 @@ pub(crate) struct Contract {
 }
 
 pub(crate) fn load_odra_conf() -> OdraConf {
-    let odra_conf = fs::read_to_string("Odra.toml").unwrap();
-    toml::from_str(odra_conf.as_str()).unwrap()
+    let odra_conf = fs::read_to_string("Odra.toml");
+    match odra_conf {
+        Ok(conf_file) => toml::from_str(conf_file.as_str()).unwrap(),
+        Err(_) => {
+            panic!("Odra.toml file is missing. Is Odra initialized?")
+        }
+    }
 }
 
 #[cfg(test)]

@@ -2,9 +2,14 @@ mod backend;
 mod builder;
 mod cargo_toml;
 mod generate;
+mod init;
 mod odra_toml;
 mod tests;
 
+use crate::builder::Builder;
+use crate::generate::Generate;
+use crate::init::Init;
+use crate::tests::Tests;
 use clap::{Parser, Subcommand};
 use std::ffi::OsString;
 
@@ -27,33 +32,29 @@ struct Odra {
 #[derive(Subcommand)]
 enum OdraSubcommand {
     /// Creates a new Odra project
-    New(New),
+    New(InitCommand),
     /// Initializes a new Odra project in an existing, empty directory
-    Init(Init),
+    Init(InitCommand),
     /// Builds the project, including backend and producing wasm files
-    Build(Build),
+    Build(BuildCommand),
     /// Runs test. Without the backend parameter, the tests will be run against Mock VM
-    Test(Test),
+    Test(TestCommand),
     /// Helper which will generate boilerplate code for contracts
-    Generate(Generate),
+    Generate(GenerateCommand),
 }
 
 #[derive(clap::Args)]
-struct New {
-    /// Name which will be used as a folder name and name for the crate
-    #[clap(value_parser, long, short)]
-    name: Option<String>,
-}
-
-#[derive(clap::Args)]
-struct Init {
+pub struct InitCommand {
     /// Name which will be used as a name for the crate
     #[clap(value_parser, long, short)]
     name: Option<String>,
+    /// URI of the repository containing the template
+    #[clap(value_parser, long, short)]
+    repo_uri: Option<String>,
 }
 
 #[derive(clap::Args)]
-struct Build {
+pub struct BuildCommand {
     /// Name of the backend that will be used for the build process (e.g. casper, near)
     #[clap(value_parser, long, short)]
     backend: Option<String>,
@@ -63,7 +64,7 @@ struct Build {
 }
 
 #[derive(clap::Args, Debug)]
-struct Test {
+pub struct TestCommand {
     /// If set, tests will be run against a backend VM with given name (e.g. casper, near)
     #[clap(value_parser, long, short)]
     backend: Option<String>,
@@ -76,7 +77,7 @@ struct Test {
 }
 
 #[derive(clap::Args, Debug)]
-struct Generate {
+pub struct GenerateCommand {
     /// Name of the contract to be created
     #[clap(value_parser, long, short)]
     contract_name: String,
@@ -86,19 +87,19 @@ fn main() {
     let Cargo::Odra(args) = Cargo::parse();
     match args.subcommand {
         OdraSubcommand::Build(build) => {
-            builder::build(build);
+            Builder::new(build).build();
         }
         OdraSubcommand::Test(test) => {
-            tests::test(&test);
+            Tests::new(test).test();
         }
         OdraSubcommand::Generate(generate) => {
-            generate::generate_contract(&generate);
+            Generate::new(generate).generate_contract();
         }
-        OdraSubcommand::New(new) => {
-            generate::new_project(new.name);
+        OdraSubcommand::New(init) => {
+            Init::new(init).new_project();
         }
-        OdraSubcommand::Init(_) => {
-            generate::init_project();
+        OdraSubcommand::Init(init) => {
+            Init::new(init).init_project();
         }
     }
 }
