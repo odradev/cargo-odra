@@ -1,17 +1,26 @@
-use crate::{builder, BuildCommand, TestCommand};
+use crate::{BuildCommand, Builder, TestCommand};
+use std::ffi::OsString;
 use std::os::unix::process::CommandExt;
 use std::process::Command;
 pub struct Tests {
-    test: TestCommand,
+    builder: Builder,
+    passthrough: Option<Vec<OsString>>,
 }
 
 impl Tests {
     pub fn new(test: TestCommand) -> Tests {
-        Tests { test }
+        let builder = Builder::new(BuildCommand {
+            backend: test.backend,
+            repo_uri: test.repo_uri,
+        });
+        Tests {
+            builder,
+            passthrough: test.passthrough,
+        }
     }
 
     pub(crate) fn test(&self) {
-        match self.test.backend {
+        match self.builder.backend {
             None => {
                 self.test_mock_vm();
             }
@@ -22,11 +31,7 @@ impl Tests {
     }
 
     fn test_backend(&self) {
-        builder::Builder::new(BuildCommand {
-            backend: self.test.backend.clone(),
-            repo_uri: self.test.repo_uri.clone(),
-        })
-        .build();
+        self.builder.build();
 
         let mut test_args = self.get_test_args();
         test_args.append(&mut vec!["--no-default-features", "--features=wasm-test"]);
@@ -42,7 +47,7 @@ impl Tests {
 
     fn get_test_args(&self) -> Vec<&str> {
         let mut test_args = vec!["test"];
-        match &self.test.passthrough {
+        match &self.passthrough {
             None => {}
             Some(passthrough) => {
                 let passthrough = passthrough.first().unwrap().as_os_str().to_str().unwrap();

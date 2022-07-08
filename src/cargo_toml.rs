@@ -1,21 +1,23 @@
-use crate::odra_toml::OdraConf;
+use crate::backend::Backend;
+use crate::odra_toml::load_odra_conf;
+use crate::Builder;
 use std::fs::File;
 use std::io::Write;
 
-pub(crate) fn build_cargo_toml(backend: &str, conf: &OdraConf) {
-    let backend_repo = "https://github.com/odradev/odra-casper";
+pub(crate) fn build_cargo_toml(builder: &Builder, backend: &Backend) {
+    let conf = load_odra_conf();
     let mut cargo_toml = cargo_toml()
         .replace("#package_name", &conf.name)
-        .replace("#backend_name", backend)
-        .replace("#backend_repo", backend_repo);
+        .replace("#backend_name", backend.name())
+        .replace("#backend_repo", backend.repo_uri());
 
-    for (_, contract) in conf.contracts.clone().into_iter() {
+    for (_, contract) in conf.contracts.into_iter() {
         cargo_toml += bin()
             .replace("#contract_name", contract.name.as_str())
             .as_str();
     }
 
-    let mut file = File::create(".builder/Cargo.toml").unwrap();
+    let mut file = File::create(builder.builder_path() + "Cargo.toml").unwrap();
     file.write_all(cargo_toml.as_bytes()).unwrap();
 }
 

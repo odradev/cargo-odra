@@ -2,7 +2,7 @@ use std::fs;
 use std::path::Path;
 use std::process::Command;
 
-pub(crate) struct Backend {
+pub struct Backend {
     name: String,
     repo_uri: String,
 }
@@ -22,8 +22,15 @@ impl Backend {
         }
     }
 
+    pub fn repo_uri(&self) -> &String {
+        &self.repo_uri
+    }
+
     pub fn path(&self) -> String {
         format!(".backend_{}/", self.name)
+    }
+    pub fn name(&self) -> &String {
+        &self.name
     }
     pub fn test_env_path(&self) -> String {
         format!("{}test_env/", self.path())
