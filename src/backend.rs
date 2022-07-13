@@ -47,10 +47,6 @@ impl Backend {
     }
 
     pub(crate) fn build_backend(&self) {
-        if Path::new("target/debug/libodra_test_env.so").exists() {
-            return;
-        }
-
         println!("Building {} backend...", self.name);
         Command::new("cargo")
             .current_dir(self.test_env_path())

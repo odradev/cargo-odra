@@ -3,8 +3,12 @@ use crate::odra_toml::load_odra_conf;
 use crate::Builder;
 use std::fs::File;
 use std::io::Write;
+use std::path::Path;
 
 pub(crate) fn build_cargo_toml(builder: &Builder, backend: &Backend) {
+    if Path::new(&(builder.builder_path() + "Cargo.toml")).exists() {
+        return;
+    }
     let conf = load_odra_conf();
     let mut cargo_toml = cargo_toml()
         .replace("#package_name", &conf.name)
