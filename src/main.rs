@@ -1,6 +1,7 @@
 mod backend;
 mod builder;
 mod cargo_toml;
+mod command;
 mod generate;
 mod init;
 mod odra_toml;

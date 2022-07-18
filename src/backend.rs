@@ -1,3 +1,4 @@
+use crate::command::parse_command_result;
 use std::fs;
 use std::path::Path;
 use std::process::Command;
@@ -39,20 +40,25 @@ impl Backend {
     pub(crate) fn pull_backend(&self) {
         if !Path::new(self.path().as_str()).is_dir() {
             println!("Downloading repository from {}...", self.repo_uri);
-            Command::new("git")
+            let command = Command::new("git")
                 .args(vec!["clone", self.repo_uri.as_str(), self.path().as_str()])
-                .output()
+                .status()
                 .unwrap();
+
+            parse_command_result(command, "Couldn't pull repository");
         }
     }
 
     pub(crate) fn build_backend(&self) {
         println!("Building {} backend...", self.name);
-        Command::new("cargo")
+        let command = Command::new("cargo")
             .current_dir(self.test_env_path())
             .args(vec!["build"])
-            .output()
+            .status()
             .expect("Couldn't build backend");
+
+        parse_command_result(command, "Couldn't build backend");
+
         println!("Copying lib...");
         fs::create_dir_all("./target/debug").unwrap();
 
@@ -61,7 +67,7 @@ impl Backend {
 
         Command::new("cp")
             .args(vec![source, target.to_string()])
-            .output()
+            .status()
             .expect("Couldn't copy lib");
     }
 }

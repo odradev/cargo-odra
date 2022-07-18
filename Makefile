@@ -1,5 +1,5 @@
 default:
-	cargo build
+	cargo build --release
 
 install:
 	cargo build --release

@@ -1,4 +1,5 @@
 use crate::backend::Backend;
+use crate::command::parse_command_result;
 use crate::{cargo_toml, odra_toml, BuildCommand};
 use std::fs;
 use std::fs::File;
@@ -84,16 +85,18 @@ fn main() {
         println!("Building wasm files...");
         for (_, contract) in conf.contracts.clone().into_iter() {
             // cargo run -p casper_builder --bin contract_def
-            Command::new("cargo")
+            let command = Command::new("cargo")
                 .current_dir(self.builder_path())
                 .args(["run", "--bin", format!("{}_build", &contract.name).as_str()])
                 .status()
                 .unwrap();
+
+            parse_command_result(command, "Couldn't run wasm builder.")
         }
 
         for (_, contract) in conf.contracts.into_iter() {
             // cargo build --release --target wasm32-unknown-unknown -p casper_builder --bin plascoin
-            Command::new("cargo")
+            let command = Command::new("cargo")
                 .current_dir(self.builder_path())
                 .args([
                     "build",
@@ -105,6 +108,11 @@ fn main() {
                 ])
                 .status()
                 .unwrap();
+
+            parse_command_result(
+                command,
+                format!("Couldn't build {} contract.", contract.name).as_str(),
+            );
         }
     }
 
@@ -127,18 +135,16 @@ fn main() {
                 .status()
                 .unwrap();
 
-            let wasm_output = Command::new("wasm-strip")
+            let command = Command::new("wasm-strip")
                 .current_dir("wasm")
                 .arg(format!("{}.wasm", contract.name))
-                .output();
+                .status()
+                .expect("Couldn't run wasmstrip");
 
-            match wasm_output {
-                Ok(_) => {}
-                Err(output) => {
-                    println!(
-                        "There was an error while running wasmstrip:\n{}\nContinuing anyway...",
-                        output
-                    );
+            match command.success() {
+                true => {}
+                false => {
+                    println!("There was an error while running wasmstrip - Continuing anyway...");
                 }
             }
         }
@@ -146,7 +152,8 @@ fn main() {
 
     fn cargo_build() {
         println!("Running cargo build...");
-        Command::new("cargo").args(vec!["build"]).output().unwrap();
+        let command = Command::new("cargo").args(vec!["build"]).status().unwrap();
+        parse_command_result(command, "Couldn't finish cargo build.")
     }
 
     pub(crate) fn build(&self) {
