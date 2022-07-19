@@ -13,14 +13,9 @@ pub struct Builder {
 
 impl Builder {
     pub fn new(build: BuildCommand) -> Builder {
-        match build.backend {
-            None => Builder { backend: None },
-            Some(backend_name) => {
-                let backend = Backend::new(backend_name, build.repo_uri);
-                Builder {
-                    backend: Some(backend),
-                }
-            }
+        let backend = Backend::new(build.backend, build.repo_uri);
+        Builder {
+            backend: Some(backend),
         }
     }
 

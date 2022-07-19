@@ -63,7 +63,7 @@ pub struct InitCommand {
 pub struct BuildCommand {
     /// Name of the backend that will be used for the build process (e.g. casper)
     #[clap(value_parser, long, short)]
-    backend: Option<String>,
+    backend: String,
     /// URI of the repository containing the backend code
     #[clap(value_parser, long, short)]
     repo_uri: Option<String>,
