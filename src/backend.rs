@@ -5,43 +5,40 @@ use std::process::Command;
 
 pub struct Backend {
     name: String,
-    repo_uri: String,
+    path: String,
 }
 
 impl Backend {
-    pub fn new(name: String, repo_uri: Option<String>) -> Backend {
-        let uri = match repo_uri {
-            None => {
-                format!("https://github.com/odradev/odra-{}.git", name)
-            }
-            Some(repo_uri) => repo_uri,
-        };
-
+    pub fn new(name: String, path: Option<String>) -> Backend {
         Backend {
-            name,
-            repo_uri: uri,
+            name: name.clone(),
+            path: match path {
+                None => {
+                    format!("https://github.com/odradev/odra-{}.git", name)
+                }
+                Some(path) => path,
+            },
         }
     }
 
-    pub fn repo_uri(&self) -> &String {
-        &self.repo_uri
+    pub fn path(&self) -> &String {
+        &self.path
     }
-
-    pub fn path(&self) -> String {
+    pub fn backend_path(&self) -> String {
         format!(".backend_{}/", self.name)
     }
     pub fn name(&self) -> &String {
         &self.name
     }
     pub fn test_env_path(&self) -> String {
-        format!("{}test_env/", self.path())
+        format!("{}test_env/", self.backend_path())
     }
 
-    pub(crate) fn pull_backend(&self) {
-        if !Path::new(self.path().as_str()).is_dir() {
-            println!("Downloading repository from {}...", self.repo_uri);
+    fn pull_backend(&self) {
+        if !Path::new(self.backend_path().as_str()).is_dir() {
+            println!("Downloading repository from {}...", self.path);
             let command = Command::new("git")
-                .args(vec!["clone", self.repo_uri.as_str(), self.path().as_str()])
+                .args(vec!["clone", self.path.as_str(), self.backend_path().as_str()])
                 .status()
                 .unwrap();
 
@@ -50,6 +47,7 @@ impl Backend {
     }
 
     pub(crate) fn build_backend(&self) {
+        self.pull_backend();
         println!("Building {} backend...", self.name);
         let command = Command::new("cargo")
             .current_dir(self.test_env_path())

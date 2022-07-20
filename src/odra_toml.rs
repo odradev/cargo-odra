@@ -9,6 +9,7 @@ const ODRA_TOML_FILENAME: &str = "Odra.toml";
 pub(crate) struct OdraConf {
     pub name: String,
     pub contracts: HashMap<String, Contract>,
+    pub backends: Option<HashMap<String, Backend>>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -16,6 +17,13 @@ pub(crate) struct Contract {
     pub path: String,
     pub name: String,
     pub fqn: String,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub(crate) struct Backend {
+    pub name: String,
+    pub path: String,
+    pub branch: Option<String>,
 }
 
 pub(crate) fn load_odra_conf() -> OdraConf {
@@ -44,11 +52,18 @@ mod test {
         let toml_str = r#"
             name = "goralkocoin"
             [contracts]
-            flipper = { path = "src/flipper.rs", name = "flipper", fqn = "Flipper::Flipper"}
+            flipper = { path = "src/flipper.rs", name = "flipper", fqn = "Flipper::Flipper" }
             plascoin = { path = "src/plascoin.rs", name = "plascoin", fqn = "Plascoin::Plascoin" }
+            [backends]
+            casper = { path = "../odra-casper", name = "casper" }
+            casper2 = { path = "https://github.com/odradev/odra-casper", branch = "develop", name = "casper" }
         "#;
         let decoded: OdraConf = toml::from_str(toml_str).unwrap();
         assert_eq!(decoded.contracts.get("plascoin").unwrap().name, "plascoin");
         assert_eq!(decoded.name, "goralkocoin");
+        assert_eq!(decoded.backends.clone().unwrap().get("casper").unwrap().path, "../odra-casper".to_string());
+        assert_eq!(decoded.backends.clone().unwrap().get("casper").unwrap().branch, None);
+        assert_eq!(decoded.backends.clone().unwrap().get("casper").unwrap().name, "casper".to_string());
+        assert_eq!(decoded.backends.unwrap().get("casper2").unwrap().branch, Some("develop".to_string()));
     }
 }

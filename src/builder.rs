@@ -1,11 +1,13 @@
 use crate::backend::Backend;
 use crate::command::parse_command_result;
-use crate::{cargo_toml, odra_toml, BuildCommand};
+use crate::{BuildCommand, odra_toml};
 use std::fs;
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
 use std::process::Command;
+
+mod cargo_toml;
 
 pub struct Builder {
     pub backend: Option<Backend>,
@@ -116,16 +118,22 @@ fn main() {
         fs::create_dir_all("target/debug").unwrap();
         fs::create_dir_all("wasm").unwrap();
         for (_, contract) in conf.contracts.into_iter() {
-            println!("Copying wasm files...");
+            let source = format!(
+                "{}target/wasm32-unknown-unknown/release/{}.wasm",
+                self.builder_path(),
+                contract.name
+            );
+            let target = format!(
+                "wasm/{}.wasm",
+                contract.name
+            );
+
+            println!("Saving {}", target);
+
             Command::new("cp")
                 .args([
-                    format!(
-                        "{}target/wasm32-unknown-unknown/release/{}.wasm",
-                        self.builder_path(),
-                        contract.name
-                    )
-                    .as_str(),
-                    "wasm",
+                    source,
+                    target,
                 ])
                 .status()
                 .unwrap();
@@ -155,7 +163,6 @@ fn main() {
         match &self.backend {
             None => Builder::cargo_build(),
             Some(backend) => {
-                backend.pull_backend();
                 backend.build_backend();
                 self.prepare_builder(backend.name());
                 cargo_toml::build_cargo_toml(self, backend);
