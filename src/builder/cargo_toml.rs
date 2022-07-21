@@ -1,19 +1,19 @@
 /// File containing functions used by Builder for managing its Cargo.toml file
 use crate::backend::Backend;
-use crate::odra_toml::load_odra_conf;
+use crate::odra_toml::OdraConf;
 use crate::Builder;
 use std::fs::File;
 use std::io::Write;
+use cargo_metadata::Dependency;
 
 pub(crate) fn build_cargo_toml(builder: &Builder, backend: &Backend) {
     // if Path::new(&(builder.builder_path() + "Cargo.toml")).exists() {
     //     return;
     // };
-    let conf = load_odra_conf();
+    let conf = OdraConf::load();
     let mut cargo_toml = cargo_toml()
         .replace("#package_name", &conf.name)
-        .replace("#backend_name", backend.name())
-        .replace("#backend_repo", backend.path());
+        .replace("#backend", Dependency:: backend.dependency);
 
     for (_, contract) in conf.contracts.into_iter() {
         cargo_toml += bin()
@@ -33,7 +33,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-#backend_name_backend = { git = "#backend_repo", default-features = false, features = ["codegen", "backend"] }
+#backend
 odra = { git = "https://github.com/odradev/odra", default-features = false, features = ["wasm"] }
 #package_name = { path = "..", default-features = false, features = ["wasm"] }
 

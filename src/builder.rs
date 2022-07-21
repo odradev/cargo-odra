@@ -1,11 +1,12 @@
 use crate::backend::Backend;
 use crate::command::parse_command_result;
-use crate::{BuildCommand, odra_toml};
+use crate::{BuildCommand};
 use std::fs;
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
 use std::process::Command;
+use crate::odra_toml::OdraConf;
 
 mod cargo_toml;
 
@@ -15,7 +16,7 @@ pub struct Builder {
 
 impl Builder {
     pub fn new(build: BuildCommand) -> Builder {
-        let backend = Backend::new(build.backend, build.repo_uri);
+        let backend = Backend::load(build.backend);
         Builder {
             backend: Some(backend),
         }
@@ -49,7 +50,7 @@ impl Builder {
     }
 
     fn create_build_files(&self, backend: &str) {
-        let conf = odra_toml::load_odra_conf();
+        let conf = OdraConf::load();
         for (_, contract) in conf.contracts.into_iter() {
             let path = self.builder_path() + contract.path.as_str();
             if !Path::new(&path).exists() {
@@ -78,7 +79,7 @@ fn main() {
     }
 
     pub(crate) fn build_wasm(&self) {
-        let conf = odra_toml::load_odra_conf();
+        let conf = OdraConf::load();
         println!("Building wasm files...");
         for (_, contract) in conf.contracts.clone().into_iter() {
             // cargo run -p casper_builder --bin contract_def
@@ -114,7 +115,7 @@ fn main() {
     }
 
     pub(crate) fn copy_wasm_files(&self, _name: &str) {
-        let conf = odra_toml::load_odra_conf();
+        let conf = OdraConf::load();
         fs::create_dir_all("target/debug").unwrap();
         fs::create_dir_all("wasm").unwrap();
         for (_, contract) in conf.contracts.into_iter() {

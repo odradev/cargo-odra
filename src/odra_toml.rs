@@ -1,39 +1,40 @@
-use serde_derive::Deserialize;
+use serde_derive::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::Path;
 use std::{fs, process};
+use crate::Backend;
 
 const ODRA_TOML_FILENAME: &str = "Odra.toml";
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub(crate) struct OdraConf {
     pub name: String,
     pub contracts: HashMap<String, Contract>,
     pub backends: Option<HashMap<String, Backend>>,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+impl OdraConf {
+    pub fn load() -> OdraConf {
+        let odra_conf = fs::read_to_string(ODRA_TOML_FILENAME);
+        match odra_conf {
+            Ok(conf_file) => toml::from_str(conf_file.as_str()).unwrap(),
+            Err(_) => {
+                panic!("Odra.toml file is missing. Is Odra initialized?")
+            }
+        }
+    }
+
+    pub fn save(&self) {
+        let content = toml::to_string(&self).unwrap();
+        fs::write(ODRA_TOML_FILENAME, content).unwrap();
+    }
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub(crate) struct Contract {
     pub path: String,
     pub name: String,
     pub fqn: String,
-}
-
-#[derive(Deserialize, Debug, Clone)]
-pub(crate) struct Backend {
-    pub name: String,
-    pub path: String,
-    pub branch: Option<String>,
-}
-
-pub(crate) fn load_odra_conf() -> OdraConf {
-    let odra_conf = fs::read_to_string(ODRA_TOML_FILENAME);
-    match odra_conf {
-        Ok(conf_file) => toml::from_str(conf_file.as_str()).unwrap(),
-        Err(_) => {
-            panic!("Odra.toml file is missing. Is Odra initialized?")
-        }
-    }
 }
 
 pub fn assert_odra_toml() {

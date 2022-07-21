@@ -3,6 +3,7 @@ use convert_case::{Case, Casing};
 use std::fs;
 use std::fs::OpenOptions;
 use std::io::Write;
+use crate::odra_toml::OdraConf;
 
 pub struct Generate {
     generate: GenerateCommand,
@@ -63,7 +64,7 @@ impl Generate {
             .unwrap();
         let fqn = format!(
             "{}::{}",
-            crate::odra_toml::load_odra_conf().name,
+            OdraConf::load().name,
             self.generate.contract_name.to_case(Case::UpperCamel)
         );
         writeln!(odra_toml).unwrap();

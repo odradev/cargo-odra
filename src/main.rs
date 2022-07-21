@@ -6,7 +6,7 @@ mod generate;
 mod init;
 mod odra_toml;
 mod tests;
-mod cargo_toml;
+mod odra_dependency;
 
 use crate::builder::Builder;
 use crate::clean::Clean;
@@ -16,6 +16,7 @@ use crate::odra_toml::assert_odra_toml;
 use crate::tests::Tests;
 use clap::{Parser, Subcommand};
 use std::ffi::OsString;
+use crate::backend::Backend;
 
 #[derive(Parser)]
 #[clap(name = "cargo")]
@@ -73,10 +74,19 @@ enum BackendCommand{
 pub struct AddBackendCommand {
     /// Name of the backend that will be used for the build process (e.g. casper)
     #[clap(value_parser, long, short)]
-    backend: String,
+    name: String,
     /// URI of the repository containing the backend code
     #[clap(value_parser, long, short)]
     repo_uri: Option<String>,
+    /// Branch name
+    #[clap(value_parser, long, short)]
+    branch: Option<String>,
+    /// Version of backend crate
+    #[clap(value_parser, long, short)]
+    version: Option<String>,
+    /// Local path
+    #[clap(value_parser, long, short)]
+    path: Option<String>,
 }
 
 #[derive(clap::Args)]
@@ -84,9 +94,6 @@ pub struct RemoveBackendCommand {
     /// Name of the backend that will be used for the build process (e.g. casper)
     #[clap(value_parser, long, short)]
     backend: String,
-    /// URI of the repository containing the backend code
-    #[clap(value_parser, long, short)]
-    repo_uri: Option<String>,
 }
 
 #[derive(clap::Args)]
@@ -151,8 +158,21 @@ fn main() {
             assert_odra_toml();
             Clean::new().clean();
         }
-        OdraSubcommand::Backend(_) => {
-
+        OdraSubcommand::Backend(backend) => {
+            match backend {
+                BackendCommand::Add(add) => {
+                    match Backend::add(add) {
+                        true => {
+                            println!("Added.");
+                        }
+                        false => {
+                            println!("Backend already exists.");
+                        }
+                    }
+                }
+                BackendCommand::Remove(_) => {}
+                BackendCommand::List(_) => {}
+            }
         }
     }
 }
