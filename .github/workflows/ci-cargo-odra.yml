@@ -27,4 +27,4 @@ jobs:
           toolchain: nightly
       - uses: Swatinem/rust-cache@v1
       - run: make install
-      - run: test-project-generation
+      - run: make test-project-generation
