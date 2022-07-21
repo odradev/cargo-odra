@@ -34,7 +34,7 @@ edition = "2021"
 
 [dependencies]
 #backend_name_backend = { git = "#backend_repo", default-features = false, features = ["codegen", "backend"] }
-odra = { git = "https://github.com/odradev/odra", default-features = false, features = ["wasm"] }
+odra = { git = "https://github.com/odradev/odra", branch = "develop", default-features = false, features = ["wasm"] }
 #package_name = { path = "..", default-features = false, features = ["wasm"] }
 
 [build-dependencies]

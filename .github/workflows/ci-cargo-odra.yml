@@ -27,10 +27,4 @@ jobs:
           toolchain: nightly
       - uses: Swatinem/rust-cache@v1
       - run: make install
-      - run: cargo odra new -n test_project && cd test_project
-      - run: cargo odra generate -c plascoin
-        working-directory: ./plascoin
-      - run: cargo odra test
-        working-directory: ./plascoin
-      - run: cargo odra test -b casper
-        working-directory: ./plascoin
+      - run: test-project-generation

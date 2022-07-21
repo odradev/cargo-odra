@@ -38,7 +38,13 @@ impl Backend {
         if !Path::new(self.backend_path().as_str()).is_dir() {
             println!("Downloading repository from {}...", self.path);
             let command = Command::new("git")
-                .args(vec!["clone", self.path.as_str(), self.backend_path().as_str()])
+                .args(vec![
+                    "clone",
+                    "--branch",
+                    "develop",
+                    self.path.as_str(),
+                    self.backend_path().as_str()
+                ])
                 .status()
                 .unwrap();
 
