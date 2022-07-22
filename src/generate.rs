@@ -1,9 +1,9 @@
+use crate::odra_toml::OdraConf;
 use crate::GenerateCommand;
 use convert_case::{Case, Casing};
 use std::fs;
 use std::fs::OpenOptions;
 use std::io::Write;
-use crate::odra_toml::OdraConf;
 
 pub struct Generate {
     generate: GenerateCommand,

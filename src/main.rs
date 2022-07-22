@@ -4,10 +4,11 @@ mod clean;
 mod command;
 mod generate;
 mod init;
+mod odra_dependency;
 mod odra_toml;
 mod tests;
-mod odra_dependency;
 
+use crate::backend::Backend;
 use crate::builder::Builder;
 use crate::clean::Clean;
 use crate::generate::Generate;
@@ -16,7 +17,6 @@ use crate::odra_toml::assert_odra_toml;
 use crate::tests::Tests;
 use clap::{Parser, Subcommand};
 use std::ffi::OsString;
-use crate::backend::Backend;
 
 #[derive(Parser)]
 #[clap(name = "cargo")]
@@ -64,7 +64,7 @@ pub struct InitCommand {
 }
 
 #[derive(Subcommand)]
-enum BackendCommand{
+enum BackendCommand {
     Add(AddBackendCommand),
     Remove(RemoveBackendCommand),
     List(ListBackendsCommand),
@@ -97,8 +97,7 @@ pub struct RemoveBackendCommand {
 }
 
 #[derive(clap::Args)]
-pub struct ListBackendsCommand {
-}
+pub struct ListBackendsCommand {}
 
 #[derive(clap::Args)]
 pub struct BuildCommand {
@@ -158,21 +157,17 @@ fn main() {
             assert_odra_toml();
             Clean::new().clean();
         }
-        OdraSubcommand::Backend(backend) => {
-            match backend {
-                BackendCommand::Add(add) => {
-                    match Backend::add(add) {
-                        true => {
-                            println!("Added.");
-                        }
-                        false => {
-                            println!("Backend already exists.");
-                        }
-                    }
+        OdraSubcommand::Backend(backend) => match backend {
+            BackendCommand::Add(add) => match Backend::add(add) {
+                true => {
+                    println!("Added.");
                 }
-                BackendCommand::Remove(_) => {}
-                BackendCommand::List(_) => {}
-            }
-        }
+                false => {
+                    println!("Backend already exists.");
+                }
+            },
+            BackendCommand::Remove(_) => {}
+            BackendCommand::List(_) => {}
+        },
     }
 }

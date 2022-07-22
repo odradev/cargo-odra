@@ -1,12 +1,12 @@
 mod builder;
 
-use std::collections::HashMap;
-use std::{fs, process};
-use std::process::Command;
+use crate::odra_toml::{Contract, OdraConf};
+use crate::AddBackendCommand;
 use cargo_toml::{Dependency, DependencyDetail};
 use serde_derive::{Deserialize, Serialize};
-use crate::AddBackendCommand;
-use crate::odra_toml::{Contract, OdraConf};
+use std::collections::HashMap;
+use std::process::Command;
+use std::{fs, process};
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Backend {
@@ -37,9 +37,7 @@ impl Backend {
                     println!("No such backend.");
                     process::exit(1);
                 }
-                Some(backend) => {
-                    backend.clone()
-                }
+                Some(backend) => backend.clone(),
             }
         }
     }
@@ -47,39 +45,35 @@ impl Backend {
     fn from_add_command(add: &AddBackendCommand) -> Backend {
         let dependency;
         if add.path.is_some() {
-            dependency = Dependency::Detailed(
-                DependencyDetail {
-                    version: None,
-                    registry: None,
-                    registry_index: None,
-                    path: add.path.clone(),
-                    git: None,
-                    branch: None,
-                    tag: None,
-                    rev: None,
-                    features: vec![],
-                    optional: false,
-                    default_features: None,
-                    package: None
-                }
-            );
+            dependency = Dependency::Detailed(DependencyDetail {
+                version: None,
+                registry: None,
+                registry_index: None,
+                path: add.path.clone(),
+                git: None,
+                branch: None,
+                tag: None,
+                rev: None,
+                features: vec![],
+                optional: false,
+                default_features: None,
+                package: None,
+            });
         } else if add.repo_uri.is_some() {
-            dependency = Dependency::Detailed(
-                DependencyDetail {
-                    version: None,
-                    registry: None,
-                    registry_index: None,
-                    path: None,
-                    git: None,
-                    branch: None,
-                    tag: None,
-                    rev: None,
-                    features: vec![],
-                    optional: false,
-                    default_features: None,
-                    package: None
-                }
-            );
+            dependency = Dependency::Detailed(DependencyDetail {
+                version: None,
+                registry: None,
+                registry_index: None,
+                path: None,
+                git: None,
+                branch: None,
+                tag: None,
+                rev: None,
+                features: vec![],
+                optional: false,
+                default_features: None,
+                package: None,
+            });
         } else {
             dependency = Dependency::Simple("asdf".to_string());
         }
@@ -87,7 +81,7 @@ impl Backend {
         Backend {
             name: add.name.clone(),
             dependency_name: add.name.clone(),
-            dependency
+            dependency,
         }
     }
 
@@ -95,22 +89,20 @@ impl Backend {
         Backend {
             name: name.clone(),
             dependency_name: name.clone(),
-            dependency: Dependency::Detailed(
-                DependencyDetail {
-                    version: None,
-                    registry: None,
-                    registry_index: None,
-                    path: Some(path),
-                    git: None,
-                    branch,
-                    tag: None,
-                    rev: None,
-                    features: vec![],
-                    optional: false,
-                    default_features: Some(false),
-                    package: None
-                }
-            )
+            dependency: Dependency::Detailed(DependencyDetail {
+                version: None,
+                registry: None,
+                registry_index: None,
+                path: Some(path),
+                git: None,
+                branch,
+                tag: None,
+                rev: None,
+                features: vec![],
+                optional: false,
+                default_features: Some(false),
+                package: None,
+            }),
         }
     }
 
@@ -132,25 +124,7 @@ impl Backend {
         }
     }
 
-    pub fn build_backend(&self) {
-
-    }
-
-    pub fn save(&self) {
-
-    }
-
-    pub fn from_dependency(dependency: &Dependency) {
-
-    }
-
-    pub fn from_dependency_detail(dependency_detail: &DependencyDetail) {
-
-    }
-
-    fn test_env_path(&self) -> String {
-        todo!();
-    }
+    pub fn build_backend(&self) {}
 
     pub fn copy_libodra(&self) {
         println!("Copying lib...");

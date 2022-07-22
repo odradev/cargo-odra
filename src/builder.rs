@@ -1,12 +1,12 @@
 use crate::backend::Backend;
 use crate::command::parse_command_result;
-use crate::{BuildCommand};
+use crate::odra_toml::OdraConf;
+use crate::BuildCommand;
 use std::fs;
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
 use std::process::Command;
-use crate::odra_toml::OdraConf;
 
 mod cargo_toml;
 
@@ -68,7 +68,7 @@ impl Builder {
         r##"
 fn main() {
     let contract_def = <#contract_fqn as odra::contract_def::HasContractDef>::contract_def();
-    let code = #backend_name_backend::codegen::gen_contract(contract_def, "#contract_fqn".to_string());
+    let code = odra_#backend_name_backend::codegen::gen_contract(contract_def, "#contract_fqn".to_string());
 
     use std::fs::File;
     use std::io::prelude::*;
@@ -124,20 +124,11 @@ fn main() {
                 self.builder_path(),
                 contract.name
             );
-            let target = format!(
-                "wasm/{}.wasm",
-                contract.name
-            );
+            let target = format!("wasm/{}.wasm", contract.name);
 
             println!("Saving {}", target);
 
-            Command::new("cp")
-                .args([
-                    source,
-                    target,
-                ])
-                .status()
-                .unwrap();
+            Command::new("cp").args([source, target]).status().unwrap();
 
             let command = Command::new("wasm-strip")
                 .current_dir("wasm")
