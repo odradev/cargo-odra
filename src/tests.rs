@@ -37,6 +37,7 @@ impl Tests {
 
     fn test_backend(&self, builder: &Builder) {
         builder.build();
+        // test_env_cargo_toml(builder, &builder.backend);
 
         let mut test_args = self.get_test_args();
         test_args.append(&mut vec!["--no-default-features", "--features=wasm-test"]);

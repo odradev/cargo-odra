@@ -8,27 +8,22 @@ use std::io::Write;
 use std::path::Path;
 use std::process::Command;
 
-mod cargo_toml;
-
 pub struct Builder {
-    pub backend: Option<Backend>,
+    pub backend: Backend,
 }
 
 impl Builder {
     pub fn new(build: BuildCommand) -> Builder {
         let backend = Backend::load(build.backend);
-        Builder {
-            backend: Some(backend),
-        }
+        Builder { backend: backend }
     }
 
     pub fn builder_path(&self) -> String {
-        match &self.backend {
-            None => ".builder/".to_string(),
-            Some(backend) => {
-                format!(".builder_{}/", backend.name())
-            }
-        }
+        format!(".builder_{}/", self.backend.name())
+    }
+
+    pub fn test_env_path(&self) -> String {
+        format!("{}test_env", self.builder_path())
     }
 
     fn prepare_builder(&self, name: &String) {
@@ -45,11 +40,12 @@ impl Builder {
         if !Path::new(&src_path).is_dir() {
             fs::create_dir(src_path).unwrap();
         }
-
-        self.create_build_files(name);
+        let mut file = File::create(format!("{}/src/main.rs", self.builder_path())).unwrap();
+        file.write_all(Builder::main_rs().as_bytes()).unwrap();
+        self.create_build_files();
     }
 
-    fn create_build_files(&self, backend: &str) {
+    fn create_build_files(&self) {
         let conf = OdraConf::load();
         for (_, contract) in conf.contracts.into_iter() {
             let path = self.builder_path() + contract.path.as_str();
@@ -57,7 +53,7 @@ impl Builder {
                 let contents = Builder::def_rs()
                     .replace("#contract_fqn", &contract.fqn)
                     .replace("#contract_name", &contract.name)
-                    .replace("#backend_name", backend);
+                    .replace("#backend_name", &self.backend.name);
                 let mut file = File::create(path).unwrap();
                 file.write_all(contents.as_bytes()).unwrap();
             }
@@ -78,6 +74,12 @@ fn main() {
         "##
     }
 
+    fn main_rs() -> &'static str {
+        r##"
+fn main() {}
+        "##
+    }
+
     pub(crate) fn build_wasm(&self) {
         let conf = OdraConf::load();
         println!("Building wasm files...");
@@ -85,7 +87,14 @@ fn main() {
             // cargo run -p casper_builder --bin contract_def
             let command = Command::new("cargo")
                 .current_dir(self.builder_path())
-                .args(["run", "--bin", format!("{}_build", &contract.name).as_str()])
+                .args([
+                    "run",
+                    "--bin",
+                    format!("{}_build", &contract.name).as_str(),
+                    "--no-default-features",
+                    "--features",
+                    "codegen",
+                ])
                 .status()
                 .unwrap();
 
@@ -98,11 +107,14 @@ fn main() {
                 .current_dir(self.builder_path())
                 .args([
                     "build",
-                    "--release",
                     "--target",
                     "wasm32-unknown-unknown",
                     "--bin",
                     &contract.name,
+                    "--release",
+                    "--no-default-features",
+                    "--features",
+                    "wasm",
                 ])
                 .status()
                 .unwrap();
@@ -114,7 +126,7 @@ fn main() {
         }
     }
 
-    pub(crate) fn copy_wasm_files(&self, _name: &str) {
+    pub(crate) fn copy_wasm_files(&self) {
         let conf = OdraConf::load();
         fs::create_dir_all("target/debug").unwrap();
         fs::create_dir_all("wasm").unwrap();
@@ -145,6 +157,31 @@ fn main() {
         }
     }
 
+    pub fn build_lib(&self) {
+        let command = Command::new("cargo")
+            .current_dir(self.builder_path())
+            .args(["run", "--bin", "builder", "--release"])
+            .status()
+            .unwrap();
+
+        parse_command_result(command, "Couldn't lib builder.");
+
+        let source = format!(
+            "{}target/release/deps/libodra_test_env.so",
+            self.builder_path()
+        );
+        let target = "target/release/libodra_test_env.so".to_string();
+        let target2 = "target/debug/libodra_test_env.so".to_string();
+
+        println!("Saving {}", target);
+
+        Command::new("cp")
+            .args([source.clone(), target])
+            .status()
+            .unwrap();
+        Command::new("cp").args([source, target2]).status().unwrap();
+    }
+
     fn cargo_build() {
         println!("Running cargo build...");
         let command = Command::new("cargo").args(vec!["build"]).status().unwrap();
@@ -152,15 +189,11 @@ fn main() {
     }
 
     pub(crate) fn build(&self) {
-        match &self.backend {
-            None => Builder::cargo_build(),
-            Some(backend) => {
-                backend.build_backend();
-                self.prepare_builder(backend.name());
-                cargo_toml::build_cargo_toml(self, backend);
-                self.build_wasm();
-                self.copy_wasm_files(backend.name());
-            }
-        }
+        self.backend.build_backend();
+        self.prepare_builder(self.backend.name());
+        crate::cargo_toml::builder_cargo_toml(self, &self.backend);
+        self.build_wasm();
+        self.copy_wasm_files();
+        self.build_lib();
     }
 }
