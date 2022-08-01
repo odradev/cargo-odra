@@ -136,7 +136,8 @@ impl Backend {
         let mut odra_details = odra_details().unwrap();
         odra_details.features = vec!["wasm".to_string()];
         odra_details.optional = true;
-        odra_details.default_features = None;
+        odra_details.default_features = Some(false);
+        odra_details.path = Some(format!("../{}", odra_details.path.unwrap()));
         Dependency::Detailed(odra_details)
     }
 
@@ -151,8 +152,8 @@ impl Backend {
             tag: None,
             rev: None,
             features: vec!["wasm".to_string()],
-            optional: false,
-            default_features: None,
+            optional: true,
+            default_features: Some(false),
             package: None,
         })
     }
@@ -366,7 +367,7 @@ fn main() {}
     pub fn build_lib(&self) {
         let command = Command::new("cargo")
             .current_dir(self.builder_path())
-            .args(["run", "--bin", "builder", "--release"])
+            .args(["run", "--bin", "builder", "--release", "--no-default-features", "--features=build"])
             .status()
             .unwrap();
 

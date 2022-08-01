@@ -42,6 +42,7 @@ pub fn builder_cargo_toml(backend: &Backend) {
             required_features: vec![],
         });
     }
+    let project_name = OdraConf::load().name;
 
     let mut features = FeatureSet::new();
     features.insert("default".to_string(), vec!["build".to_string()]);
@@ -53,6 +54,7 @@ pub fn builder_cargo_toml(backend: &Backend) {
         "codegen".to_string(),
         vec![
             format!("odra-{}-backend", backend.dependency_name()),
+            project_name.clone(),
             "odra".to_string(),
         ],
     );
@@ -60,8 +62,8 @@ pub fn builder_cargo_toml(backend: &Backend) {
         "wasm".to_string(),
         vec![
             "odra/wasm".to_string(),
+            project_name,
             format!("odra-{}-backend", backend.dependency_name()),
-            "odra".to_string(),
         ],
     );
 
