@@ -1,43 +1,36 @@
-use crate::{BuildCommand, Builder, TestCommand};
+use crate::{Backend, TestCommand};
 use std::ffi::OsString;
 use std::os::unix::process::CommandExt;
 use std::process::Command;
 
 pub struct Tests {
-    builder: Option<Builder>,
+    backend: Option<Backend>,
     passthrough: Option<Vec<OsString>>,
 }
 
 impl Tests {
     pub fn new(test: TestCommand) -> Tests {
-        let builder = match test.backend {
-            None => None,
-            Some(test_backend) => Some(Builder::new(BuildCommand {
-                backend: test_backend,
-                repo_uri: test.repo_uri,
-            })),
-        };
+        let backend = test.backend.map(Backend::load);
 
         Tests {
-            builder,
+            backend,
             passthrough: test.passthrough,
         }
     }
 
     pub(crate) fn test(&self) {
-        match &self.builder {
+        match &self.backend {
             None => {
                 self.test_mock_vm();
             }
-            Some(builder) => {
-                self.test_backend(builder);
+            Some(_) => {
+                self.test_backend();
             }
         }
     }
 
-    fn test_backend(&self, builder: &Builder) {
-        builder.build();
-        // test_env_cargo_toml(builder, &builder.backend);
+    fn test_backend(&self) {
+        self.backend.clone().unwrap().build();
 
         let mut test_args = self.get_test_args();
         test_args.append(&mut vec!["--no-default-features", "--features=wasm-test"]);

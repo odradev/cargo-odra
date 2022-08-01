@@ -2,13 +2,12 @@
 use crate::backend::Backend;
 
 use crate::odra_toml::OdraConf;
-use crate::Builder;
 use cargo_toml::{FeatureSet, Manifest, Package, Product};
 
 use std::fs::File;
 use std::io::Write;
 
-pub fn builder_cargo_toml(builder: &Builder, backend: &Backend) {
+pub fn builder_cargo_toml(backend: &Backend) {
     let conf = OdraConf::load();
 
     let mut bins = vec![];
@@ -48,12 +47,12 @@ pub fn builder_cargo_toml(builder: &Builder, backend: &Backend) {
     features.insert("default".to_string(), vec!["build".to_string()]);
     features.insert(
         "build".to_string(),
-        vec![format!("odra-{}-test-env", backend.dependency_name)],
+        vec![format!("odra-{}-test-env", backend.dependency_name())],
     );
     features.insert(
         "codegen".to_string(),
         vec![
-            format!("odra-{}-backend", backend.dependency_name),
+            format!("odra-{}-backend", backend.dependency_name()),
             "odra".to_string(),
         ],
     );
@@ -61,7 +60,7 @@ pub fn builder_cargo_toml(builder: &Builder, backend: &Backend) {
         "wasm".to_string(),
         vec![
             "odra/wasm".to_string(),
-            format!("odra-{}-backend", backend.dependency_name),
+            format!("odra-{}-backend", backend.dependency_name()),
             "odra".to_string(),
         ],
     );
@@ -87,6 +86,6 @@ pub fn builder_cargo_toml(builder: &Builder, backend: &Backend) {
 
     let toml = toml::to_string(&cargo_toml).unwrap();
 
-    let mut file = File::create(builder.builder_path() + "Cargo.toml").unwrap();
+    let mut file = File::create(backend.builder_path() + "Cargo.toml").unwrap();
     file.write_all(toml.as_bytes()).unwrap();
 }

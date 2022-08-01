@@ -1,5 +1,4 @@
 mod backend;
-mod builder;
 mod cargo_toml;
 mod clean;
 mod command;
@@ -11,7 +10,6 @@ mod odra_toml;
 mod tests;
 
 use crate::backend::Backend;
-use crate::builder::Builder;
 use crate::clean::Clean;
 use crate::generate::Generate;
 use crate::init::Init;
@@ -74,6 +72,9 @@ enum BackendCommand {
 
 #[derive(clap::Args)]
 pub struct AddBackendCommand {
+    /// Name of the backend package (e.g. casper)
+    #[clap(value_parser, long, short)]
+    package: String,
     /// Name of the backend that will be used for the build process (e.g. casper)
     #[clap(value_parser, long, short)]
     name: String,
@@ -95,7 +96,7 @@ pub struct AddBackendCommand {
 pub struct RemoveBackendCommand {
     /// Name of the backend that will be used for the build process (e.g. casper)
     #[clap(value_parser, long, short)]
-    backend: String,
+    name: String,
 }
 
 #[derive(clap::Args)]
@@ -139,7 +140,7 @@ fn main() {
     match args.subcommand {
         OdraSubcommand::Build(build) => {
             assert_odra_toml();
-            Builder::new(build).build();
+            Backend::load(build.backend).build();
         }
         OdraSubcommand::Test(test) => {
             assert_odra_toml();
@@ -168,7 +169,14 @@ fn main() {
                     println!("Backend already exists.");
                 }
             },
-            BackendCommand::Remove(_) => {}
+            BackendCommand::Remove(remove) => match Backend::remove(remove) {
+                true => {
+                    println!("Removed.");
+                }
+                false => {
+                    println!("No such backend.");
+                }
+            },
             BackendCommand::List(_) => {}
         },
     }

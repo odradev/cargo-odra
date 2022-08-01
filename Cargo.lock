@@ -207,6 +207,7 @@ dependencies = [
  "clap-cargo",
  "convert_case",
  "glob",
+ "regex",
  "rm_rf",
  "serde",
  "serde_derive",
