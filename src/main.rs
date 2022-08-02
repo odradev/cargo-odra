@@ -98,7 +98,7 @@ impl AddBackendCommand {
             None
         } else {
             let path = self.path.clone().unwrap();
-            if !path.ends_with("/") {
+            if !path.ends_with('/') {
                 return Some(format!("{}/", path));
             }
             Some(path)
