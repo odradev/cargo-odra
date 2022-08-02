@@ -92,6 +92,20 @@ pub struct AddBackendCommand {
     path: Option<String>,
 }
 
+impl AddBackendCommand {
+    pub fn path(&self) -> Option<String> {
+        if self.path.is_none() {
+            None
+        } else {
+            let path = self.path.clone().unwrap();
+            if !path.ends_with("/") {
+                return Some(format!("{}/", path))
+            }
+            Some(path)
+        }
+    }
+}
+
 #[derive(clap::Args)]
 pub struct RemoveBackendCommand {
     /// Name of the backend that will be used for the build process (e.g. casper)

@@ -137,7 +137,9 @@ impl Backend {
         odra_details.features = vec!["wasm".to_string()];
         odra_details.optional = true;
         odra_details.default_features = Some(false);
-        odra_details.path = Some(format!("../{}", odra_details.path.unwrap()));
+        if odra_details.path.is_some() {
+            odra_details.path = Some(format!("../{}", odra_details.path.unwrap()));
+        }
         Dependency::Detailed(odra_details)
     }
 
@@ -183,7 +185,7 @@ impl Backend {
                 version: None,
                 registry: None,
                 registry_index: None,
-                path: add.path.clone(),
+                path: add.path(),
                 git: None,
                 branch: None,
                 tag: None,
