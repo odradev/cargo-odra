@@ -99,7 +99,7 @@ impl AddBackendCommand {
         } else {
             let path = self.path.clone().unwrap();
             if !path.ends_with("/") {
-                return Some(format!("{}/", path))
+                return Some(format!("{}/", path));
             }
             Some(path)
         }
@@ -191,7 +191,9 @@ fn main() {
                     println!("No such backend.");
                 }
             },
-            BackendCommand::List(_) => {}
+            BackendCommand::List(_) => {
+                todo!()
+            }
         },
     }
 }

@@ -10,6 +10,7 @@ impl Clean {
     }
 
     pub fn clean(&self) {
+        // TODO: Usunąć wasm
         for folder in glob::glob(".backend*").unwrap().flatten() {
             Clean::rm_rf(folder);
         }

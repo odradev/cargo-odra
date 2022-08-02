@@ -7,7 +7,8 @@ install:
 
 test-project-generation:
 	rm -rf test-project
-	cargo odra new -n test-project
-	cd test-project && cargo odra generate -c plascoin
-	cd test-project && cargo odra test
-	cd test-project && cargo odra test -b casper
+	cargo odra new -n testproject
+	cd testproject && cargo odra generate -c plascoin
+	cd testproject && cargo odra test
+	cd testproject && cargo odra backend add --package casper --name casper --repo-uri https://github.com/odradev/odra-casper
+	cd testproject && cargo odra test -b casper

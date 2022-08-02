@@ -369,7 +369,14 @@ fn main() {}
     pub fn build_lib(&self) {
         let command = Command::new("cargo")
             .current_dir(self.builder_path())
-            .args(["run", "--bin", "builder", "--release", "--no-default-features", "--features=build"])
+            .args([
+                "run",
+                "--bin",
+                "builder",
+                "--release",
+                "--no-default-features",
+                "--features=build",
+            ])
             .status()
             .unwrap();
 
