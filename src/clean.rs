@@ -10,7 +10,7 @@ impl Clean {
     }
 
     pub fn clean(&self) {
-        for folder in glob::glob(".backend*").unwrap().flatten() {
+        for folder in glob::glob("wasm").unwrap().flatten() {
             Clean::rm_rf(folder);
         }
 
