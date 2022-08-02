@@ -9,7 +9,7 @@ use cargo_toml::{Dependency, DependencyDetail, DepsSet};
 use regex::Regex;
 use serde_derive::{Deserialize, Serialize};
 
-use crate::command::{cp, mkdir, parse_command_result, wasm_strip};
+use crate::command::{cp, fmt as fmt_command, mkdir, parse_command_result, wasm_strip};
 use crate::odra_dependency::odra_details;
 use crate::odra_toml::OdraConf;
 use crate::{consts, AddBackendCommand, RemoveBackendCommand};
@@ -28,7 +28,18 @@ pub struct Backend {
 }
 
 impl Backend {
-    pub(crate) fn remove(remove: RemoveBackendCommand) -> bool {
+    /// Main function that runs the whole workflow for backend
+    pub fn build(&self) {
+        self.prepare_builder(self.name());
+        crate::cargo_toml::builder_cargo_toml(self);
+        self.build_wasm();
+        self.fmt();
+        self.copy_wasm_files();
+        self.build_lib();
+    }
+
+    /// Removes backend from Odra.toml
+    pub fn remove(remove: RemoveBackendCommand) -> bool {
         let mut conf = OdraConf::load();
         if conf.backends.is_some() {
             let mut backends = conf.backends.unwrap();
@@ -40,20 +51,6 @@ impl Backend {
         }
 
         false
-    }
-}
-
-impl Backend {
-    pub fn name(&self) -> &String {
-        &self.name
-    }
-
-    pub fn dependency_name(&self) -> &String {
-        &self.dependency_name
-    }
-
-    pub fn dependency(&self) -> &Dependency {
-        &self.dependency
     }
 
     pub fn dependency_type(&self) -> DependencyType {
@@ -239,12 +236,6 @@ impl Backend {
         }
     }
 
-    pub fn build_backend(&self) {}
-
-    pub fn builder_path(&self) -> String {
-        format!(".builder_{}/", self.name())
-    }
-
     fn prepare_builder(&self, name: &String) {
         println!(
             "Preparing {} builder in {} directory...",
@@ -299,7 +290,7 @@ fn main() {}
         "##
     }
 
-    pub(crate) fn build_wasm(&self) {
+    fn build_wasm(&self) {
         let conf = OdraConf::load();
         println!("Building wasm files...");
         for (_, contract) in conf.contracts.clone().into_iter() {
@@ -345,7 +336,7 @@ fn main() {}
         }
     }
 
-    pub(crate) fn copy_wasm_files(&self) {
+    fn copy_wasm_files(&self) {
         let conf = OdraConf::load();
         mkdir("target/debug");
         mkdir("wasm");
@@ -366,7 +357,11 @@ fn main() {}
         }
     }
 
-    pub fn build_lib(&self) {
+    fn fmt(&self) {
+        fmt_command(&self.builder_path());
+    }
+
+    fn build_lib(&self) {
         let command = Command::new("cargo")
             .current_dir(self.builder_path())
             .args([
@@ -404,12 +399,19 @@ fn main() {}
         cp(&source, "target/debug/libodra_test_env.so");
     }
 
-    pub(crate) fn build(&self) {
-        self.build_backend();
-        self.prepare_builder(self.name());
-        crate::cargo_toml::builder_cargo_toml(self);
-        self.build_wasm();
-        self.copy_wasm_files();
-        self.build_lib();
+    pub fn name(&self) -> &String {
+        &self.name
+    }
+
+    pub fn dependency_name(&self) -> &String {
+        &self.dependency_name
+    }
+
+    pub fn dependency(&self) -> &Dependency {
+        &self.dependency
+    }
+
+    pub fn builder_path(&self) -> String {
+        format!(".builder_{}/", self.name())
     }
 }

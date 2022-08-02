@@ -13,6 +13,16 @@ pub fn cp(source: &str, target: &str) {
     parse_command_result(status, &format!("Couldn't copy {} to {}", source, target));
 }
 
+pub fn fmt(folder: &str) {
+    let status = Command::new("cargo")
+        .args(["fmt"])
+        .current_dir(folder)
+        .status()
+        .unwrap();
+
+    parse_command_result(status, &format!("Couldn't run cargo fmt in {}", folder));
+}
+
 pub fn mkdir(path: &str) {
     fs::create_dir_all(path).unwrap();
 }
