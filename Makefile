@@ -7,6 +7,7 @@ install:
 
 test-project-generation:
 	rm -rf test-project
+	rustup target add wasm32-unknown-unknown
 	cargo odra new -n testproject
 	cd testproject && cargo odra generate -c plascoin
 	cd testproject && cargo odra test
