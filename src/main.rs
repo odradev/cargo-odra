@@ -1,14 +1,15 @@
 mod backend;
-mod builder;
+mod cargo_toml;
 mod clean;
 mod command;
+mod consts;
 mod generate;
 mod init;
+mod odra_dependency;
 mod odra_toml;
 mod tests;
-mod cargo_toml;
 
-use crate::builder::Builder;
+use crate::backend::Backend;
 use crate::clean::Clean;
 use crate::generate::Generate;
 use crate::init::Init;
@@ -63,7 +64,7 @@ pub struct InitCommand {
 }
 
 #[derive(Subcommand)]
-enum BackendCommand{
+enum BackendCommand {
     Add(AddBackendCommand),
     Remove(RemoveBackendCommand),
     List(ListBackendsCommand),
@@ -71,27 +72,49 @@ enum BackendCommand{
 
 #[derive(clap::Args)]
 pub struct AddBackendCommand {
+    /// Name of the backend package (e.g. casper)
+    #[clap(value_parser, long, short)]
+    package: String,
     /// Name of the backend that will be used for the build process (e.g. casper)
     #[clap(value_parser, long, short)]
-    backend: String,
+    name: String,
     /// URI of the repository containing the backend code
     #[clap(value_parser, long, short)]
     repo_uri: Option<String>,
+    /// Branch name
+    #[clap(value_parser, long, short)]
+    branch: Option<String>,
+    /// Version of backend crate
+    #[clap(value_parser, long, short)]
+    version: Option<String>,
+    /// Local path
+    #[clap(value_parser, long, short)]
+    path: Option<String>,
+}
+
+impl AddBackendCommand {
+    pub fn path(&self) -> Option<String> {
+        if self.path.is_none() {
+            None
+        } else {
+            let path = self.path.clone().unwrap();
+            if !path.ends_with("/") {
+                return Some(format!("{}/", path));
+            }
+            Some(path)
+        }
+    }
 }
 
 #[derive(clap::Args)]
 pub struct RemoveBackendCommand {
     /// Name of the backend that will be used for the build process (e.g. casper)
     #[clap(value_parser, long, short)]
-    backend: String,
-    /// URI of the repository containing the backend code
-    #[clap(value_parser, long, short)]
-    repo_uri: Option<String>,
+    name: String,
 }
 
 #[derive(clap::Args)]
-pub struct ListBackendsCommand {
-}
+pub struct ListBackendsCommand {}
 
 #[derive(clap::Args)]
 pub struct BuildCommand {
@@ -131,7 +154,7 @@ fn main() {
     match args.subcommand {
         OdraSubcommand::Build(build) => {
             assert_odra_toml();
-            Builder::new(build).build();
+            Backend::load(build.backend).build();
         }
         OdraSubcommand::Test(test) => {
             assert_odra_toml();
@@ -151,8 +174,26 @@ fn main() {
             assert_odra_toml();
             Clean::new().clean();
         }
-        OdraSubcommand::Backend(_) => {
-
-        }
+        OdraSubcommand::Backend(backend) => match backend {
+            BackendCommand::Add(add) => match Backend::add(add) {
+                true => {
+                    println!("Added.");
+                }
+                false => {
+                    println!("Backend already exists.");
+                }
+            },
+            BackendCommand::Remove(remove) => match Backend::remove(remove) {
+                true => {
+                    println!("Removed.");
+                }
+                false => {
+                    println!("No such backend.");
+                }
+            },
+            BackendCommand::List(_) => {
+                todo!()
+            }
+        },
     }
 }

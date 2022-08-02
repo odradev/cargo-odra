@@ -1,3 +1,4 @@
+use crate::odra_toml::OdraConf;
 use crate::GenerateCommand;
 use convert_case::{Case, Casing};
 use std::fs;
@@ -63,7 +64,7 @@ impl Generate {
             .unwrap();
         let fqn = format!(
             "{}::{}",
-            crate::odra_toml::load_odra_conf().name,
+            OdraConf::load().name,
             self.generate.contract_name.to_case(Case::UpperCamel)
         );
         writeln!(odra_toml).unwrap();
