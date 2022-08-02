@@ -379,10 +379,20 @@ fn main() {}
 
         let files = fs::read_dir(format!("{}target/release/deps/", self.builder_path())).unwrap();
 
-        let pattern = "libodra_test_env-.*\\.so".to_string();
+        let pattern = format!(
+            r"{}odra_test_env-.*\.{}",
+            consts::PLATFORM_FILE_PREFIX,
+            consts::PLATFORM_FILE_EXTENSION
+        );
         let expression = Regex::new(&pattern).unwrap();
 
-        let mut source = "libodra_test_env.so".to_string();
+        let lib_filename = format!(
+            r"{}odra_test_env.{}",
+            consts::PLATFORM_FILE_PREFIX,
+            consts::PLATFORM_FILE_EXTENSION
+        );
+
+        let mut source = lib_filename.clone();
         for entry in files {
             let filename = entry.unwrap().file_name();
             let filename = filename.to_str().unwrap().to_string();
@@ -395,8 +405,8 @@ fn main() {}
 
         mkdir("target/release");
         mkdir("target/debug");
-        cp(&source, "target/release/libodra_test_env.so");
-        cp(&source, "target/debug/libodra_test_env.so");
+        cp(&source, &format!("target/release/{}", lib_filename));
+        cp(&source, &format!("target/debug/{}", lib_filename));
     }
 
     pub fn name(&self) -> &String {
