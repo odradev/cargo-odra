@@ -1,4 +1,5 @@
 use crate::{Backend, TestCommand};
+use prettycli::info;
 use std::ffi::OsString;
 use std::os::unix::process::CommandExt;
 use std::process::Command;
@@ -35,7 +36,7 @@ impl Tests {
         let mut test_args = self.get_test_args();
         test_args.append(&mut vec!["--no-default-features", "--features=wasm-test"]);
 
-        println!("Running cargo test...");
+        info("Running cargo test...");
         Command::new("cargo").args(test_args).exec();
     }
 

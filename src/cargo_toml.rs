@@ -68,7 +68,6 @@ pub fn builder_cargo_toml(backend: &Backend) {
     );
 
     let cargo_toml: Manifest = cargo_toml::Manifest {
-        // TODO: match version to cargo odra version.
         package: Some(Package::new("builder".to_string(), "1.0.0".to_string())),
         workspace: None,
         dependencies: backend.builder_dependencies(),
