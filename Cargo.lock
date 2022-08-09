@@ -207,6 +207,7 @@ dependencies = [
  "clap-cargo",
  "convert_case",
  "glob",
+ "heck",
  "prettycli",
  "regex",
  "rm_rf",

@@ -1,5 +1,6 @@
 use crate::InitCommand;
 use cargo_generate::{GenerateArgs, TemplatePath, Vcs};
+use heck::ToSnakeCase;
 
 pub struct Init {
     init: InitCommand,
@@ -15,6 +16,7 @@ impl Init {
     }
 
     pub fn generate_project(&self, init: bool) {
+        let name = Some(self.init.name.to_snake_case());
         cargo_generate::generate(GenerateArgs {
             template_path: TemplatePath {
                 auto_path: self.init.repo_uri.clone(),
@@ -25,8 +27,8 @@ impl Init {
                 favorite: None,
             },
             list_favorites: false,
-            name: self.init.name.clone(),
-            force: false,
+            name,
+            force: true,
             verbose: false,
             template_values_file: None,
             silent: false,

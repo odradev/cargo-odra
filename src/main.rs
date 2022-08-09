@@ -58,7 +58,7 @@ enum OdraSubcommand {
 pub struct InitCommand {
     /// Name which will be used as a name for the crate
     #[clap(value_parser, long, short)]
-    name: Option<String>,
+    name: String,
     /// URI of the repository containing the template
     #[clap(value_parser, long, short)]
     repo_uri: Option<String>,
