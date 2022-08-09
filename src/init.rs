@@ -1,5 +1,6 @@
 use crate::InitCommand;
 use cargo_generate::{GenerateArgs, TemplatePath, Vcs};
+use chrono::{DateTime, Utc};
 use heck::ToSnakeCase;
 
 pub struct Init {
@@ -16,6 +17,8 @@ impl Init {
     }
 
     pub fn generate_project(&self, init: bool) {
+        let now: DateTime<Utc> = Utc::now();
+        let date = now.format("%Y-%m-%d");
         let name = Some(self.init.name.to_snake_case());
         cargo_generate::generate(GenerateArgs {
             template_path: TemplatePath {
@@ -37,7 +40,7 @@ impl Init {
             lib: false,
             bin: false,
             ssh_identity: None,
-            define: vec![],
+            define: vec![format!("date={}", date)],
             init,
             destination: None,
             force_git_init: false,
