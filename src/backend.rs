@@ -194,8 +194,12 @@ impl Backend {
                 package: None,
             });
         } else {
+            let version = match odra_details() {
+                None => None,
+                Some(details) => details.version,
+            };
             dependency = Dependency::Detailed(DependencyDetail {
-                version: odra_details().unwrap().version,
+                version,
                 registry: None,
                 registry_index: None,
                 path: None,
