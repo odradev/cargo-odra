@@ -57,7 +57,10 @@ impl Backend {
 
     pub fn dependency_type(&self) -> DependencyType {
         match self.backend_dependency() {
-            Dependency::Simple(_) => DependencyType::Crates,
+            Dependency::Simple(_) => {
+                error("Unsupported dependency type for backend");
+                exit(1);
+            }
             Dependency::Detailed(dependency_detail) => {
                 if dependency_detail.path.is_some() {
                     return DependencyType::Local;
@@ -67,8 +70,7 @@ impl Backend {
                     return DependencyType::Remote;
                 }
 
-                error("Unsupported dependency type for backend");
-                exit(1);
+                DependencyType::Crates
             }
         }
     }
@@ -106,7 +108,9 @@ impl Backend {
                 Dependency::Detailed(dependency_detail)
             }
             DependencyType::Crates => {
-                todo!()
+                let mut dependency_detail = self.backend_dependency().detail().unwrap().clone();
+                dependency_detail.optional = true;
+                Dependency::Detailed(dependency_detail)
             }
         }
     }
@@ -190,7 +194,20 @@ impl Backend {
                 package: None,
             });
         } else {
-            dependency = Dependency::Simple(add.package.clone());
+            dependency = Dependency::Detailed(DependencyDetail {
+                version: odra_details().unwrap().version,
+                registry: None,
+                registry_index: None,
+                path: None,
+                git: None,
+                branch: None,
+                tag: None,
+                rev: None,
+                features: vec![],
+                optional: false,
+                default_features: None,
+                package: None,
+            });
         }
 
         Backend {
