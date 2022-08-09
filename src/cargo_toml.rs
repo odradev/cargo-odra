@@ -1,55 +1,92 @@
+/// File containing functions used by Builder for managing its Cargo.toml file
 use crate::backend::Backend;
-use crate::odra_toml::load_odra_conf;
-use crate::Builder;
+
+use crate::odra_toml::OdraConf;
+use cargo_toml::{FeatureSet, Manifest, Package, Product};
+
 use std::fs::File;
 use std::io::Write;
-use std::path::Path;
 
-pub(crate) fn build_cargo_toml(builder: &Builder, backend: &Backend) {
-    if Path::new(&(builder.builder_path() + "Cargo.toml")).exists() {
-        return;
-    }
-    let conf = load_odra_conf();
-    let mut cargo_toml = cargo_toml()
-        .replace("#package_name", &conf.name)
-        .replace("#backend_name", backend.name())
-        .replace("#backend_repo", backend.repo_uri());
+pub fn builder_cargo_toml(backend: &Backend) {
+    let conf = OdraConf::load();
 
+    let mut bins = vec![];
     for (_, contract) in conf.contracts.into_iter() {
-        cargo_toml += bin()
-            .replace("#contract_name", contract.name.as_str())
-            .as_str();
+        bins.push(Product {
+            path: Some(contract.path.clone()),
+            name: Some(format!("{}_build", contract.name.clone())),
+            test: false,
+            doctest: false,
+            bench: false,
+            doc: false,
+            plugin: false,
+            proc_macro: false,
+            harness: false,
+            edition: None,
+            crate_type: None,
+            required_features: vec![],
+        });
+
+        bins.push(Product {
+            path: Some(contract.path.replace(".rs", "_wasm.rs")),
+            name: Some(contract.name),
+            test: false,
+            doctest: false,
+            bench: false,
+            doc: false,
+            plugin: false,
+            proc_macro: false,
+            harness: false,
+            edition: None,
+            crate_type: None,
+            required_features: vec![],
+        });
     }
+    let project_name = OdraConf::load().name;
 
-    let mut file = File::create(builder.builder_path() + "Cargo.toml").unwrap();
-    file.write_all(cargo_toml.as_bytes()).unwrap();
-}
+    let mut features = FeatureSet::new();
+    features.insert("default".to_string(), vec!["build".to_string()]);
+    features.insert(
+        "build".to_string(),
+        vec![format!("odra-{}-test-env", backend.dependency_name())],
+    );
+    features.insert(
+        "codegen".to_string(),
+        vec![
+            format!("odra-{}-backend", backend.dependency_name()),
+            project_name.clone(),
+            "odra".to_string(),
+        ],
+    );
+    features.insert(
+        "wasm".to_string(),
+        vec![
+            "odra/wasm".to_string(),
+            project_name,
+            format!("odra-{}-backend", backend.dependency_name()),
+        ],
+    );
 
-fn cargo_toml() -> &'static str {
-    r##"
-[package]
-name = "builder"
-version = "0.1.0"
-edition = "2021"
+    let cargo_toml: Manifest = cargo_toml::Manifest {
+        package: Some(Package::new("builder".to_string(), "1.0.0".to_string())),
+        workspace: None,
+        dependencies: backend.builder_dependencies(),
+        dev_dependencies: Default::default(),
+        build_dependencies: Default::default(),
+        target: Default::default(),
+        features,
+        patch: Default::default(),
+        lib: None,
+        profile: Default::default(),
+        badges: Default::default(),
+        bin: bins,
+        bench: vec![],
+        test: vec![],
+        example: vec![],
+    };
 
-[dependencies]
-#backend_name_backend = { git = "#backend_repo", default-features = false, features = ["codegen", "backend"] }
-odra = { git = "https://github.com/odradev/odra", default-features = false, features = ["wasm"] }
-#package_name = { path = "..", default-features = false, features = ["wasm"] }
+    let toml = toml::to_string(&cargo_toml).unwrap();
 
-[build-dependencies]
-quote = "1.0.18"
-    "##
-}
-
-fn bin() -> &'static str {
-    r##"
-[[bin]]
-name = "#contract_name_build"
-path = "src/#contract_name.rs"
-
-[[bin]]
-name = "#contract_name"
-path = "src/#contract_name_wasm.rs"
-    "##
+    let mut file = File::create(backend.builder_path() + "Cargo.toml").unwrap();
+    file.write_all(toml.as_bytes()).unwrap();
 }
