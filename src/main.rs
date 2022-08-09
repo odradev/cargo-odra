@@ -16,6 +16,7 @@ use crate::init::Init;
 use crate::odra_toml::assert_odra_toml;
 use crate::tests::Tests;
 use clap::{Parser, Subcommand};
+use prettycli::{info, warn};
 use std::ffi::OsString;
 
 #[derive(Parser)]
@@ -177,18 +178,18 @@ fn main() {
         OdraSubcommand::Backend(backend) => match backend {
             BackendCommand::Add(add) => match Backend::add(add) {
                 true => {
-                    println!("Added.");
+                    info("Added.");
                 }
                 false => {
-                    println!("Backend already exists.");
+                    warn("Backend already exists.");
                 }
             },
             BackendCommand::Remove(remove) => match Backend::remove(remove) {
                 true => {
-                    println!("Removed.");
+                    info("Removed.");
                 }
                 false => {
-                    println!("No such backend.");
+                    warn("No such backend.");
                 }
             },
             BackendCommand::List(_) => {

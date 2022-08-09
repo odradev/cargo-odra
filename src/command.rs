@@ -1,9 +1,11 @@
+use prettycli::{critical, warn};
 use std::fs;
-use std::process::{Command, ExitStatus};
+use std::process::{exit, Command, ExitStatus};
 
 pub fn parse_command_result(status: ExitStatus, msg: &str) {
     if !status.success() {
-        panic!("{}", msg);
+        critical(msg);
+        exit(1);
     }
 }
 
@@ -31,13 +33,21 @@ pub fn wasm_strip(contract_name: &str) {
     let command = Command::new("wasm-strip")
         .current_dir("wasm")
         .arg(format!("{}.wasm", contract_name))
-        .status()
-        .expect("Couldn't run wasmstrip");
+        .status();
 
-    match command.success() {
-        true => {}
-        false => {
-            println!("There was an error while running wasmstrip - Continuing anyway...");
-        }
+    if command.is_ok() && command.unwrap().success() {
+        return;
     }
+
+    warn("There was an error while running wasmstrip - is it installed? Continuing anyway...");
+}
+
+pub fn cargo(current_dir: String, args: Vec<&str>) {
+    let command = Command::new("cargo")
+        .current_dir(current_dir)
+        .args(args.as_slice())
+        .status()
+        .unwrap();
+
+    parse_command_result(command, &format!("Couldn't run cargo with args {:?}", args));
 }
