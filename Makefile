@@ -6,7 +6,7 @@ install:
 	cp target/release/cargo-odra ~/.cargo/bin/cargo-odra
 
 test-project-generation:
-	rm -rf test-project
+	rm -rf testproject
 	sudo apt install wabt
 	rustup target add wasm32-unknown-unknown
 	cargo odra new -n testproject
