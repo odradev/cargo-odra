@@ -202,14 +202,18 @@ dependencies = [
  "attohttpc",
  "cargo-generate",
  "cargo_metadata",
+ "cargo_toml",
  "clap",
  "clap-cargo",
  "convert_case",
  "glob",
+ "prettycli",
+ "regex",
  "rm_rf",
  "serde",
  "serde_derive",
  "toml",
+ "url",
 ]
 
 [[package]]
@@ -223,6 +227,17 @@ dependencies = [
  "serde",
  "serde_derive",
  "serde_json",
+]
+
+[[package]]
+name = "cargo_toml"
+version = "0.11.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5809dd3e6444651fd1cdd3dbec71eca438c439a0fcc8081674a14da0afe50185"
+dependencies = [
+ "serde",
+ "serde_derive",
+ "toml",
 ]
 
 [[package]]
@@ -1298,6 +1313,12 @@ name = "pkg-config"
 version = "0.3.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1df8c4ec4b0627e53bdf214615ad287367e482558cf84b109250b37464dc03ae"
+
+[[package]]
+name = "prettycli"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b1c473f9468f75c869dcab128d9acbafe12a0b1b5f11d9bcc990b219fd83f47d"
 
 [[package]]
 name = "proc-macro-error"
