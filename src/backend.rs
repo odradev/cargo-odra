@@ -194,8 +194,9 @@ impl Backend {
                 package: None,
             });
         } else {
+            let version = Some("*".to_string());
             dependency = Dependency::Detailed(DependencyDetail {
-                version: odra_details().unwrap().version,
+                version,
                 registry: None,
                 registry_index: None,
                 path: None,

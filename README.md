@@ -33,7 +33,7 @@ This will add latest version of odra-casper-backend from crates.io as a backend 
 To run the tests, type:
 
 ```
-$ cargo odra test -b casper
+$ cargo odra test -b casper-latest
 ```
 
 ## Commands

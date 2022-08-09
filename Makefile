@@ -12,5 +12,5 @@ test-project-generation:
 	cargo odra new -n testproject
 	cd testproject && cargo odra generate -c plascoin
 	cd testproject && cargo odra test
-	cd testproject && cargo odra backend add --package casper --name casper --repo-uri https://github.com/odradev/odra-casper
+	cd testproject && cargo odra backend add --package casper --name casper
 	cd testproject && cargo odra test -b casper
