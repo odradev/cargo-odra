@@ -1,4 +1,10 @@
 [package]
+authors = ["Jakub Płaskonka kuba@odra.dev", "Krzysztof Pobiarżyn krzysztof@odra.dev", "Maciej Zieliński maciej@odra.dev"]
+license = "MIT"
+repository = "https://github.com/odradev/cargo-odra"
+description = "A cargo utility that helps to create, manage and test your smart contracts written using Odra framework."
+keywords = ["wasm", "webassembly", "blockchain"]
+categories = ["wasm", "smart contracts"]
 name = "cargo-odra"
 version = "0.0.1"
 edition = "2021"
