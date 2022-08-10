@@ -2,6 +2,10 @@
 
 Changelog for `cargo-odra`.
 
+## [0.0.2] - xxxx-xx-xx
+### Added
+- `update` command
+
 ## [0.0.1] - 2022-08-09
 ### Added
 - `init` and `new` commands
