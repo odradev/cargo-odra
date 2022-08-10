@@ -37,8 +37,8 @@ fn update_project() {
 fn update_everything() {
     update_project();
     let backends = OdraConf::load().backends;
-    if let Some(..) = backends {
-        for (_key, backend) in backends.unwrap() {
+    if let Some(backends_map) = backends {
+        for (_, backend) in backends_map {
             update_builder(&backend);
         }
     }
