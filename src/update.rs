@@ -1,8 +1,11 @@
+//! Module implementing functions used by `cargo odra update` command
 use crate::odra_toml::OdraConf;
 use crate::{command, Backend, UpdateCommand};
 use prettycli::{error, info};
 use std::process::exit;
 
+/// Runs `cargo update` on project and backends in .builder* folders. If backend is specified,
+/// update will be made only in its folder
 pub fn update(update_command: UpdateCommand) {
     if update_command.backend.is_some() {
         let backends = OdraConf::load().backends.unwrap();

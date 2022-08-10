@@ -44,6 +44,7 @@ $ cargo odra test -b casper-latest
 * `test` - runs tests
 * `generate` - generates sample contract
 * `clean` - removes temporary files (builders and wasm files)
+* `update` - runs cargo update on project and backends
 * `backend` - manages backends
 
 ## Links
