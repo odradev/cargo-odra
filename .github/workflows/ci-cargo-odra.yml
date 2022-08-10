@@ -21,7 +21,7 @@ on:
 jobs:
   build_and_test:
     name: Build and test
-    runs-on: buildjet-32vcpu-ubuntu-2204
+    runs-on: buildjet-8vcpu-ubuntu-2204
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
