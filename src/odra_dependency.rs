@@ -7,8 +7,8 @@ use prettycli::critical;
 pub fn odra_details() -> Option<DependencyDetail> {
     let cargo_toml = match Manifest::from_path("Cargo.toml") {
         Ok(manifest) => manifest,
-        Err(_) => {
-            critical("Cargo.toml not found, exiting.");
+        Err(err) => {
+            critical(&format!("Failed to read Cargo.toml: {}", err));
             process::exit(2);
         }
     };
