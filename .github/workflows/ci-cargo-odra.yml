@@ -21,10 +21,10 @@ on:
 jobs:
   build_and_test:
     name: Build and test
-    runs-on: buildjet-32vcpu-ubuntu-2004
+    runs-on: [buildjet-2vcpu-ubuntu-2204, buildjet-4vcpu-ubuntu-2204, buildjet-8vcpu-ubuntu-2204, buildjet-16vcpu-ubuntu-2204]
     steps:
-      - uses: actions/checkout
-      - uses: actions-rs/toolchain
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
       - run: make install
