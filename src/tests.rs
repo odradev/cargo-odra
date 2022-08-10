@@ -41,7 +41,8 @@ impl Tests {
     }
 
     fn test_mock_vm(&self) {
-        let test_args = self.get_test_args();
+        let mut test_args = self.get_test_args();
+        test_args.append(&mut vec!["--no-default-features", "--features=mock-vm"]);
         Command::new("cargo").args(test_args).exec();
     }
 
