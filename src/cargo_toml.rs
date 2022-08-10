@@ -7,6 +7,7 @@ use cargo_toml::{FeatureSet, Manifest, Package, Product};
 use std::fs::File;
 use std::io::Write;
 
+/// Builds and saves Cargo.toml file for backend
 pub fn builder_cargo_toml(backend: &Backend) {
     let conf = OdraConf::load();
 
@@ -48,12 +49,12 @@ pub fn builder_cargo_toml(backend: &Backend) {
     features.insert("default".to_string(), vec!["build".to_string()]);
     features.insert(
         "build".to_string(),
-        vec![format!("odra-{}-test-env", backend.dependency_name())],
+        vec![format!("odra-{}-test-env", backend.package())],
     );
     features.insert(
         "codegen".to_string(),
         vec![
-            format!("odra-{}-backend", backend.dependency_name()),
+            format!("odra-{}-backend", backend.package()),
             project_name.clone(),
             "odra".to_string(),
         ],
@@ -63,7 +64,7 @@ pub fn builder_cargo_toml(backend: &Backend) {
         vec![
             "odra/wasm".to_string(),
             project_name,
-            format!("odra-{}-backend", backend.dependency_name()),
+            format!("odra-{}-backend", backend.package()),
         ],
     );
 

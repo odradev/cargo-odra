@@ -12,7 +12,7 @@ use serde_derive::{Deserialize, Serialize};
 
 use crate::cargo_toml::builder_cargo_toml;
 use crate::command::{cp, fmt as fmt_command, mkdir, wasm_strip};
-use crate::odra_dependency::odra_details;
+use crate::odra_dependency::odra_dependency;
 use crate::odra_toml::OdraConf;
 use crate::{command, consts, AddBackendCommand, RemoveBackendCommand};
 
@@ -55,6 +55,26 @@ impl Backend {
         false
     }
 
+    /// Adds backend to Odra.toml
+    pub fn add(add: AddBackendCommand) -> bool {
+        let mut conf = OdraConf::load();
+        let mut backends: HashMap<String, Backend>;
+        if conf.backends.is_none() {
+            backends = HashMap::new();
+        } else {
+            backends = conf.backends.unwrap();
+        }
+        if !backends.contains_key(&add.name) {
+            backends.insert(add.name.clone(), Backend::from_add_command(&add));
+            conf.backends = Some(backends);
+            conf.save();
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Returns the type of backend dependency
     pub fn dependency_type(&self) -> DependencyType {
         match self.backend_dependency() {
             Dependency::Simple(_) => {
@@ -75,6 +95,7 @@ impl Backend {
         }
     }
 
+    /// Returns a set of dependencies used by backend
     pub fn builder_dependencies(&self) -> DepsSet {
         let mut dependencies = DepsSet::new();
         dependencies.insert(
@@ -83,14 +104,33 @@ impl Backend {
         );
         dependencies.insert(OdraConf::load().name, Backend::project_dependency());
         dependencies.insert(
-            format!("odra-{}-backend", self.dependency_name()),
+            format!("odra-{}-backend", self.package()),
             self.dependency("backend"),
         );
         dependencies.insert(
-            format!("odra-{}-test-env", self.dependency_name()),
+            format!("odra-{}-test-env", self.package()),
             self.dependency("test_env"),
         );
         dependencies
+    }
+
+    /// Loads a backend from Odra.toml file
+    pub fn load(name: String) -> Backend {
+        let conf = OdraConf::load();
+        if conf.backends.is_none() {
+            error("No backends configured.");
+            exit(1);
+        } else {
+            let backends = conf.backends.unwrap();
+            let backend = backends.get(&name);
+            match backend {
+                None => {
+                    error("No such backend.");
+                    exit(1);
+                }
+                Some(backend) => backend.clone(),
+            }
+        }
     }
 
     fn dependency(&self, folder: &str) -> Dependency {
@@ -115,15 +155,35 @@ impl Backend {
         }
     }
 
+    /// Returns Odra dependency tailored for use by backend (optional set to true and wasm feature
+    /// enabled)
     fn odra_dependency() -> Dependency {
-        let mut odra_details = odra_details().unwrap();
-        odra_details.features = vec!["wasm".to_string()];
-        odra_details.optional = true;
-        odra_details.default_features = Some(false);
-        if odra_details.path.is_some() {
-            odra_details.path = Some(format!("../{}", odra_details.path.unwrap()));
+        let dependency = odra_dependency();
+        match dependency {
+            Dependency::Simple(simple) => Dependency::Detailed(DependencyDetail {
+                version: Some(simple),
+                registry: None,
+                registry_index: None,
+                path: None,
+                git: None,
+                branch: None,
+                tag: None,
+                rev: None,
+                features: vec![],
+                optional: true,
+                default_features: None,
+                package: None,
+            }),
+            Dependency::Detailed(mut odra_details) => {
+                odra_details.features = vec!["wasm".to_string()];
+                odra_details.optional = true;
+                odra_details.default_features = Some(false);
+                if odra_details.path.is_some() {
+                    odra_details.path = Some(format!("../{}", odra_details.path.unwrap()));
+                }
+                Dependency::Detailed(odra_details)
+            }
         }
-        Dependency::Detailed(odra_details)
     }
 
     fn project_dependency() -> Dependency {
@@ -141,24 +201,6 @@ impl Backend {
             default_features: Some(false),
             package: None,
         })
-    }
-
-    pub fn load(name: String) -> Backend {
-        let conf = OdraConf::load();
-        if conf.backends.is_none() {
-            error("No backends configured.");
-            exit(1);
-        } else {
-            let backends = conf.backends.unwrap();
-            let backend = backends.get(&name);
-            match backend {
-                None => {
-                    error("No such backend.");
-                    exit(1);
-                }
-                Some(backend) => backend.clone(),
-            }
-        }
     }
 
     fn from_add_command(add: &AddBackendCommand) -> Backend {
@@ -218,24 +260,6 @@ impl Backend {
         }
     }
 
-    pub fn add(add: AddBackendCommand) -> bool {
-        let mut conf = OdraConf::load();
-        let mut backends: HashMap<String, Backend>;
-        if conf.backends.is_none() {
-            backends = HashMap::new();
-        } else {
-            backends = conf.backends.unwrap();
-        }
-        if !backends.contains_key(&add.name) {
-            backends.insert(add.name.clone(), Backend::from_add_command(&add));
-            conf.backends = Some(backends);
-            conf.save();
-            true
-        } else {
-            false
-        }
-    }
-
     fn prepare_builder(&self, name: &String) {
         info(&format!(
             "Preparing {} builder in {} directory...",
@@ -263,7 +287,7 @@ impl Backend {
                 let contents = Backend::def_rs()
                     .replace("#contract_fqn", &contract.fqn)
                     .replace("#contract_name", &contract.name)
-                    .replace("#backend_name", self.dependency_name());
+                    .replace("#backend_name", self.package());
                 let mut file = File::create(path).unwrap();
                 file.write_all(contents.as_bytes()).unwrap();
             }
@@ -398,18 +422,26 @@ fn main() {}
         cp(&source, &format!("target/debug/{}", lib_filename));
     }
 
+    /// Returns the name of the backend. It is a name used internally by a project. Most of the time
+    /// it will be the same as package. It is useful, when you want to add more than one of the same
+    /// backends, for example in different versions, from github or one stored locally (e.g.
+    /// `casper`, `casper-local`, `casper-develop`).
     pub fn name(&self) -> &String {
         &self.name
     }
 
-    pub fn dependency_name(&self) -> &String {
+    /// Returns name of the dependency. For example `casper` will be later used to generate
+    /// `odra-casper-backend` as a name of dependency on crates.io
+    pub fn package(&self) -> &String {
         &self.dependency_name
     }
 
+    /// Returns backend's dependency
     pub fn backend_dependency(&self) -> &Dependency {
         &self.dependency
     }
 
+    /// Returns a path where builder lives
     pub fn builder_path(&self) -> String {
         format!(".builder_{}/", self.name())
     }
