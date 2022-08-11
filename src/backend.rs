@@ -109,8 +109,7 @@ impl Backend {
     pub fn dependency_type(&self) -> DependencyType {
         match self.backend_dependency() {
             Dependency::Simple(_) => {
-                error("Unsupported dependency type for backend");
-                exit(1);
+                DependencyType::Crates
             }
             Dependency::Detailed(dependency_detail) => {
                 if dependency_detail.path.is_some() {
