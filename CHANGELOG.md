@@ -5,6 +5,11 @@ Changelog for `cargo-odra`.
 ## [0.0.2] - xxxx-xx-xx
 ### Added
 - `update` command
+- `backend list` command
+
+### Fixed
+- `backend add` command now does not require `name` parameter - `package`
+will be used as name by default
 
 ## [0.0.1] - 2022-08-09
 ### Added
