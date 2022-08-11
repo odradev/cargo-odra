@@ -17,7 +17,7 @@ use crate::init::Init;
 use crate::odra_toml::assert_odra_toml;
 use crate::tests::Tests;
 use clap::{Parser, Subcommand};
-use prettycli::{info, warn};
+use prettycli::{error, info, warn};
 use std::ffi::OsString;
 
 #[derive(Parser)]
@@ -69,8 +69,11 @@ pub struct InitCommand {
 
 #[derive(Subcommand)]
 enum BackendCommand {
+    /// Adds a new backend
     Add(AddBackendCommand),
+    /// Removes a backend
     Remove(RemoveBackendCommand),
+    /// Shows added backends
     List(ListBackendsCommand),
 }
 
@@ -81,7 +84,7 @@ pub struct AddBackendCommand {
     package: String,
     /// Name of the backend that will be used for the build process (e.g. casper)
     #[clap(value_parser, long, short)]
-    name: String,
+    name: Option<String>,
     /// URI of the repository containing the backend code
     #[clap(value_parser, long, short)]
     repo_uri: Option<String>,
@@ -194,7 +197,7 @@ fn main() {
                     info("Added.");
                 }
                 false => {
-                    warn("Backend already exists.");
+                    error("Backend already exists.");
                 }
             },
             BackendCommand::Remove(remove) => match Backend::remove(remove) {
@@ -205,9 +208,7 @@ fn main() {
                     warn("No such backend.");
                 }
             },
-            BackendCommand::List(_) => {
-                todo!()
-            }
+            BackendCommand::List(_) => Backend::list(),
         },
     }
 }

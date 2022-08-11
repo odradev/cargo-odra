@@ -1,11 +1,13 @@
+use collections::hash_map::Entry::Vacant;
 use std::collections::HashMap;
-use std::fs;
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
 use std::process::exit;
+use std::{collections, fs};
 
 use cargo_toml::{Dependency, DependencyDetail, DepsSet};
+use comfy_table::Table;
 use prettycli::{error, info};
 use regex::Regex;
 use serde_derive::{Deserialize, Serialize};
@@ -40,6 +42,26 @@ impl Backend {
         self.build_lib();
     }
 
+    /// Prints out a table containing all backends
+    pub fn list() {
+        let backends = OdraConf::load().backends.unwrap_or_else(|| {
+            println!("No backends configured.");
+            exit(1);
+        });
+
+        let mut table = Table::new();
+        table.set_header(vec!["Name", "Package", "Dependency"]);
+        for (_, backend) in backends {
+            table.add_row(vec![
+                backend.name,
+                backend.dependency_name,
+                toml::to_string(&backend.dependency).unwrap(),
+            ]);
+        }
+
+        println!("{}", table);
+    }
+
     /// Removes backend from Odra.toml
     pub fn remove(remove: RemoveBackendCommand) -> bool {
         let mut conf = OdraConf::load();
@@ -56,16 +78,25 @@ impl Backend {
     }
 
     /// Adds backend to Odra.toml
-    pub fn add(add: AddBackendCommand) -> bool {
+    pub fn add(mut add: AddBackendCommand) -> bool {
         let mut conf = OdraConf::load();
         let mut backends: HashMap<String, Backend>;
+
+        // If no name was passed, we use package
+        if add.name.is_none() {
+            add.name = Some(add.package.clone());
+        }
+
+        let name = add.name.as_ref().unwrap().clone();
+
         if conf.backends.is_none() {
             backends = HashMap::new();
         } else {
             backends = conf.backends.unwrap();
         }
-        if !backends.contains_key(&add.name) {
-            backends.insert(add.name.clone(), Backend::from_add_command(&add));
+
+        if let Vacant(e) = backends.entry(name) {
+            e.insert(Backend::from_add_command(&add));
             conf.backends = Some(backends);
             conf.save();
             true
@@ -253,8 +284,10 @@ impl Backend {
             });
         }
 
+        let name = add.name.clone().unwrap();
+
         Backend {
-            name: add.name.clone(),
+            name,
             dependency_name: add.package.clone(),
             dependency,
         }
