@@ -205,9 +205,7 @@ fn main() {
                     warn("No such backend.");
                 }
             },
-            BackendCommand::List(_) => {
-                todo!()
-            }
+            BackendCommand::List(_) => Backend::list(),
         },
     }
 }

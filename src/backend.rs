@@ -6,6 +6,7 @@ use std::path::Path;
 use std::process::exit;
 
 use cargo_toml::{Dependency, DependencyDetail, DepsSet};
+use comfy_table::Table;
 use prettycli::{error, info};
 use regex::Regex;
 use serde_derive::{Deserialize, Serialize};
@@ -38,6 +39,25 @@ impl Backend {
         self.fmt();
         self.copy_wasm_files();
         self.build_lib();
+    }
+
+    pub fn list() {
+        let backends = OdraConf::load().backends.unwrap_or_else(|| {
+            println!("No backends configured.");
+            exit(1);
+        });
+
+        let mut table = Table::new();
+        table.set_header(vec!["Name", "Package", "Dependency"]);
+        for (_, backend) in backends {
+            table.add_row(vec![
+                backend.name,
+                backend.dependency_name,
+                toml::to_string(&backend.dependency).unwrap(),
+            ]);
+        }
+
+        println!("{}", table);
     }
 
     /// Removes backend from Odra.toml
