@@ -18,7 +18,6 @@ use crate::odra_toml::assert_odra_toml;
 use crate::tests::Tests;
 use clap::{Parser, Subcommand};
 use prettycli::{error, info, warn};
-use std::ffi::OsString;
 
 #[derive(Parser)]
 #[clap(name = "cargo")]
@@ -141,9 +140,9 @@ pub struct TestCommand {
     /// URI of the repository containing the backend code
     #[clap(value_parser, long, short)]
     repo_uri: Option<String>,
-    /// A list of parameters that will be passed to the cargo test command
-    #[clap(value_parser, long, short)]
-    passthrough: Option<Vec<OsString>>,
+    /// A list of arguments that will be passed to the cargo test command
+    #[clap(raw = true)]
+    args: Vec<String>,
 }
 
 #[derive(clap::Args, Debug)]

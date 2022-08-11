@@ -7,9 +7,11 @@ Changelog for `cargo-odra`.
 - `update` command
 - `backend list` command
 
-### Fixed
+### Changed
 - `backend add` command now does not require `name` parameter - `package`
 will be used as name by default
+- `test` command now passes arguments supplied after `--` to cargo test 
+without the need to type `-a`
 
 ## [0.0.1] - 2022-08-09
 ### Added
