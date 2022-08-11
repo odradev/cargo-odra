@@ -47,6 +47,8 @@ $ cargo odra test -b casper-latest
 * `update` - runs cargo update on project and backends
 * `backend` - manages backends
 
+To see exact syntax of each command, type `cargo odra command --help`.
+
 ## Links
 
 * [Odra](https://github.com/odradev/odra)
