@@ -2,6 +2,23 @@
 
 Changelog for `cargo-odra`.
 
+## [0.0.2] - 2022-08-12
+### Added
+- `update` command
+- `backend list` command
+- building a backend will now check if wasm target is installed
+
+### Changed
+- `backend add` command now does not require `name` parameter - `package`
+will be used as name by default
+- `test` command now passes arguments supplied after `--` to cargo test 
+without the need to type `-a`
+
+### Fixed
+- `Unsupported dependency for backend` message that showed up on some
+configurations - thanks to **jrojek** from Odra.dev Discord for pointing
+this out
+
 ## [0.0.1] - 2022-08-09
 ### Added
 - `init` and `new` commands
