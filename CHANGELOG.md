@@ -2,7 +2,7 @@
 
 Changelog for `cargo-odra`.
 
-## [0.0.2] - xxxx-xx-xx
+## [0.0.2] - 2022-08-12
 ### Added
 - `update` command
 - `backend list` command
