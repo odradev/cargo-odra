@@ -79,16 +79,15 @@ impl Backend {
     }
 
     /// Adds backend to Odra.toml
-    pub fn add(mut add: AddBackendCommand) -> bool {
+    pub fn add(add: AddBackendCommand) -> bool {
         let mut conf = OdraConf::load();
         let mut backends: HashMap<String, Backend>;
 
         // If no name was passed, we use package
-        if add.name.is_none() {
-            add.name = Some(add.package.clone());
-        }
-
-        let name = add.name.as_ref().unwrap().clone();
+        let name = match &add.name {
+            None => add.package.clone(),
+            Some(name) => name.clone(),
+        };
 
         if conf.backends.is_none() {
             backends = HashMap::new();
@@ -282,7 +281,10 @@ impl Backend {
             });
         }
 
-        let name = add.name.clone().unwrap();
+        let name = match &add.name {
+            None => add.package.clone(),
+            Some(name) => name.clone(),
+        };
 
         Backend {
             name,
