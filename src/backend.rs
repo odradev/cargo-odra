@@ -34,6 +34,7 @@ pub struct Backend {
 impl Backend {
     /// Main function that runs the whole workflow for backend
     pub fn build(&self) {
+        self.check_requirements();
         self.prepare_builder(self.name());
         builder_cargo_toml(self);
         self.build_wasm();
@@ -108,10 +109,7 @@ impl Backend {
     /// Returns the type of backend dependency
     pub fn dependency_type(&self) -> DependencyType {
         match self.backend_dependency() {
-            Dependency::Simple(_) => {
-                error("Unsupported dependency type for backend");
-                exit(1);
-            }
+            Dependency::Simple(_) => DependencyType::Crates,
             Dependency::Detailed(dependency_detail) => {
                 if dependency_detail.path.is_some() {
                     return DependencyType::Local;
@@ -290,6 +288,16 @@ impl Backend {
             name,
             dependency_name: add.package.clone(),
             dependency,
+        }
+    }
+
+    fn check_requirements(&self) {
+        if !command::command_output("rustup target list --installed")
+            .contains("wasm32-unknown-unknown")
+        {
+            error("wasm32-unknown-unknown target is not present, install it by executing:");
+            println!("rustup target add wasm32-unknown-unknown");
+            exit(1);
         }
     }
 
