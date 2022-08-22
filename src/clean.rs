@@ -1,7 +1,7 @@
-use prettycli::info;
 use std::os::unix::prelude::CommandExt;
 use std::path::PathBuf;
 use std::process::Command;
+use crate::info;
 
 pub struct Clean {}
 

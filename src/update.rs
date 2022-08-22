@@ -1,8 +1,6 @@
 //! Module implementing functions used by `cargo odra update` command
 use crate::odra_toml::OdraConf;
-use crate::{command, Backend, UpdateCommand};
-use prettycli::info;
-
+use crate::{command, Backend, UpdateCommand, info};
 use crate::errors::Error;
 
 /// Runs `cargo update` on project and backends in .builder* folders. If backend is specified,

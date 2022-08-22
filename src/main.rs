@@ -10,7 +10,7 @@ mod odra_toml;
 mod tests;
 mod update;
 mod errors;
-
+mod log;
 
 use crate::backend::Backend;
 use crate::clean::Clean;
@@ -19,10 +19,7 @@ use crate::init::Init;
 use crate::odra_toml::assert_odra_toml;
 use crate::tests::Tests;
 use clap::{Parser, Subcommand};
-use prettycli::{error, info};
-
-extern crate pretty_env_logger;
-#[macro_use] extern crate log;
+use crate::log::{error, info};
 
 #[derive(Parser)]
 #[clap(name = "cargo")]
@@ -38,6 +35,14 @@ enum Cargo {
 struct Odra {
     #[clap(subcommand)]
     subcommand: OdraSubcommand,
+
+    #[clap(value_parser, long, short, global = true)]
+    /// Be verbose
+    verbose: bool,
+
+    #[clap(value_parser, long, short, global = true)]
+    /// Be quiet, show only errors
+    quiet: bool,
 }
 
 #[derive(Subcommand)]
@@ -169,6 +174,7 @@ pub struct UpdateCommand {
 
 fn main() {
     pretty_env_logger::init();
+    //formatted_builder().filter_level(LevelFilter::Trace).init();
     let Cargo::Odra(args) = Cargo::parse();
     match args.subcommand {
         OdraSubcommand::Build(build) => {

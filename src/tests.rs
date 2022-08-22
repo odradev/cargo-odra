@@ -1,5 +1,4 @@
-use crate::{Backend, TestCommand};
-use prettycli::info;
+use crate::{Backend, info, TestCommand};
 use std::os::unix::process::CommandExt;
 use std::process::Command;
 

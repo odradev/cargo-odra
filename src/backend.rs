@@ -8,7 +8,6 @@ use std::{collections, fs};
 
 use cargo_toml::{Dependency, DependencyDetail, DepsSet};
 use comfy_table::Table;
-use prettycli::info;
 use regex::Regex;
 use serde_derive::{Deserialize, Serialize};
 
@@ -16,7 +15,7 @@ use crate::cargo_toml::builder_cargo_toml;
 use crate::command::{cp, fmt as fmt_command, mkdir, wasm_strip};
 use crate::odra_dependency::odra_dependency;
 use crate::odra_toml::OdraConf;
-use crate::{command, consts, AddBackendCommand, RemoveBackendCommand};
+use crate::{command, consts, AddBackendCommand, RemoveBackendCommand, info};
 use crate::errors::Error;
 
 pub enum DependencyType {

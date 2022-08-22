@@ -1,5 +1,6 @@
 use std::fmt::{Display, Formatter};
 use std::process::exit;
+use log::error;
 
 pub enum Error {
     CommandFailed(String),

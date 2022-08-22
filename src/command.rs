@@ -1,6 +1,7 @@
 //! File containing code that runs external commands
 use std::fs;
 use std::process::{Command, ExitStatus};
+use log::warn;
 use Error::InvalidInternalCommand;
 use crate::errors::Error;
 
