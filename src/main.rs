@@ -9,6 +9,8 @@ mod odra_dependency;
 mod odra_toml;
 mod tests;
 mod update;
+mod errors;
+
 
 use crate::backend::Backend;
 use crate::clean::Clean;
@@ -17,7 +19,10 @@ use crate::init::Init;
 use crate::odra_toml::assert_odra_toml;
 use crate::tests::Tests;
 use clap::{Parser, Subcommand};
-use prettycli::{error, info, warn};
+use prettycli::{error, info};
+
+extern crate pretty_env_logger;
+#[macro_use] extern crate log;
 
 #[derive(Parser)]
 #[clap(name = "cargo")]
@@ -163,6 +168,7 @@ pub struct UpdateCommand {
 }
 
 fn main() {
+    pretty_env_logger::init();
     let Cargo::Odra(args) = Cargo::parse();
     match args.subcommand {
         OdraSubcommand::Build(build) => {
@@ -204,7 +210,7 @@ fn main() {
                     info("Removed.");
                 }
                 false => {
-                    warn("No such backend.");
+                    info("No such backend.");
                 }
             },
             BackendCommand::List(_) => Backend::list(),

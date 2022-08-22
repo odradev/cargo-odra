@@ -1,16 +1,13 @@
 //! File containing code that runs external commands
-use prettycli::{critical, error, warn};
 use std::fs;
-use std::process::{exit, Command, ExitStatus};
+use std::process::{Command, ExitStatus};
+use Error::InvalidInternalCommand;
+use crate::errors::Error;
 
 /// Returns output of a command as a String
 pub fn command_output(command: &str) -> String {
     let mut split_command: Vec<&str> = command.split(' ').collect();
-    let program = *split_command.first().unwrap_or_else(|| {
-        error(&format!("Invalid command {}", command));
-        exit(1);
-    });
-
+    let program = *split_command.first().unwrap_or_else(|| InvalidInternalCommand(command.to_string()).print_and_die());
     let args: Vec<&str> = split_command.drain(1..).collect();
 
     let output = Command::new(program).args(args).output().unwrap();
@@ -20,11 +17,10 @@ pub fn command_output(command: &str) -> String {
         .to_string()
 }
 
-/// Quits if status of a command is not succesfull
-pub fn parse_command_result(status: ExitStatus, msg: &str) {
+/// Quits if status of a command is not successful
+pub fn parse_command_result(status: ExitStatus, error: Error) {
     if !status.success() {
-        critical(msg);
-        exit(1);
+        error.print_and_die();
     }
 }
 
@@ -32,7 +28,7 @@ pub fn parse_command_result(status: ExitStatus, msg: &str) {
 pub fn cp(source: &str, target: &str) {
     let status = Command::new("cp").args([source, target]).status().unwrap();
 
-    parse_command_result(status, &format!("Couldn't copy {} to {}", source, target));
+    parse_command_result(status, Error::CommandFailed(format!("Couldn't copy {} to {}", source, target)));
 }
 
 /// Runs cargo fmt
@@ -43,7 +39,7 @@ pub fn fmt(folder: &str) {
         .status()
         .unwrap();
 
-    parse_command_result(status, &format!("Couldn't run cargo fmt in {}", folder));
+    parse_command_result(status, Error::CommandFailed(format!("Couldn't run cargo fmt in {}", folder)));
 }
 
 /// Creates a directory
@@ -62,7 +58,7 @@ pub fn wasm_strip(contract_name: &str) {
         return;
     }
 
-    warn("There was an error while running wasmstrip - is it installed? Continuing anyway...");
+    warn!("There was an error while running wasmstrip - is it installed? Continuing anyway...");
 }
 
 /// Runs cargo with given args
@@ -73,5 +69,5 @@ pub fn cargo(current_dir: String, args: Vec<&str>) {
         .status()
         .unwrap();
 
-    parse_command_result(command, &format!("Couldn't run cargo with args {:?}", args));
+    parse_command_result(command, Error::CommandFailed(format!("Couldn't run cargo with args {:?}", args)));
 }

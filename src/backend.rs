@@ -3,12 +3,12 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
-use std::process::exit;
+
 use std::{collections, fs};
 
 use cargo_toml::{Dependency, DependencyDetail, DepsSet};
 use comfy_table::Table;
-use prettycli::{error, info};
+use prettycli::info;
 use regex::Regex;
 use serde_derive::{Deserialize, Serialize};
 
@@ -17,6 +17,7 @@ use crate::command::{cp, fmt as fmt_command, mkdir, wasm_strip};
 use crate::odra_dependency::odra_dependency;
 use crate::odra_toml::OdraConf;
 use crate::{command, consts, AddBackendCommand, RemoveBackendCommand};
+use crate::errors::Error;
 
 pub enum DependencyType {
     Local,
@@ -46,8 +47,7 @@ impl Backend {
     /// Prints out a table containing all backends
     pub fn list() {
         let backends = OdraConf::load().backends.unwrap_or_else(|| {
-            println!("No backends configured.");
-            exit(1);
+            Error::NoBackendConfigured.print_and_die();
         });
 
         let mut table = Table::new();
@@ -146,15 +146,13 @@ impl Backend {
     pub fn load(name: String) -> Backend {
         let conf = OdraConf::load();
         if conf.backends.is_none() {
-            error("No backends configured.");
-            exit(1);
+            Error::NoBackendConfigured.print_and_die();
         } else {
             let backends = conf.backends.unwrap();
             let backend = backends.get(&name);
             match backend {
                 None => {
-                    error("No such backend.");
-                    exit(1);
+                    Error::NoSuchBackend.print_and_die();
                 }
                 Some(backend) => backend.clone(),
             }
@@ -297,9 +295,7 @@ impl Backend {
         if !command::command_output("rustup target list --installed")
             .contains("wasm32-unknown-unknown")
         {
-            error("wasm32-unknown-unknown target is not present, install it by executing:");
-            println!("rustup target add wasm32-unknown-unknown");
-            exit(1);
+            Error::WasmTargetNotInstalled.print_and_die();
         }
     }
 

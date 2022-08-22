@@ -1,9 +1,10 @@
 use crate::Backend;
-use prettycli::info;
+
 use serde_derive::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::Path;
-use std::{fs, process};
+use std::fs;
+use crate::errors::Error;
 
 const ODRA_TOML_FILENAME: &str = "Odra.toml";
 
@@ -40,7 +41,6 @@ pub(crate) struct Contract {
 
 pub fn assert_odra_toml() {
     if !Path::new(ODRA_TOML_FILENAME).exists() {
-        info("This command can be executed only in folder with Odra project.");
-        process::exit(1);
+        Error::NotAnOdraProject.print_and_die();
     }
 }
