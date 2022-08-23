@@ -3,28 +3,28 @@ mod cargo_toml;
 mod clean;
 mod command;
 mod consts;
+mod errors;
 mod generate;
 mod init;
+mod log;
 mod odra_dependency;
 mod odra_toml;
 mod tests;
 mod update;
-mod errors;
-mod log;
 
 use crate::backend::Backend;
 use crate::clean::Clean;
 use crate::generate::Generate;
 use crate::init::Init;
+use crate::log::{error, info};
 use crate::odra_toml::assert_odra_toml;
 use crate::tests::Tests;
 use clap::{Parser, Subcommand};
-use crate::log::{error, info};
 
 #[derive(Parser)]
 #[clap(name = "cargo")]
 #[clap(bin_name = "cargo")]
-enum Cargo {
+pub enum Cargo {
     Odra(Odra),
 }
 
@@ -32,7 +32,7 @@ enum Cargo {
 /// developed using the Odra framework
 #[derive(clap::Args)]
 #[clap(author, version, about, long_about = None)]
-struct Odra {
+pub struct Odra {
     #[clap(subcommand)]
     subcommand: OdraSubcommand,
 
@@ -46,7 +46,7 @@ struct Odra {
 }
 
 #[derive(Subcommand)]
-enum OdraSubcommand {
+pub enum OdraSubcommand {
     /// Creates a new Odra project
     New(InitCommand),
     /// Initializes a new Odra project in an existing, empty directory
@@ -77,7 +77,7 @@ pub struct InitCommand {
 }
 
 #[derive(Subcommand)]
-enum BackendCommand {
+pub enum BackendCommand {
     /// Adds a new backend
     Add(AddBackendCommand),
     /// Removes a backend
@@ -173,8 +173,6 @@ pub struct UpdateCommand {
 }
 
 fn main() {
-    pretty_env_logger::init();
-    //formatted_builder().filter_level(LevelFilter::Trace).init();
     let Cargo::Odra(args) = Cargo::parse();
     match args.subcommand {
         OdraSubcommand::Build(build) => {

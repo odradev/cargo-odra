@@ -1,6 +1,6 @@
 //! Functions used to read and manage Cargo.toml of a project using odra
-use cargo_toml::{Dependency, Manifest};
 use crate::errors::Error;
+use cargo_toml::{Dependency, Manifest};
 
 /// Returns Dependency of Odra, taken from project's Cargo.toml
 pub fn odra_dependency() -> Dependency {

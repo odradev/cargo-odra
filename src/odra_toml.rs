@@ -1,10 +1,10 @@
 use crate::Backend;
 
+use crate::errors::Error;
 use serde_derive::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::path::Path;
 use std::fs;
-use crate::errors::Error;
+use std::path::Path;
 
 const ODRA_TOML_FILENAME: &str = "Odra.toml";
 
@@ -21,7 +21,7 @@ impl OdraConf {
         match odra_conf {
             Ok(conf_file) => toml::from_str(conf_file.as_str()).unwrap(),
             Err(_) => {
-                panic!("Odra.toml file is missing. Is Odra initialized?")
+                Error::NotAnOdraProject.print_and_die();
             }
         }
     }

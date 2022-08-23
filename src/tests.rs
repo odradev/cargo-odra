@@ -1,4 +1,4 @@
-use crate::{Backend, info, TestCommand};
+use crate::{info, Backend, TestCommand};
 use std::os::unix::process::CommandExt;
 use std::process::Command;
 

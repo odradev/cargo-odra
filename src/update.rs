@@ -1,7 +1,7 @@
 //! Module implementing functions used by `cargo odra update` command
-use crate::odra_toml::OdraConf;
-use crate::{command, Backend, UpdateCommand, info};
 use crate::errors::Error;
+use crate::odra_toml::OdraConf;
+use crate::{command, info, Backend, UpdateCommand};
 
 /// Runs `cargo update` on project and backends in .builder* folders. If backend is specified,
 /// update will be made only in its folder
@@ -10,9 +10,7 @@ pub fn update(update_command: UpdateCommand) {
         let backends = OdraConf::load().backends.unwrap();
         let backend = backends
             .get(&update_command.backend.unwrap())
-            .unwrap_or_else(|| {
-                Error::NoSuchBackend.print_and_die()
-            });
+            .unwrap_or_else(|| Error::NoSuchBackend.print_and_die());
         update_builder(backend);
     } else {
         update_everything();
