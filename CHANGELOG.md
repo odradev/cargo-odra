@@ -2,6 +2,13 @@
 
 Changelog for `cargo-odra`.
 
+## [0.0.3] - xxxx-xx-xx
+### Added
+- new options - `--verbose` and `--quiet`, which will be passed to cargo commands
+
+### Changed
+- error handling, now each error has its own exit code
+
 ## [0.0.2] - 2022-08-12
 ### Added
 - `update` command
