@@ -69,7 +69,10 @@ pub fn wasm_strip(contract_name: &str) {
         return;
     }
 
-    warn("There was an error while running wasmstrip - is it installed? Continuing anyway...");
+    warn(
+        "There was an error while running wasm-strip - is it installed? Generated WASM \
+    files will be substantially bigger! Continuing anyway...",
+    );
 }
 
 /// Runs cargo with given args
