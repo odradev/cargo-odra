@@ -1,8 +1,10 @@
+//! Module responsible for initializing Odra project
 use crate::InitCommand;
 use cargo_generate::{GenerateArgs, TemplatePath, Vcs};
 use chrono::{DateTime, Utc};
 use heck::ToSnakeCase;
 
+/// Init struct
 pub struct Init {
     init: InitCommand,
 }

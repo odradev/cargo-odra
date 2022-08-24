@@ -1,3 +1,8 @@
+//! Cargo Odra is a tool that helps you creating, maintaining, testing and building smart contracts
+//! developed using the Odra framework.
+//!
+//! To see examples on how to use cargo odra, visit project's
+//! [Github Page](https://github.com/odradev/cargo-odra).
 mod backend;
 mod cargo_toml;
 mod clean;
@@ -24,14 +29,14 @@ use clap::{Parser, Subcommand};
 #[derive(Parser)]
 #[clap(name = "cargo")]
 #[clap(bin_name = "cargo")]
+/// Main command `cargo`
 pub enum Cargo {
     Odra(Odra),
 }
 
-/// Cargo Odra is a tool that helps you creating, maintaining, testing and building smart contracts
-/// developed using the Odra framework
 #[derive(clap::Args)]
 #[clap(author, version, about, long_about = None)]
+/// `cargo odra`
 pub struct Odra {
     #[clap(subcommand)]
     subcommand: OdraSubcommand,
@@ -46,6 +51,7 @@ pub struct Odra {
 }
 
 #[derive(Subcommand)]
+/// Subcommands of `cargo odra`
 pub enum OdraSubcommand {
     /// Creates a new Odra project
     New(InitCommand),
@@ -67,6 +73,7 @@ pub enum OdraSubcommand {
 }
 
 #[derive(clap::Args)]
+/// `cargo odra init`
 pub struct InitCommand {
     /// Name which will be used as a name for the crate
     #[clap(value_parser, long, short)]
@@ -77,6 +84,7 @@ pub struct InitCommand {
 }
 
 #[derive(Subcommand)]
+/// `cargo odra backend`
 pub enum BackendCommand {
     /// Adds a new backend
     Add(AddBackendCommand),
@@ -87,6 +95,7 @@ pub enum BackendCommand {
 }
 
 #[derive(clap::Args)]
+/// `cargo odra backend add`
 pub struct AddBackendCommand {
     /// Name of the backend package (e.g. casper)
     #[clap(value_parser, long, short)]
@@ -109,6 +118,7 @@ pub struct AddBackendCommand {
 }
 
 impl AddBackendCommand {
+    /// Returns filesystem path of a backend
     pub fn path(&self) -> Option<String> {
         if self.path.is_none() {
             None
@@ -123,6 +133,7 @@ impl AddBackendCommand {
 }
 
 #[derive(clap::Args)]
+/// `cargo odra backend remove`
 pub struct RemoveBackendCommand {
     /// Name of the backend that will be used for the build process (e.g. casper)
     #[clap(value_parser, long, short)]
@@ -130,9 +141,11 @@ pub struct RemoveBackendCommand {
 }
 
 #[derive(clap::Args)]
+///  `cargo odra backend list`
 pub struct ListBackendsCommand {}
 
 #[derive(clap::Args)]
+///  `cargo odra build`
 pub struct BuildCommand {
     /// Name of the backend that will be used for the build process (e.g. casper)
     #[clap(value_parser, long, short)]
@@ -143,6 +156,7 @@ pub struct BuildCommand {
 }
 
 #[derive(clap::Args, Debug)]
+///  `cargo odra test`
 pub struct TestCommand {
     /// If set, tests will be run against a backend VM with given name (e.g. casper)
     #[clap(value_parser, long, short)]
@@ -156,6 +170,7 @@ pub struct TestCommand {
 }
 
 #[derive(clap::Args, Debug)]
+///  `cargo odra generate`
 pub struct GenerateCommand {
     /// Name of the contract to be created
     #[clap(value_parser, long, short)]
@@ -163,15 +178,18 @@ pub struct GenerateCommand {
 }
 
 #[derive(clap::Args, Debug)]
+///  `cargo odra clean`
 pub struct CleanCommand {}
 
 #[derive(clap::Args, Debug)]
+///  `cargo odra update`
 pub struct UpdateCommand {
     /// If set, update will be run for given builder, instead of everyone
     #[clap(value_parser, long, short)]
     backend: Option<String>,
 }
 
+/// Cargo odra main function
 fn main() {
     let Cargo::Odra(args) = Cargo::parse();
     match args.subcommand {

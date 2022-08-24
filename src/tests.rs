@@ -1,7 +1,9 @@
+//! Module responsible for running contracts tests
 use crate::{info, Backend, TestCommand};
 use std::os::unix::process::CommandExt;
 use std::process::Command;
 
+/// Tests configuration
 pub struct Tests {
     backend: Option<Backend>,
     passthrough: Vec<String>,

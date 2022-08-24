@@ -1,7 +1,9 @@
+//! Errors
 use crate::error;
 use std::fmt::{Display, Formatter};
 use std::process::exit;
 
+/// Errors enum
 pub enum Error {
     CommandFailed(String),
     InvalidInternalCommand(String),

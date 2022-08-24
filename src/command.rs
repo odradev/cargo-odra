@@ -1,4 +1,4 @@
-//! File containing code that runs external commands
+//! Module containing code that runs external commands
 use crate::errors::Error;
 use crate::log::warn;
 use crate::Cargo;
@@ -87,7 +87,7 @@ pub fn cargo(current_dir: String, args: Vec<&str>) {
     );
 }
 
-pub fn add_verbosity(mut command_args: Vec<&str>) -> Vec<&str> {
+fn add_verbosity(mut command_args: Vec<&str>) -> Vec<&str> {
     let Cargo::Odra(args) = Cargo::parse();
     if args.verbose {
         let mut result = vec!["--verbose"];
