@@ -21,7 +21,7 @@ use crate::backend::Backend;
 use crate::clean::Clean;
 use crate::generate::Generate;
 use crate::init::Init;
-use crate::log::{error, info};
+use crate::log::*;
 use crate::odra_toml::assert_odra_toml;
 use crate::tests::Tests;
 use clap::{Parser, Subcommand};

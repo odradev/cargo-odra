@@ -24,7 +24,7 @@ use crate::{command, consts, info, AddBackendCommand, RemoveBackendCommand};
 pub enum DependencyType {
     /// `odra = { path = "../odra/core"}`
     Local,
-    /// `odra = { git = "https://github.com/odradev/odra" branch = "develop" }`
+    /// `odra = { git = "https://github.com/odradev/odra", branch = "develop" }`
     Remote,
     /// `odra = "0.1.0"`
     Crates,
@@ -48,7 +48,7 @@ impl Backend {
         &self.name
     }
 
-    /// Returns name of the dependency. For example `casper` will be later used to generate
+    /// Returns the name of the dependency. For example `casper` will be later used to generate
     /// `odra-casper-backend` as a name of dependency on crates.io
     pub fn package(&self) -> &String {
         &self.dependency_name
@@ -292,8 +292,7 @@ impl Backend {
     /// Returns Odra dependency tailored for use by backend (optional set to true and wasm feature
     /// enabled)
     fn odra_dependency() -> Dependency {
-        let dependency = odra_dependency();
-        match dependency {
+        match odra_dependency() {
             Dependency::Simple(simple) => Dependency::Detailed(DependencyDetail {
                 version: Some(simple),
                 optional: true,
@@ -403,28 +402,27 @@ impl Backend {
     }
 
     fn from_add_command(add: &AddBackendCommand) -> Backend {
-        let dependency;
-        if add.path.is_some() {
-            dependency = Dependency::Detailed(DependencyDetail {
+        let dependency = if add.path.is_some() {
+            Dependency::Detailed(DependencyDetail {
                 path: add.path(),
                 optional: false,
                 ..Default::default()
-            });
+            })
         } else if add.repo_uri.is_some() {
-            dependency = Dependency::Detailed(DependencyDetail {
+            Dependency::Detailed(DependencyDetail {
                 git: add.repo_uri.clone(),
                 branch: add.branch.clone(),
                 optional: false,
                 ..Default::default()
-            });
+            })
         } else {
             let version = Some("*".to_string());
-            dependency = Dependency::Detailed(DependencyDetail {
+            Dependency::Detailed(DependencyDetail {
                 version,
                 optional: false,
                 ..Default::default()
-            });
-        }
+            })
+        };
 
         let name = match &add.name {
             None => add.package.clone(),

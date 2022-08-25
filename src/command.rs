@@ -1,6 +1,5 @@
 //! Module containing code that runs external commands
 use crate::errors::Error;
-use crate::log::warn;
 use crate::Cargo;
 use clap::Parser;
 use std::fs;
@@ -69,10 +68,7 @@ pub fn wasm_strip(contract_name: &str) {
         return;
     }
 
-    warn(
-        "There was an error while running wasm-strip - is it installed? Generated WASM \
-    files will be substantially bigger! Continuing anyway...",
-    );
+    Error::WasmstripNotInstalled.print_and_die();
 }
 
 /// Runs cargo with given args

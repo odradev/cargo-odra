@@ -12,6 +12,7 @@ pub enum Error {
     NoSuchBackend,
     WasmTargetNotInstalled,
     NotAnOdraProject,
+    WasmstripNotInstalled,
 }
 
 impl Display for Error {
@@ -32,6 +33,9 @@ impl Display for Error {
             Error::NotAnOdraProject => {
                 "This command can be executed only in folder with Odra project.".to_string()
             }
+            Error::WasmstripNotInstalled => {
+                "There was an error while running wasm-strip - is it installed?".to_string()
+            }
         };
 
         write!(f, "{}", msg)
@@ -48,6 +52,7 @@ impl Error {
             Error::NoSuchBackend => 5,
             Error::WasmTargetNotInstalled => 6,
             Error::NotAnOdraProject => 7,
+            Error::WasmstripNotInstalled => 8,
         }
     }
 

@@ -5,8 +5,8 @@ pub fn info(message: &str) {
     prettycli::info(message);
 }
 
-/// Warning message
-pub fn warn(message: &str) {
+/// Warning message, not used yet - remove underscore when in use
+pub fn _warn(message: &str) {
     prettycli::warn(message);
 }
 
@@ -15,7 +15,7 @@ pub fn error(message: &str) {
     prettycli::error(message);
 }
 
-/// Critical message
+/// Critical message, not used yet - remove underscore when in use
 pub fn _crit(message: &str) {
     prettycli::critical(message);
 }
