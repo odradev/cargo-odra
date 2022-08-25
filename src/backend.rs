@@ -190,17 +190,8 @@ impl Backend {
         match dependency {
             Dependency::Simple(simple) => Dependency::Detailed(DependencyDetail {
                 version: Some(simple),
-                registry: None,
-                registry_index: None,
-                path: None,
-                git: None,
-                branch: None,
-                tag: None,
-                rev: None,
-                features: vec![],
                 optional: true,
-                default_features: None,
-                package: None,
+                ..Default::default()
             }),
             Dependency::Detailed(mut odra_details) => {
                 odra_details.features = vec!["wasm".to_string()];
@@ -216,18 +207,11 @@ impl Backend {
 
     fn project_dependency() -> Dependency {
         Dependency::Detailed(DependencyDetail {
-            version: None,
-            registry: None,
-            registry_index: None,
             path: Some("..".to_string()),
-            git: None,
-            branch: None,
-            tag: None,
-            rev: None,
             features: vec!["wasm".to_string()],
             optional: true,
             default_features: Some(false),
-            package: None,
+            ..Default::default()
         })
     }
 
@@ -235,49 +219,20 @@ impl Backend {
         let dependency;
         if add.path.is_some() {
             dependency = Dependency::Detailed(DependencyDetail {
-                version: None,
-                registry: None,
-                registry_index: None,
                 path: add.path(),
-                git: None,
-                branch: None,
-                tag: None,
-                rev: None,
-                features: vec![],
-                optional: false,
-                default_features: None,
-                package: None,
+                ..Default::default()
             });
         } else if add.repo_uri.is_some() {
             dependency = Dependency::Detailed(DependencyDetail {
-                version: None,
-                registry: None,
-                registry_index: None,
-                path: None,
                 git: add.repo_uri.clone(),
                 branch: add.branch.clone(),
-                tag: None,
-                rev: None,
-                features: vec![],
-                optional: false,
-                default_features: None,
-                package: None,
+                ..Default::default()
             });
         } else {
             let version = Some("*".to_string());
             dependency = Dependency::Detailed(DependencyDetail {
                 version,
-                registry: None,
-                registry_index: None,
-                path: None,
-                git: None,
-                branch: None,
-                tag: None,
-                rev: None,
-                features: vec![],
-                optional: false,
-                default_features: None,
-                package: None,
+                ..Default::default()
             });
         }
 
