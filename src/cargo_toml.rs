@@ -1,4 +1,4 @@
-/// File containing functions used by Builder for managing its Cargo.toml file
+//! Module containing functions used by Builder for managing its Cargo.toml file
 use crate::backend::Backend;
 
 use crate::odra_toml::OdraConf;

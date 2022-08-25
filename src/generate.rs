@@ -1,3 +1,4 @@
+//! Module responsible for generating contracts code for user
 use crate::odra_toml::OdraConf;
 use crate::GenerateCommand;
 use convert_case::{Case, Casing};
@@ -6,6 +7,7 @@ use std::fs;
 use std::fs::OpenOptions;
 use std::io::Write;
 
+/// Generate struct
 pub struct Generate {
     generate: GenerateCommand,
 }
