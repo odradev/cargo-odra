@@ -12,21 +12,30 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-clap = { version = "3.2.16", features = ["derive", "cargo"] }
-clap-cargo = "0.8.0"
-cargo_metadata = "0.6.0"
-attohttpc = "0.19.1"
-convert_case = "0.5.0"
-toml = "0.5.9"
-serde = "1.0.137"
-serde_derive = "1.0.137"
-cargo-generate = "0.15.2"
-rm_rf = "0.6.2"
-glob = "0.3.0"
-url = "2.2.2"
-cargo_toml = "0.11.5"
-regex = "1.6.0"
-prettycli = "0.1.1"
-heck = "0.4.0"
-chrono = "0.4.20"
-comfy-table = "6.0.0"
+clap = { version = "3.2", features = ["derive", "cargo"] }
+clap-cargo = "0.8"
+cargo_metadata = "0.6"
+attohttpc = "0.19"
+convert_case = "0.5"
+toml = "0.5"
+serde = "1.0"
+serde_derive = "1.0"
+cargo-generate = "0.15"
+rm_rf = "0.6"
+glob = "0.3"
+url = "2.2"
+cargo_toml = "0.11"
+regex = "1.6"
+prettycli = "0.1"
+heck = "0.4"
+chrono = "0.4"
+comfy-table = "6.0"
+
+[dev-dependencies]
+async-trait = "0.1"
+cucumber = "0.13"
+futures = "0.3"
+
+[[test]]
+name = "cargo-odra" # this should be the same as the filename of your test target
+harness = false  # allows Cucumber to print output instead of libtest

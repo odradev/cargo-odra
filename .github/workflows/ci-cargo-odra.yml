@@ -15,6 +15,7 @@ on:
       - develop
       - feature/*
       - release/*
+      - '*.*.*'
     paths-ignore:
       - "**.md"
 
@@ -28,4 +29,5 @@ jobs:
         with:
           toolchain: nightly
       - run: make install
+      - run: make test
       - run: make test-project-generation
