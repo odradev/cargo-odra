@@ -1,25 +1,30 @@
+extern crate core;
+
 use async_trait::async_trait;
 use cucumber::{given, then, when, World, WorldInit};
+use rand::Rng;
 use std::convert::Infallible;
-use std::path;
 use std::path::Path;
-use std::process::{Command, Output};
-// `World` is your shared, likely mutable state.
+use std::process::Command;
+
 #[derive(Debug, WorldInit, Clone)]
 pub struct CargoOdraWorld {
+    folder: String,
     return_code: i32,
     stdout: Option<String>,
     stderr: Option<String>,
 }
 
-// `World` needs to be implemented, so Cucumber knows how to construct it
-// for each scenario.
 #[async_trait(?Send)]
 impl World for CargoOdraWorld {
-    // We do require some error type.
     type Error = Infallible;
+
     async fn new() -> Result<Self, Infallible> {
+        let mut rng = rand::thread_rng();
+        let folder = "test_run_".to_string() + &rng.gen::<u64>().to_string();
+        std::fs::create_dir_all(folder.clone()).expect("Couldn't create temporary directory");
         Ok(Self {
+            folder,
             return_code: 0,
             stdout: None,
             stderr: None,
@@ -27,81 +32,51 @@ impl World for CargoOdraWorld {
     }
 }
 
-// Steps are defined with `given`, `when` and `then` attributes.
 #[given("clean workspace")]
-fn cargo_odra(_world: &mut CargoOdraWorld) {
-    let path = path::PathBuf::from("project");
-    if path.exists() {
-        std::fs::remove_dir_all(path).unwrap();
-    }
-}
+fn cargo_odra(_world: &mut CargoOdraWorld) {}
 
-#[given(expr = "odra set up in {word} folder")]
-fn odra_set_up_in_folder(world: &mut CargoOdraWorld, folder: String) {
-    let path = path::PathBuf::from(folder);
-    if path.exists() {
-        std::fs::remove_dir_all(path).unwrap();
-    }
-    run_command(world, "cargo odra new -n project".to_string());
+#[given(expr = "odra set up")]
+fn odra_set_up(world: &mut CargoOdraWorld) {
+    run_command(world, format!("cargo odra init -n {}", world.folder));
 }
 
 #[when(expr = "I create a new folder called {word}")]
-fn create_folder(_world: &mut CargoOdraWorld, folder: String) {
+fn create_folder(world: &mut CargoOdraWorld, folder: String) {
+    let folder = world.folder.clone() + "/" + &folder;
     std::fs::create_dir_all(folder).unwrap();
 }
 
 #[when(expr = "I run {string}")]
 fn run_command(world: &mut CargoOdraWorld, command: String) {
-    let output = command_result(command, None);
-    world.stdout = Some(
-        std::str::from_utf8(output.stdout.as_slice())
-            .unwrap()
-            .to_string(),
-    );
-    world.stderr = Some(
-        std::str::from_utf8(output.stderr.as_slice())
-            .unwrap()
-            .to_string(),
-    );
-    world.return_code = output.status.code().unwrap();
-}
-
-#[when(expr = "I run {string} in {word} folder")]
-fn run_command_in_folder(world: &mut CargoOdraWorld, command: String, folder: String) {
-    let output = command_result(command, Some(folder));
-    world.stdout = Some(
-        std::str::from_utf8(output.stdout.as_slice())
-            .unwrap()
-            .to_string(),
-    );
-    world.stderr = Some(
-        std::str::from_utf8(output.stderr.as_slice())
-            .unwrap()
-            .to_string(),
-    );
-    world.return_code = output.status.code().unwrap();
-}
-
-fn command_result(command: String, folder: Option<String>) -> Output {
     let mut split_command: Vec<&str> = command.split(' ').collect();
     let program = *split_command.first().unwrap();
     let args: Vec<&str> = split_command.drain(1..).collect();
 
-    let folder = if folder.is_some() {
-        folder.unwrap()
-    } else {
-        ".".to_string()
-    };
+    let folder = world.folder.clone();
 
-    Command::new(program)
-        .current_dir(folder)
+    let output = Command::new(program)
+        .current_dir(folder.clone())
         .args(args)
         .output()
-        .expect("failed to execute process")
+        .expect(format!("failed to execute process {}", folder).as_str());
+
+    world.stdout = Some(
+        std::str::from_utf8(output.stdout.as_slice())
+            .unwrap()
+            .to_string(),
+    );
+    world.stderr = Some(
+        std::str::from_utf8(output.stderr.as_slice())
+            .unwrap()
+            .to_string(),
+    );
+
+    world.return_code = output.status.code().unwrap();
 }
 
 #[then(expr = "folder named {word} exists")]
-fn folder_exists(_world: &mut CargoOdraWorld, folder_name: String) {
+fn folder_exists(world: &mut CargoOdraWorld, folder_name: String) {
+    let folder_name = world.folder.clone() + "/" + &folder_name;
     assert!(Path::new(&folder_name).exists());
 }
 
@@ -116,7 +91,14 @@ fn exit_code(world: &mut CargoOdraWorld, error_code: i32) {
     assert_eq!(world.return_code, error_code);
 }
 
-// This runs before everything else, so you can setup things here.
-fn main() {
-    futures::executor::block_on(CargoOdraWorld::run("tests/features/"));
+#[tokio::main]
+async fn main() {
+    CargoOdraWorld::cucumber()
+        .after(|_feature, _rule, _scenario, world| {
+            Box::pin(async move {
+                std::fs::remove_dir_all(world.unwrap().folder.clone()).unwrap();
+            })
+        })
+        .run_and_exit("tests/features/")
+        .await;
 }

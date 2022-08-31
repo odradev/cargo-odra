@@ -34,7 +34,8 @@ comfy-table = "6.0"
 [dev-dependencies]
 async-trait = "0.1"
 cucumber = "0.13"
-futures = "0.3"
+tokio = { version = "1.20", features = ["macros", "rt-multi-thread", "time"] }
+rand = "0.8"
 
 [[test]]
 name = "cargo-odra" # this should be the same as the filename of your test target
