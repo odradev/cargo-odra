@@ -6,7 +6,7 @@
 mod backend;
 mod cargo_toml;
 mod clean;
-mod command;
+pub mod command;
 mod consts;
 mod errors;
 mod generate;
@@ -25,6 +25,7 @@ use crate::log::*;
 use crate::odra_toml::assert_odra_toml;
 use crate::tests::Tests;
 use clap::{Parser, Subcommand};
+pub use command::command_output;
 
 #[derive(Parser)]
 #[clap(name = "cargo")]

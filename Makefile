@@ -4,11 +4,14 @@ default:
 install:
 	cargo build --release
 	cp target/release/cargo-odra ~/.cargo/bin/cargo-odra
+	sudo apt install wabt
+	rustup target add wasm32-unknown-unknown
+
+test:
+	cargo test
 
 test-project-generation:
 	rm -rf testproject
-	sudo apt install wabt
-	rustup target add wasm32-unknown-unknown
 	cargo odra new -n testproject
 	cd testproject && cargo odra generate -c plascoin
 	cd testproject && cargo odra test
