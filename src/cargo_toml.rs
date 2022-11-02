@@ -68,6 +68,7 @@ pub fn builder_cargo_toml(backend: &Backend) {
         ],
     );
 
+    #[allow(deprecated)]
     let cargo_toml: Manifest = cargo_toml::Manifest {
         package: Some(Package::new("builder".to_string(), "1.0.0".to_string())),
         workspace: None,
@@ -84,6 +85,7 @@ pub fn builder_cargo_toml(backend: &Backend) {
         bench: vec![],
         test: vec![],
         example: vec![],
+        replace: Default::default()
     };
 
     let toml = toml::to_string(&cargo_toml).unwrap();
