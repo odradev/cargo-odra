@@ -2,10 +2,10 @@ default:
 	cargo build --release
 
 install:
-	cargo build --release
-	cp target/release/cargo-odra ~/.cargo/bin/cargo-odra
-	sudo apt install wabt
-	rustup target add wasm32-unknown-unknown
+	cargo build
+	cp target/debug/cargo-odra ~/.cargo/bin/cargo-odra
+	# sudo apt install wabt
+	# rustup target add wasm32-unknown-unknown
 
 test:
 	cargo test
@@ -17,3 +17,7 @@ test-project-generation:
 	cd testproject && cargo odra test
 	cd testproject && cargo odra backend add --package casper --name casper
 	cd testproject && cargo odra test -b casper
+
+lint:
+	cargo fmt
+	cargo clippy --all-targets -- -D warnings

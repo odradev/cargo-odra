@@ -58,7 +58,7 @@ fn run_command(world: &mut CargoOdraWorld, command: String) {
         .current_dir(folder.clone())
         .args(args)
         .output()
-        .expect(format!("failed to execute process {}", folder).as_str());
+        .unwrap_or_else(|_| panic!("failed to execute process {}", folder));
 
     world.stdout = Some(
         std::str::from_utf8(output.stdout.as_slice())

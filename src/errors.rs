@@ -1,18 +1,21 @@
 //! Errors
-use crate::error;
+use crate::log;
 use std::fmt::{Display, Formatter};
+use std::path::PathBuf;
 use std::process::exit;
 
+// TODO: Use thiserror.
 /// Errors enum
 pub enum Error {
     CommandFailed(String),
     InvalidInternalCommand(String),
     FailedToReadCargo(String),
-    NoBackendConfigured,
-    NoSuchBackend,
     WasmTargetNotInstalled,
     NotAnOdraProject,
     WasmstripNotInstalled,
+    CurrentDirIsNotEmpty,
+    FileAlreadyExists(PathBuf),
+    ContractAlreadyInOdraToml(String),
 }
 
 impl Display for Error {
@@ -23,8 +26,6 @@ impl Display for Error {
             Error::FailedToReadCargo(error) => {
                 format!("Failed to read Cargo.toml: {}", error)
             }
-            Error::NoBackendConfigured => "No backend configured".to_string(),
-            Error::NoSuchBackend => "No such backend".to_string(),
             Error::WasmTargetNotInstalled => {
                 "wasm32-unknown-unknown target is not present, install it by executing:\n\
             rustup target add wasm32-unknown-unknown"
@@ -35,6 +36,13 @@ impl Display for Error {
             }
             Error::WasmstripNotInstalled => {
                 "There was an error while running wasm-strip - is it installed?".to_string()
+            }
+            Error::CurrentDirIsNotEmpty => "Current directory is not empty.".to_string(),
+            Error::FileAlreadyExists(path) => {
+                format!("File {} already exists,", path.to_string_lossy())
+            }
+            Error::ContractAlreadyInOdraToml(name) => {
+                format!("Contract {} already in Odra.toml", name)
             }
         };
 
@@ -48,16 +56,17 @@ impl Error {
             Error::CommandFailed(_) => 1,
             Error::InvalidInternalCommand(_) => 2,
             Error::FailedToReadCargo(_) => 3,
-            Error::NoBackendConfigured => 4,
-            Error::NoSuchBackend => 5,
             Error::WasmTargetNotInstalled => 6,
             Error::NotAnOdraProject => 7,
             Error::WasmstripNotInstalled => 8,
+            Error::CurrentDirIsNotEmpty => 9,
+            Error::FileAlreadyExists(_) => 10,
+            Error::ContractAlreadyInOdraToml(_) => 11,
         }
     }
 
     pub fn print_and_die(&self) -> ! {
-        error(&format!("{}", self));
+        log::error(&format!("{}", self));
         exit(self.code());
     }
 }

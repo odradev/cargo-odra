@@ -6,7 +6,7 @@ use std::fs;
 use std::process::{Command, ExitStatus};
 use Error::InvalidInternalCommand;
 
-/// Returns output of a command as a String
+/// Returns output of a command as a String.
 pub fn command_output(command: &str) -> String {
     let mut split_command: Vec<&str> = command.split(' ').collect();
     let program = *split_command
@@ -38,7 +38,7 @@ pub fn cp(source: &str, target: &str) {
     );
 }
 
-/// Runs cargo fmt
+/// Runs cargo fmt.
 pub fn fmt(folder: &str) {
     let status = Command::new("cargo")
         .args(["fmt"])
@@ -52,12 +52,12 @@ pub fn fmt(folder: &str) {
     );
 }
 
-/// Creates a directory
+/// Creates a directory.
 pub fn mkdir(path: &str) {
     fs::create_dir_all(path).unwrap();
 }
 
-/// Runs wasm-strip
+/// Runs wasm-strip.
 pub fn wasm_strip(contract_name: &str) {
     let command = Command::new("wasm-strip")
         .current_dir("wasm")
@@ -71,6 +71,7 @@ pub fn wasm_strip(contract_name: &str) {
     Error::WasmstripNotInstalled.print_and_die();
 }
 
+// @TODO: Use PathBuf
 /// Runs cargo with given args
 pub fn cargo(current_dir: String, args: Vec<&str>) {
     let args = add_verbosity(args);

@@ -1,18 +1,18 @@
 //! Module containing functions used by Builder for managing its Cargo.toml file
-use crate::backend::Backend;
 
-use crate::odra_toml::OdraConf;
-use cargo_toml::{FeatureSet, Manifest, Package, Product};
+use crate::errors::Error;
+use crate::odra_toml::OdraToml;
 
+use cargo_toml::{Dependency, DepsSet, FeatureSet, Manifest, Package, Product};
 use std::fs::File;
 use std::io::Write;
+use std::path::Path;
 
 /// Builds and saves Cargo.toml file for backend
-pub fn builder_cargo_toml(backend: &Backend) {
-    let conf = OdraConf::load();
-
+pub fn builder_cargo_toml(builder_path: String, builder_deps: DepsSet, odra_toml: &OdraToml) {
+    // TODO: Shorten and defaults.
     let mut bins = vec![];
-    for (_, contract) in conf.contracts.into_iter() {
+    for (_, contract) in odra_toml.contracts.iter() {
         bins.push(Product {
             path: Some(contract.path.clone()),
             name: Some(format!("{}_build", contract.name.clone())),
@@ -30,7 +30,7 @@ pub fn builder_cargo_toml(backend: &Backend) {
 
         bins.push(Product {
             path: Some(contract.path.replace(".rs", "_wasm.rs")),
-            name: Some(contract.name),
+            name: Some(contract.name.clone()),
             test: false,
             doctest: false,
             bench: false,
@@ -43,40 +43,17 @@ pub fn builder_cargo_toml(backend: &Backend) {
             required_features: vec![],
         });
     }
-    let project_name = OdraConf::load().name;
 
-    let mut features = FeatureSet::new();
-    features.insert("default".to_string(), vec!["build".to_string()]);
-    features.insert(
-        "build".to_string(),
-        vec![format!("odra-{}-test-env", backend.package())],
-    );
-    features.insert(
-        "codegen".to_string(),
-        vec![
-            format!("odra-{}-backend", backend.package()),
-            project_name.clone(),
-            "odra".to_string(),
-        ],
-    );
-    features.insert(
-        "wasm".to_string(),
-        vec![
-            "odra/wasm".to_string(),
-            project_name,
-            format!("odra-{}-backend", backend.package()),
-        ],
-    );
-
+    // TODO: Defaults
     #[allow(deprecated)]
     let cargo_toml: Manifest = cargo_toml::Manifest {
         package: Some(Package::new("builder".to_string(), "1.0.0".to_string())),
         workspace: None,
-        dependencies: backend.builder_dependencies(),
+        dependencies: builder_deps,
         dev_dependencies: Default::default(),
         build_dependencies: Default::default(),
         target: Default::default(),
-        features,
+        features: FeatureSet::new(),
         patch: Default::default(),
         lib: None,
         profile: Default::default(),
@@ -85,11 +62,22 @@ pub fn builder_cargo_toml(backend: &Backend) {
         bench: vec![],
         test: vec![],
         example: vec![],
-        replace: Default::default()
+        replace: Default::default(),
     };
 
-    let toml = toml::to_string(&cargo_toml).unwrap();
+    let builder_cargo_toml_path = Path::new(&builder_path).join("Cargo.toml");
+    let toml_contente = toml::to_string_pretty(&cargo_toml).unwrap();
+    let mut cargo_toml_file = File::create(builder_cargo_toml_path).unwrap();
+    cargo_toml_file.write_all(toml_contente.as_bytes()).unwrap();
+}
 
-    let mut file = File::create(backend.builder_path() + "Cargo.toml").unwrap();
-    file.write_all(toml.as_bytes()).unwrap();
+/// Returns Dependency of Odra, taken from project's Cargo.toml
+pub fn odra_dependency() -> Dependency {
+    let cargo_toml = match Manifest::from_path("Cargo.toml") {
+        Ok(manifest) => manifest,
+        Err(err) => {
+            Error::FailedToReadCargo(err.to_string()).print_and_die();
+        }
+    };
+    cargo_toml.dependencies.get("odra").unwrap().clone()
 }
