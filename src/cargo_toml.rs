@@ -2,49 +2,47 @@
 
 use crate::errors::Error;
 use crate::odra_toml::OdraToml;
+use crate::paths::BuilderPaths;
 
-use cargo_toml::{Dependency, DepsSet, FeatureSet, Manifest, Package, Product};
+use cargo_toml::{Dependency, DepsSet, Edition, FeatureSet, Manifest, Package, Product};
 use std::fs::File;
 use std::io::Write;
-use std::path::Path;
 
 /// Builds and saves Cargo.toml file for backend
-pub fn builder_cargo_toml(builder_path: String, builder_deps: DepsSet, odra_toml: &OdraToml) {
-    // TODO: Shorten and defaults.
+pub fn builder_cargo_toml(
+    builder_paths: &BuilderPaths,
+    builder_deps: DepsSet,
+    odra_toml: &OdraToml,
+) {
+    let default_bin = Product {
+        test: false,
+        doctest: false,
+        bench: false,
+        doc: false,
+        edition: Some(Edition::E2021),
+        ..Default::default()
+    };
+
     let mut bins = vec![];
-    for (_, contract) in odra_toml.contracts.iter() {
+    for contract in odra_toml.contracts.iter() {
+        let build_name = format!("{}_build", contract.name.clone());
         bins.push(Product {
-            path: Some(contract.path.clone()),
-            name: Some(format!("{}_build", contract.name.clone())),
-            test: false,
-            doctest: false,
-            bench: false,
-            doc: false,
-            plugin: false,
-            proc_macro: false,
-            harness: false,
-            edition: None,
-            crate_type: None,
-            required_features: vec![],
+            path: Some(
+                builder_paths
+                    .relative()
+                    .wasm_build_as_string(&contract.name),
+            ),
+            name: Some(build_name),
+            ..default_bin.clone()
         });
 
         bins.push(Product {
-            path: Some(contract.path.replace(".rs", "_wasm.rs")),
+            path: Some(builder_paths.relative().wasm_source_file(&contract.name)),
             name: Some(contract.name.clone()),
-            test: false,
-            doctest: false,
-            bench: false,
-            doc: false,
-            plugin: false,
-            proc_macro: false,
-            harness: false,
-            edition: None,
-            crate_type: None,
-            required_features: vec![],
+            ..default_bin.clone()
         });
     }
 
-    // TODO: Defaults
     #[allow(deprecated)]
     let cargo_toml: Manifest = cargo_toml::Manifest {
         package: Some(Package::new("builder".to_string(), "1.0.0".to_string())),
@@ -65,19 +63,25 @@ pub fn builder_cargo_toml(builder_path: String, builder_deps: DepsSet, odra_toml
         replace: Default::default(),
     };
 
-    let builder_cargo_toml_path = Path::new(&builder_path).join("Cargo.toml");
     let toml_contente = toml::to_string_pretty(&cargo_toml).unwrap();
-    let mut cargo_toml_file = File::create(builder_cargo_toml_path).unwrap();
+    let mut cargo_toml_file = File::create(builder_paths.cargo_toml()).unwrap();
     cargo_toml_file.write_all(toml_contente.as_bytes()).unwrap();
 }
 
 /// Returns Dependency of Odra, taken from project's Cargo.toml
 pub fn odra_dependency() -> Dependency {
-    let cargo_toml = match Manifest::from_path("Cargo.toml") {
+    load_cargo_toml().dependencies.get("odra").unwrap().clone()
+}
+
+pub fn project_name() -> String {
+    load_cargo_toml().package.unwrap().name
+}
+
+fn load_cargo_toml() -> Manifest {
+    match Manifest::from_path("Cargo.toml") {
         Ok(manifest) => manifest,
         Err(err) => {
             Error::FailedToReadCargo(err.to_string()).print_and_die();
         }
-    };
-    cargo_toml.dependencies.get("odra").unwrap().clone()
+    }
 }

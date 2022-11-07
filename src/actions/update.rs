@@ -19,7 +19,7 @@ fn update_builder_by_name(backend: String) {
 }
 
 fn update_builder(builder: PathBuf) {
-    log::info(&format!(
+    log::info(format!(
         "Running cargo update for {} builder...",
         builder.to_str().unwrap()
     ));

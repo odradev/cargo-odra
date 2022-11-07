@@ -3,18 +3,14 @@
 use crate::consts::ODRA_TOML_FILENAME;
 use crate::errors::Error;
 use serde_derive::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 
 /// Odra configuration
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct OdraToml {
-    // TODO: Remove
-    /// Project name
-    pub name: String,
     /// Contracts in the project.
-    pub contracts: HashMap<String, Contract>,
+    pub contracts: Vec<Contract>,
 }
 
 impl OdraToml {
@@ -41,14 +37,16 @@ impl OdraToml {
         let content = toml::to_string(&self).unwrap();
         fs::write(ODRA_TOML_FILENAME, content).unwrap();
     }
+
+    /// Check if the contract is defined in Odra.toml file.
+    pub fn has_contract(&self, contract_name: &str) -> bool {
+        self.contracts.iter().any(|c| c.name == contract_name)
+    }
 }
 
 /// Struct describing contract
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Contract {
-    // TODO: Remove.
-    /// Path to the contract file
-    pub path: String,
     /// Name of the contract
     pub name: String,
     /// Fully Qualified Name of the contract struct

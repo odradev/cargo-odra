@@ -4,6 +4,8 @@
 //! To see examples on how to use cargo odra, visit project's
 //! [Github Page](https://github.com/odradev/cargo-odra).
 
+use clap::{Parser, Subcommand};
+
 mod actions;
 mod cargo_toml;
 mod command;
@@ -11,28 +13,13 @@ mod consts;
 mod errors;
 mod log;
 mod odra_toml;
+mod paths;
 
 use actions::{
     build::BuildAction, clean::clean_action, generate::GenerateAction, init::InitAction,
     test::TestAction, update::update_action,
 };
-// mod builder;
-// mod clean;
-// mod generate;
-// mod init;
-// mod odra_dependency;
-// mod test;
-// mod update;
 
-// use crate::builder::Backend;
-// use crate::clean::Clean;
-// use crate::generate::Generate;
-// use crate::init::Init;
-// use crate::log::*;
-// use crate::odra_toml::assert_odra_toml;
-// use crate::test::Tests;
-
-use clap::{Parser, Subcommand};
 pub use command::command_output;
 
 #[derive(Parser)]

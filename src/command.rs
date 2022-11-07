@@ -101,3 +101,7 @@ fn add_verbosity(mut command_args: Vec<&str>) -> Vec<&str> {
 
     command_args
 }
+
+// fn add_target_dir(mut command_args: Vec<&str>) -> Vec<&str> {
+//     command_args.push("--ta")
+// }
