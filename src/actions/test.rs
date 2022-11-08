@@ -1,10 +1,6 @@
 //! Module responsible for running contracts tests
-use std::os::unix::process::CommandExt;
-use std::process::Command;
-
-use crate::{log, TestCommand};
-
 use super::build::BuildAction;
+use crate::{cli::TestCommand, command, paths};
 
 /// Tester configuration
 pub struct TestAction {
@@ -32,38 +28,30 @@ impl TestAction {
     }
 
     fn test_mock_vm(&self) {
-        let test_args = self.get_test_args();
-        log::info("Running cargo test...");
-        // TODO: Move to commnads.
-        Command::new("cargo").args(test_args).exec();
+        command::cargo_test_mock_vm(paths::project_dir(), self.get_passthrough_args());
     }
 
     fn test_backend(&self) {
-        // TODO: Simplify.
-        let mut test_args = self.get_test_args();
-        test_args.push(String::from("--no-default-features"));
-        test_args.push(String::from("--features"));
-        test_args.push(self.backend_name());
-
-        // TODO: Move to commnads.
-        log::info("Running cargo test...");
-        Command::new("cargo").args(test_args).exec();
+        command::cargo_test_backend(
+            paths::project_dir(),
+            self.backend_name(),
+            self.get_passthrough_args(),
+        );
     }
 
-    fn backend_name(&self) -> String {
-        self.backend.clone().unwrap()
+    fn backend_name(&self) -> &str {
+        self.backend.as_ref().unwrap()
     }
 
-    fn get_test_args(&self) -> Vec<String> {
-        let mut test_args = vec!["test".to_string()];
+    fn get_passthrough_args<'a>(&'a self) -> Vec<&'a str> {
         if !self.passthrough.is_empty() {
-            test_args.append(&mut self.passthrough.clone());
+            self.passthrough.iter().map(|s| s.as_ref()).collect()
+        } else {
+            vec![]
         }
-
-        test_args
     }
 
     fn build_wasm_files(&self) {
-        BuildAction::new(self.backend_name()).build();
+        BuildAction::new(String::from(self.backend_name())).build();
     }
 }

@@ -2,16 +2,16 @@
 use std::fs::File;
 use std::io::Write;
 
-use std::fs;
+use std::path::PathBuf;
 
 use cargo_toml::{Dependency, DependencyDetail, DepsSet};
 
 use crate::cargo_toml::{odra_dependency, project_name};
-use crate::consts;
 use crate::errors::Error;
 use crate::odra_toml::OdraToml;
 use crate::paths::BuilderPaths;
-use crate::{command, log};
+use crate::{command, log, template};
+use crate::{consts, paths};
 
 #[derive(Debug)]
 /// Backend configuration
@@ -43,7 +43,7 @@ impl BuildAction {
         self.prepare_builder();
         self.build_wasm_sources();
         self.build_wasm_files();
-        self.fmt();
+        self.format_builder_files();
         self.copy_wasm_files();
         self.optimize_wasm_files();
     }
@@ -64,38 +64,29 @@ impl BuildAction {
             self.builder_paths.root_as_string()
         ));
 
-        self.create_builder_directories();
-        self.create_builder_cargo_toml();
-        self.create_build_files();
-    }
+        // Prepare directories.
+        command::mkdir(self.builder_paths.src());
 
-    // TODO replace with mkdir.
-    fn create_builder_directories(&self) {
-        if !self.builder_paths.root().is_dir() {
-            fs::create_dir(self.builder_paths.root()).unwrap();
-        }
-        if !self.builder_paths.src().is_dir() {
-            fs::create_dir(self.builder_paths.src()).unwrap();
-        }
-    }
-
-    fn create_builder_cargo_toml(&self) {
+        // Build Cargo.toml
         crate::cargo_toml::builder_cargo_toml(
             &self.builder_paths,
             self.builder_dependencies(),
             &self.odra_toml,
         );
+
+        // Build files.
+        self.create_build_files();
     }
 
     fn create_build_files(&self) {
         for contract in self.odra_toml.contracts.iter() {
             let path = self.builder_paths.wasm_build(&contract.name);
             if !path.exists() {
-                // TODO: Hide replaces.
-                let contents = consts::DEF_RS
-                    .replace("#contract_fqn", &contract.fqn)
-                    .replace("#contract_name", &contract.name)
-                    .replace("#backend_name", &self.backend_name());
+                let contents = template::wasm_source_builder(
+                    &contract.fqn,
+                    &contract.name,
+                    &self.backend_name(),
+                );
                 let mut file = File::create(path).unwrap();
                 file.write_all(contents.as_bytes()).unwrap();
             }
@@ -104,53 +95,26 @@ impl BuildAction {
 
     fn build_wasm_sources(&self) {
         log::info("Generating _wasm.rs files...");
-        for contract in self.odra_toml.contracts.clone().iter() {
-            command::cargo(
-                self.builder_paths.root_as_string(),
-                vec![
-                    "run",
-                    "--bin",
-                    format!("{}_build", &contract.name).as_str(),
-                    "--no-default-features",
-                ],
-            );
+        for contract in self.odra_toml.contracts.iter() {
+            command::cargo_build_wasm_sources(self.builder_paths.root(), &contract.name);
         }
     }
 
     fn build_wasm_files(&self) {
         log::info("Generating wasm files...");
         for contract in self.odra_toml.contracts.iter() {
-            // TODO Move to command.rs
-            command::cargo(
-                self.builder_paths.root_as_string(),
-                vec![
-                    "build",
-                    "--target",
-                    "wasm32-unknown-unknown",
-                    "--bin",
-                    &contract.name,
-                    "--release",
-                    "--no-default-features",
-                ],
-            );
+            command::cargo_build_wasm_files(self.builder_paths.root(), &contract.name);
         }
     }
 
     fn copy_wasm_files(&self) {
         log::info("Copying wasm files...");
-        command::mkdir("target/debug");
-        command::mkdir("wasm");
+        command::mkdir(PathBuf::from("wasm"));
         for contract in self.odra_toml.contracts.iter() {
-            let source = format!(
-                "{}/target/wasm32-unknown-unknown/release/{}.wasm",
-                self.builder_paths.root_as_string(),
-                contract.name
-            );
-            let target = format!("wasm/{}.wasm", contract.name);
-
-            log::info(format!("Saving {}", target));
-
-            command::cp(&source, &target);
+            let source = paths::wasm_path_in_target(&contract.name);
+            let target = paths::wasm_path_in_wasm_dir(&contract.name);
+            log::info(format!("Saving {}", target.display()));
+            command::cp(source, target);
         }
     }
 
@@ -160,8 +124,8 @@ impl BuildAction {
         }
     }
 
-    fn fmt(&self) {
-        command::fmt(&self.builder_paths.root_as_string());
+    fn format_builder_files(&self) {
+        command::cargo_fmt(self.builder_paths.root());
     }
 
     /// Returns a set of dependencies used by backend.

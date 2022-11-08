@@ -4,23 +4,12 @@
 //! To see examples on how to use cargo odra, visit project's
 //! [Github Page](https://github.com/odradev/cargo-odra).
 
-use clap::{Parser, Subcommand};
-
-mod actions;
-mod cargo_toml;
-mod command;
-mod consts;
-mod errors;
-mod log;
-mod odra_toml;
-mod paths;
-
-use actions::{
+use crate::actions::{
     build::BuildAction, clean::clean_action, generate::GenerateAction, init::InitAction,
     test::TestAction, update::update_action,
 };
-
-pub use command::command_output;
+use crate::consts;
+use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
 #[clap(name = "cargo")]
@@ -39,11 +28,11 @@ pub struct Odra {
 
     #[clap(value_parser, long, short, global = true)]
     /// Be verbose
-    verbose: bool,
+    pub verbose: bool,
 
     #[clap(value_parser, long, short, global = true)]
     /// Be quiet, show only errors
-    quiet: bool,
+    pub quiet: bool,
 }
 
 #[derive(Subcommand)]
@@ -70,37 +59,37 @@ pub enum OdraSubcommand {
 pub struct InitCommand {
     /// Name which will be used as a name for the crate
     #[clap(value_parser, long, short)]
-    name: String,
+    pub name: String,
     /// URI of the repository containing the template
     #[clap(value_parser, long, short, default_value = consts::ODRA_TEMPLATE_GH_REPO)]
-    repo_uri: String,
+    pub repo_uri: String,
 }
 
 #[derive(clap::Args)]
-///  `cargo odra build`
+/// `cargo odra build`
 pub struct BuildCommand {
     /// Name of the backend that will be used for the build process (e.g. casper)
     #[clap(value_parser, long, short, possible_values = [consts::ODRA_CASPER_BACKEND])]
-    backend: String,
+    pub backend: String,
 }
 
 #[derive(clap::Args, Debug)]
-///  `cargo odra test`
+/// `cargo odra test`
 pub struct TestCommand {
     /// If set, tests will be run against a backend VM with given name (e.g. casper)
     #[clap(value_parser, long, short, possible_values = [consts::ODRA_CASPER_BACKEND])]
-    backend: Option<String>,
+    pub backend: Option<String>,
     /// A list of arguments that will be passed to the cargo test command
     #[clap(raw = true)]
-    args: Vec<String>,
+    pub args: Vec<String>,
 }
 
 #[derive(clap::Args, Debug)]
-///  `cargo odra generate`
+/// `cargo odra generate`
 pub struct GenerateCommand {
     /// Name of the contract to be created
     #[clap(value_parser, long, short)]
-    contract_name: String,
+    pub contract_name: String,
 }
 
 #[derive(clap::Args, Debug)]
@@ -112,11 +101,11 @@ pub struct CleanCommand {}
 pub struct UpdateCommand {
     /// If set, update will be run for given builder, instead of everyone
     #[clap(value_parser, long, short, possible_values = [consts::ODRA_CASPER_BACKEND])]
-    backend: Option<String>,
+    pub backend: Option<String>,
 }
 
 /// Cargo odra main function
-fn main() {
+pub fn make_action() {
     let Cargo::Odra(args) = Cargo::parse();
     match args.subcommand {
         OdraSubcommand::Build(build) => {

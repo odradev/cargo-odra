@@ -63,3 +63,19 @@ impl BuilderPaths {
             .unwrap()
     }
 }
+
+pub fn wasm_file_name(contract_name: &str) -> PathBuf {
+    PathBuf::from(contract_name).with_extension("wasm")
+}
+
+pub fn wasm_path_in_target(contract_name: &str) -> PathBuf {
+    PathBuf::from("target/wasm32-unknown-unknown/release").join(wasm_file_name(contract_name))
+}
+
+pub fn wasm_path_in_wasm_dir(contract_name: &str) -> PathBuf {
+    PathBuf::from("wasm").join(wasm_file_name(contract_name))
+}
+
+pub fn project_dir() -> PathBuf {
+    PathBuf::from(".")
+}

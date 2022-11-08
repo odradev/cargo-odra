@@ -1,6 +1,6 @@
 //! Module implementing functions used by `cargo odra update` command
 
-use crate::{command, log, UpdateCommand};
+use crate::{cli::UpdateCommand, command, log};
 use std::path::PathBuf;
 
 /// Runs `cargo update` on project and backends in .builder* folders.
@@ -23,7 +23,7 @@ fn update_builder(builder: PathBuf) {
         "Running cargo update for {} builder...",
         builder.to_str().unwrap()
     ));
-    command::cargo(builder.to_str().unwrap().to_string(), vec!["update"]);
+    command::cargo_update(builder);
 }
 
 fn update_all_builders() {
@@ -34,5 +34,5 @@ fn update_all_builders() {
 
 fn update_project() {
     log::info("Running cargo update for project...");
-    command::cargo(".".to_string(), vec!["update"]);
+    command::cargo_update(PathBuf::from("."));
 }

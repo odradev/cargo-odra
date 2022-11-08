@@ -1,7 +1,7 @@
 //! Module responsible for generating contracts code for user
 use crate::errors::Error;
 use crate::odra_toml::{Contract, OdraToml};
-use crate::{consts, log, GenerateCommand};
+use crate::{cli::GenerateCommand, log, template};
 
 use convert_case::{Case, Casing};
 use std::fs;
@@ -47,8 +47,7 @@ impl GenerateAction {
 
     fn add_contract_file_to_src(&self) {
         // Rename module name.
-        let contract_body =
-            consts::MODULE_TEMPLATE.replace(consts::MODULE_NAME_SYMBOL, self.module_ident());
+        let contract_body = template::module_template(self.module_ident());
 
         // Make sure the file do not exists.
         let path = self.module_file_path();
@@ -69,9 +68,8 @@ impl GenerateAction {
             .unwrap();
 
         // Prepare code to add.
-        let register_module_code = consts::MODULE_REGISTER
-            .replace(consts::CONTRACT_NAME_SYMBOL, self.contract_name())
-            .replace(consts::MODULE_NAME_SYMBOL, self.module_ident());
+        let register_module_code =
+            template::register_module_snippet(self.contract_name(), self.module_ident());
 
         // Write to file.
         writeln!(lib_rs, "{}", &register_module_code).unwrap();

@@ -27,15 +27,18 @@ url = "2.2"
 cargo_toml = "0.11"
 regex = "1.6"
 prettycli = "0.1"
-heck = "0.4"
 chrono = "0.4"
-comfy-table = "6.0"
+thiserror = "1.0.37"
 
 [dev-dependencies]
 async-trait = "0.1"
 cucumber = "0.13"
 tokio = { version = "1.20", features = ["macros", "rt-multi-thread", "time"] }
 rand = "0.8"
+
+[[bin]]
+name = "cargo-odra"
+path = "bin/cargo_odra.rs"
 
 [[test]]
 name = "cargo-odra" # this should be the same as the filename of your test target

@@ -2,8 +2,9 @@ default:
 	cargo build --release
 
 install:
-	cargo build
-	cp target/debug/cargo-odra ~/.cargo/bin/cargo-odra
+	cargo install --path .
+	# cargo build
+	# cp target/debug/cargo-odra ~/.cargo/bin/cargo-odra
 	# sudo apt install wabt
 	# rustup target add wasm32-unknown-unknown
 
@@ -21,3 +22,6 @@ test-project-generation:
 lint:
 	cargo fmt
 	cargo clippy --all-targets -- -D warnings
+
+fmt:
+	cargo fmt --

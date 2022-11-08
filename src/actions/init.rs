@@ -1,11 +1,10 @@
 //! Module responsible for initializing Odra project
 use std::path::Path;
 
-use crate::{errors::Error, InitCommand};
+use crate::{cli::InitCommand, errors::Error};
 use cargo_generate::{GenerateArgs, TemplatePath, Vcs};
 use chrono::Utc;
-// TODO: remove.
-use heck::ToSnakeCase;
+use convert_case::{Case, Casing};
 
 /// Init struct
 pub struct InitAction {
@@ -36,7 +35,7 @@ impl InitAction {
                 favorite: None,
             },
             list_favorites: false,
-            name: Some(self.name.to_snake_case()),
+            name: Some(self.name.to_case(Case::Snake)),
             force: true,
             verbose: false,
             template_values_file: None,

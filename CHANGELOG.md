@@ -11,10 +11,14 @@ Changelog for `cargo-odra`.
 - `generate` uses hardcoded code instead of `flipper.rs` from Github.
 - `Odra.toml` is now simpler. It doesn't have `name` anymore. `name` from
 `Cargo.toml` is used. A contract definition no longer needs `path` field.
-List of contract is no longer 
+List of contract is no longer.
+- Codebase is now lib based. It has `lib.rs` and the main bin is in `bin/cargo_odra.rs`.
+- Error to use `thiserror`.
 
 ### Added
 - `paths.rs` for all paths releated operations.
+- `template.rs` for code generation releated operations.
+- `cli.rs` for `clap` code.
 
 ## [0.0.3] - 2022-09-04
 ### Added

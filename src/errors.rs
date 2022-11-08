@@ -1,53 +1,37 @@
 //! Errors
 use crate::log;
-use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
 use std::process::exit;
 
-// TODO: Use thiserror.
 /// Errors enum
+#[derive(Debug, thiserror::Error)]
 pub enum Error {
+    #[error("Command {0} failed.")]
     CommandFailed(String),
+
+    #[error("Invalid command {0}.")]
     InvalidInternalCommand(String),
+
+    #[error("Failed to read Cargo.toml: {0}.")]
     FailedToReadCargo(String),
+
+    #[error("wasm32-unknown-unknown target is not present, install it by executing:\n\rustup target add wasm32-unknown-unknown")]
     WasmTargetNotInstalled,
+
+    #[error("This command can be executed only in folder with Odra project.")]
     NotAnOdraProject,
+
+    #[error("There was an error while running wasm-strip - is it installed?")]
     WasmstripNotInstalled,
+
+    #[error("Current directory is not empty.")]
     CurrentDirIsNotEmpty,
+
+    #[error("File {0} already exists.")]
     FileAlreadyExists(PathBuf),
+
+    #[error("Contract {0} already in Odra.toml")]
     ContractAlreadyInOdraToml(String),
-}
-
-impl Display for Error {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let msg = match self {
-            Error::CommandFailed(msg) => msg.to_string(),
-            Error::InvalidInternalCommand(command) => format!("Invalid command {}", command),
-            Error::FailedToReadCargo(error) => {
-                format!("Failed to read Cargo.toml: {}", error)
-            }
-            Error::WasmTargetNotInstalled => {
-                "wasm32-unknown-unknown target is not present, install it by executing:\n\
-            rustup target add wasm32-unknown-unknown"
-                    .to_string()
-            }
-            Error::NotAnOdraProject => {
-                "This command can be executed only in folder with Odra project.".to_string()
-            }
-            Error::WasmstripNotInstalled => {
-                "There was an error while running wasm-strip - is it installed?".to_string()
-            }
-            Error::CurrentDirIsNotEmpty => "Current directory is not empty.".to_string(),
-            Error::FileAlreadyExists(path) => {
-                format!("File {} already exists,", path.to_string_lossy())
-            }
-            Error::ContractAlreadyInOdraToml(name) => {
-                format!("Contract {} already in Odra.toml", name)
-            }
-        };
-
-        write!(f, "{}", msg)
-    }
 }
 
 impl Error {
@@ -66,7 +50,7 @@ impl Error {
     }
 
     pub fn print_and_die(&self) -> ! {
-        log::error(&format!("{}", self));
+        log::error(self.to_string());
         exit(self.code());
     }
 }

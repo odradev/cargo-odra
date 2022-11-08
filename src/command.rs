@@ -1,8 +1,9 @@
 //! Module containing code that runs external commands
 use crate::errors::Error;
-use crate::Cargo;
+use crate::{cli::Cargo, log};
 use clap::Parser;
 use std::fs;
+use std::path::PathBuf;
 use std::process::{Command, ExitStatus};
 use Error::InvalidInternalCommand;
 
@@ -29,31 +30,24 @@ pub fn parse_command_result(status: ExitStatus, error: Error) {
 }
 
 /// Copies file
-pub fn cp(source: &str, target: &str) {
-    let status = Command::new("cp").args([source, target]).status().unwrap();
-
-    parse_command_result(
-        status,
-        Error::CommandFailed(format!("Couldn't copy {} to {}", source, target)),
-    );
-}
-
-/// Runs cargo fmt.
-pub fn fmt(folder: &str) {
-    let status = Command::new("cargo")
-        .args(["fmt"])
-        .current_dir(folder)
+pub fn cp(source: PathBuf, target: PathBuf) {
+    let status = Command::new("cp")
+        .args([&source, &target])
         .status()
         .unwrap();
 
     parse_command_result(
         status,
-        Error::CommandFailed(format!("Couldn't run cargo fmt in {}", folder)),
+        Error::CommandFailed(format!(
+            "Couldn't copy {} to {}",
+            source.display(),
+            target.display()
+        )),
     );
 }
 
 /// Creates a directory.
-pub fn mkdir(path: &str) {
+pub fn mkdir(path: PathBuf) {
     fs::create_dir_all(path).unwrap();
 }
 
@@ -71,10 +65,18 @@ pub fn wasm_strip(contract_name: &str) {
     Error::WasmstripNotInstalled.print_and_die();
 }
 
-// @TODO: Use PathBuf
 /// Runs cargo with given args
-pub fn cargo(current_dir: String, args: Vec<&str>) {
-    let args = add_verbosity(args);
+fn cargo(current_dir: PathBuf, command: &str, tail_args: Vec<&str>) {
+    let mut args = vec![command];
+
+    if let Some(verbosity) = verbosity_arg() {
+        args.push(verbosity);
+    }
+
+    for arg in tail_args {
+        args.push(arg);
+    }
+
     let command = Command::new("cargo")
         .current_dir(current_dir)
         .args(args.as_slice())
@@ -87,21 +89,72 @@ pub fn cargo(current_dir: String, args: Vec<&str>) {
     );
 }
 
-fn add_verbosity(mut command_args: Vec<&str>) -> Vec<&str> {
-    let Cargo::Odra(args) = Cargo::parse();
-    if args.verbose {
-        let mut result = vec!["--verbose"];
-        result.append(&mut command_args);
-        return result;
-    } else if args.quiet {
-        let mut result = vec!["--quiet"];
-        result.append(&mut command_args);
-        return result;
-    }
-
-    command_args
+/// Build wasm files.
+pub fn cargo_build_wasm_files(current_dir: PathBuf, contract_name: &str) {
+    cargo(
+        current_dir,
+        "build",
+        vec![
+            "--target",
+            "wasm32-unknown-unknown",
+            "--bin",
+            contract_name,
+            "--release",
+            "--no-default-features",
+            "--target-dir",
+            "../target",
+        ],
+    );
 }
 
-// fn add_target_dir(mut command_args: Vec<&str>) -> Vec<&str> {
-//     command_args.push("--ta")
-// }
+/// Build wasm sources.
+pub fn cargo_build_wasm_sources(current_dir: PathBuf, contract_name: &str) {
+    cargo(
+        current_dir,
+        "run",
+        vec![
+            "--bin",
+            format!("{}_build", contract_name).as_str(),
+            "--release",
+            "--no-default-features",
+            "--target-dir",
+            "../target",
+        ],
+    );
+}
+
+/// Update a cargo module.
+pub fn cargo_update(current_dir: PathBuf) {
+    cargo(current_dir, "update", vec![]);
+}
+
+/// Runs cargo fmt.
+pub fn cargo_fmt(current_dir: PathBuf) {
+    cargo(current_dir, "fmt", vec![]);
+}
+
+pub fn cargo_test_mock_vm(current_dir: PathBuf, args: Vec<&str>) {
+    log::info("Running cargo test...");
+    cargo(current_dir, "test", args);
+}
+
+pub fn cargo_test_backend(current_dir: PathBuf, backend_name: &str, tail_args: Vec<&str>) {
+    log::info("Running cargo test...");
+    let mut args = vec!["--no-default-features", "--features", backend_name];
+    for arg in tail_args {
+        args.push(arg);
+    }
+
+    cargo(current_dir, "test", args)
+}
+
+fn verbosity_arg<'a>() -> Option<&'a str> {
+    let Cargo::Odra(args) = Cargo::parse();
+    if args.verbose {
+        Some("--verbose")
+    } else if args.quiet {
+        Some("--quiet")
+    } else {
+        None
+    }
+}
