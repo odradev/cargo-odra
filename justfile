@@ -5,6 +5,7 @@ install:
     cargo install --path .
 
 test-project-generation:
+    rustup target add wasm32-unknown-unknown
     rm -rf testproject
     cargo odra new --name testproject --git-branch 0.2.0-pre
     cd testproject && cargo odra generate -c plascoin
