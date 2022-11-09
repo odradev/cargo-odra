@@ -4,7 +4,8 @@ Changelog for `cargo-odra`.
 
 ## [0.0.4] - 2022-11-10
 ### Removed
-- `cargo odra backend` is no logner needed.
+- `backend` command is no logner needed.
+- `gherkin` tests.
 
 ### Changed
 - `generate` command doesn't override files anymore. It fails instead.
@@ -14,11 +15,15 @@ Changelog for `cargo-odra`.
 List of contract is no longer.
 - Codebase is now lib based. It has `lib.rs` and the main bin is in `bin/cargo_odra.rs`.
 - Error to use `thiserror`.
+- Most of the file system functions is now in `commands.rs`.
+- `just` replaced `make`.
 
 ### Added
 - `paths.rs` for all paths releated operations.
 - `template.rs` for code generation releated operations.
 - `cli.rs` for `clap` code.
+- `rustfmt.toml` with formatting rules.
+- `init` and `new` can specify `git-branch` parameter.
 
 ## [0.0.3] - 2022-09-04
 ### Added

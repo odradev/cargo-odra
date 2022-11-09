@@ -1,9 +1,10 @@
-//! Errors
-use crate::log;
-use std::path::PathBuf;
-use std::process::exit;
+//! Errors.
 
-/// Errors enum
+use std::{path::PathBuf, process::exit};
+
+use crate::log;
+
+/// Errors enum.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("Command {0} failed.")]
@@ -32,23 +33,29 @@ pub enum Error {
 
     #[error("Contract {0} already in Odra.toml")]
     ContractAlreadyInOdraToml(String),
+
+    #[error("Removing {0} directory failed.")]
+    RemoveDirNotPossible(PathBuf),
 }
 
 impl Error {
+    /// Returns error code.
     pub fn code(&self) -> i32 {
         match self {
             Error::CommandFailed(_) => 1,
             Error::InvalidInternalCommand(_) => 2,
             Error::FailedToReadCargo(_) => 3,
-            Error::WasmTargetNotInstalled => 6,
-            Error::NotAnOdraProject => 7,
-            Error::WasmstripNotInstalled => 8,
-            Error::CurrentDirIsNotEmpty => 9,
-            Error::FileAlreadyExists(_) => 10,
-            Error::ContractAlreadyInOdraToml(_) => 11,
+            Error::WasmTargetNotInstalled => 4,
+            Error::NotAnOdraProject => 5,
+            Error::WasmstripNotInstalled => 6,
+            Error::CurrentDirIsNotEmpty => 7,
+            Error::FileAlreadyExists(_) => 8,
+            Error::ContractAlreadyInOdraToml(_) => 9,
+            Error::RemoveDirNotPossible(_) => 10,
         }
     }
 
+    /// Logs error message and exits with the given error code.
     pub fn print_and_die(&self) -> ! {
         log::error(self.to_string());
         exit(self.code());

@@ -1,3 +1,5 @@
+//! Actions implementation.
+
 pub mod build;
 pub mod clean;
 pub mod generate;

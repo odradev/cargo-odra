@@ -1,6 +1,4 @@
-// TODO: Comments
-
-/// Contract definition file template
+/// Wasm source builder file template.
 const WASM_SOURCE_BUILDER: &str = r##"
 fn main() {
     let contract_def = <#contract_fqn as odra::types::contract_def::HasContractDef>::contract_def();
@@ -13,6 +11,7 @@ fn main() {
 }
 "##;
 
+/// Module file template.
 const MODULE_TEMPLATE: &str = r##"
 use odra::Variable;
 
@@ -58,10 +57,13 @@ mod tests {
 }
 "##;
 
-pub const MODULE_REGISTER: &str = r##"pub mod #contract_name;
+/// Code for src/lib.rs that registers new module.
+pub const MODULE_REGISTER: &str = r##"
+pub mod #contract_name;
 pub use #contract_name::{#module_name, #module_nameRef};
 "##;
 
+/// Returns content of the new _builder.rs file.
 pub fn wasm_source_builder(fqn: &str, contract_name: &str, backend_name: &str) -> String {
     WASM_SOURCE_BUILDER
         .replace("#contract_fqn", fqn)
@@ -69,10 +71,12 @@ pub fn wasm_source_builder(fqn: &str, contract_name: &str, backend_name: &str) -
         .replace("#backend_name", backend_name)
 }
 
+/// Returns content of the new module file.
 pub fn module_template(module_name: &str) -> String {
     MODULE_TEMPLATE.replace("#module_name", module_name)
 }
 
+/// Returns code for src/lib.rs that registers a new module.
 pub fn register_module_snippet(contract_name: &str, module_name: &str) -> String {
     MODULE_REGISTER
         .replace("#contract_name", contract_name)

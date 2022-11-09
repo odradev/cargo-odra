@@ -1,26 +1,16 @@
-//! Module responsible for cleaning Odra projects
-use std::os::unix::prelude::CommandExt;
-use std::path::PathBuf;
-use std::process::Command;
+//! Module responsible for cleaning Odra projects.
 
-use crate::log;
+use crate::{command, paths};
 
-/// Removes .builder* folders and runs `cargo clean`
+/// Removes wasm folder, .builder* folders and runs `cargo clean`.
 pub fn clean_action() {
     for folder in glob::glob("wasm").unwrap().flatten() {
-        rm_rf(folder);
+        command::rm_dir(folder);
     }
 
     for folder in glob::glob(".builder*").unwrap().flatten() {
-        rm_rf(folder);
+        command::rm_dir(folder);
     }
 
-    log::info("Running cargo clean...");
-    Command::new("cargo").args(["clean"]).exec();
-}
-
-fn rm_rf(folder: PathBuf) {
-    rm_rf::ensure_removed(folder.clone())
-        .unwrap_or_else(|_| panic!("Couldn't remove {}", folder.display()));
-    log::info(format!("Removing {}...", folder.display()));
+    command::cargo_clean(paths::project_dir());
 }

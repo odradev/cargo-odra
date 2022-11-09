@@ -1,26 +1,31 @@
-//! Module responsible for initializing Odra project
+//! Module responsible for initializing an Odra project.
+
 use std::path::Path;
 
-use crate::{cli::InitCommand, errors::Error};
 use cargo_generate::{GenerateArgs, TemplatePath, Vcs};
 use chrono::Utc;
-use convert_case::{Case, Casing};
 
-/// Init struct
+use crate::{errors::Error, paths};
+
+/// InitAction configuration.
 pub struct InitAction {
-    name: String,
+    contract_name: String,
     repo_uri: String,
+    branch: String,
 }
 
-// TODO: Comments
+/// InitAction implementation.
 impl InitAction {
-    pub fn new(init: InitCommand) -> InitAction {
+    /// Crate a new InitAction.
+    pub fn new(contract_name: String, repo_uri: String, branch: String) -> InitAction {
         InitAction {
-            name: init.name,
-            repo_uri: init.repo_uri,
+            contract_name,
+            repo_uri,
+            branch,
         }
     }
 
+    /// Generate a new project.
     pub fn generate_project(&self, init: bool) {
         if init {
             self.assert_current_dir_is_empty();
@@ -30,12 +35,12 @@ impl InitAction {
                 auto_path: Some(self.repo_uri.clone()),
                 subfolder: None,
                 git: None,
-                branch: None,
+                branch: Some(self.branch.clone()),
                 path: None,
                 favorite: None,
             },
             list_favorites: false,
-            name: Some(self.name.to_case(Case::Snake)),
+            name: Some(paths::to_snake_case(&self.contract_name)),
             force: true,
             verbose: false,
             template_values_file: None,
@@ -54,6 +59,7 @@ impl InitAction {
         .unwrap();
     }
 
+    /// Make sure current dir is empty.
     fn assert_current_dir_is_empty(&self) {
         let not_empty = Path::new(".").read_dir().unwrap().next().is_some();
         if not_empty {

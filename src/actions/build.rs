@@ -1,28 +1,27 @@
-//! Module for managing and building backends
-use std::fs::File;
-use std::io::Write;
-
-use std::path::PathBuf;
+//! Module for managing and building backends.
 
 use cargo_toml::{Dependency, DependencyDetail, DepsSet};
 
-use crate::cargo_toml::{odra_dependency, project_name};
-use crate::errors::Error;
-use crate::odra_toml::OdraToml;
-use crate::paths::BuilderPaths;
-use crate::{command, log, template};
-use crate::{consts, paths};
+use crate::{
+    cargo_toml::{odra_dependency, project_name},
+    command,
+    errors::Error,
+    log,
+    odra_toml::OdraToml,
+    paths::{self, BuilderPaths},
+    template,
+};
 
-#[derive(Debug)]
-/// Backend configuration
+/// BuildAction configuration.
 pub struct BuildAction {
     backend: String,
     builder_paths: BuilderPaths,
     odra_toml: OdraToml,
 }
 
-/// Getters
+/// BuildAction implementation.
 impl BuildAction {
+    /// Crate a new BuildAction for a given backend.
     pub fn new(backend: String) -> Self {
         BuildAction {
             backend: backend.clone(),
@@ -37,7 +36,15 @@ impl BuildAction {
         self.backend.clone()
     }
 
-    /// Main function that runs the whole workflow for backend
+    /// Returns a set of dependencies used by backend.
+    pub fn builder_dependencies(&self) -> DepsSet {
+        let mut dependencies = DepsSet::new();
+        dependencies.insert(String::from("odra"), self.odra_dependency());
+        dependencies.insert(project_name(), self.project_dependency());
+        dependencies
+    }
+
+    /// Main function that runs the whole workflow for a backend.
     pub fn build(&self) {
         self.check_target_requirements();
         self.prepare_builder();
@@ -57,11 +64,12 @@ impl BuildAction {
         }
     }
 
+    /// Prepare builder directories and all files.
     fn prepare_builder(&self) {
         log::info(format!(
             "Preparing {} builder in {} directory...",
             self.backend_name(),
-            self.builder_paths.root_as_string()
+            self.builder_paths.root().display()
         ));
 
         // Prepare directories.
@@ -78,21 +86,22 @@ impl BuildAction {
         self.create_build_files();
     }
 
+    /// Prepare _build.rs files.
     fn create_build_files(&self) {
         for contract in self.odra_toml.contracts.iter() {
             let path = self.builder_paths.wasm_build(&contract.name);
             if !path.exists() {
-                let contents = template::wasm_source_builder(
+                let content = template::wasm_source_builder(
                     &contract.fqn,
                     &contract.name,
                     &self.backend_name(),
                 );
-                let mut file = File::create(path).unwrap();
-                file.write_all(contents.as_bytes()).unwrap();
+                command::write_to_file(path, &content);
             }
         }
     }
 
+    /// Prepare _wasm.rs file.
     fn build_wasm_sources(&self) {
         log::info("Generating _wasm.rs files...");
         for contract in self.odra_toml.contracts.iter() {
@@ -100,6 +109,7 @@ impl BuildAction {
         }
     }
 
+    /// Build _wasm.rs files into .wasm files.
     fn build_wasm_files(&self) {
         log::info("Generating wasm files...");
         for contract in self.odra_toml.contracts.iter() {
@@ -107,9 +117,10 @@ impl BuildAction {
         }
     }
 
+    /// Copy *.wasm files into wasm directory.
     fn copy_wasm_files(&self) {
         log::info("Copying wasm files...");
-        command::mkdir(PathBuf::from("wasm"));
+        command::mkdir(paths::wasm_dir());
         for contract in self.odra_toml.contracts.iter() {
             let source = paths::wasm_path_in_target(&contract.name);
             let target = paths::wasm_path_in_wasm_dir(&contract.name);
@@ -118,22 +129,16 @@ impl BuildAction {
         }
     }
 
+    /// Run wasm-strip on *.wasm files in wasm directory.
     fn optimize_wasm_files(&self) {
         for contract in self.odra_toml.contracts.iter() {
             command::wasm_strip(&contract.name);
         }
     }
 
+    /// Format Rust files in builder directory.
     fn format_builder_files(&self) {
         command::cargo_fmt(self.builder_paths.root());
-    }
-
-    /// Returns a set of dependencies used by backend.
-    pub fn builder_dependencies(&self) -> DepsSet {
-        let mut dependencies = DepsSet::new();
-        dependencies.insert(consts::ODRA_CRATE_NAME.to_string(), self.odra_dependency());
-        dependencies.insert(project_name(), self.project_dependency());
-        dependencies
     }
 
     /// Returns Odra dependency tailored for use by builder.

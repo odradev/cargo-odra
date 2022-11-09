@@ -14,6 +14,3 @@ mod log;
 mod odra_toml;
 mod paths;
 mod template;
-
-// TODO: Name things correctly.
-// TODO: Use casing from odra, so erc20 is not erc_20.

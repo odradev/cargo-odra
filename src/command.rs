@@ -1,11 +1,16 @@
-//! Module containing code that runs external commands
-use crate::errors::Error;
-use crate::{cli::Cargo, log};
+//! Module containing code that runs external commands.
+
+use std::{
+    fs::{self, File, OpenOptions},
+    io::{self, Write},
+    path::PathBuf,
+    process::{Command, ExitStatus},
+};
+
 use clap::Parser;
-use std::fs;
-use std::path::PathBuf;
-use std::process::{Command, ExitStatus};
 use Error::InvalidInternalCommand;
+
+use crate::{cli::Cargo, errors::Error, log, paths};
 
 /// Returns output of a command as a String.
 pub fn command_output(command: &str) -> String {
@@ -14,15 +19,13 @@ pub fn command_output(command: &str) -> String {
         .first()
         .unwrap_or_else(|| InvalidInternalCommand(command.to_string()).print_and_die());
     let args: Vec<&str> = split_command.drain(1..).collect();
-
     let output = Command::new(program).args(args).output().unwrap();
-
     std::str::from_utf8(output.stdout.as_slice())
         .unwrap()
         .to_string()
 }
 
-/// Quits if status of a command is not successful
+/// Quits if status of a command is not successful.
 pub fn parse_command_result(status: ExitStatus, error: Error) {
     if !status.success() {
         error.print_and_die();
@@ -51,11 +54,20 @@ pub fn mkdir(path: PathBuf) {
     fs::create_dir_all(path).unwrap();
 }
 
+/// Remove a directory.
+pub fn rm_dir(path: PathBuf) {
+    log::info(format!("Removing {}...", path.display()));
+    let result = rm_rf::ensure_removed(path.clone());
+    if result.is_err() {
+        Error::RemoveDirNotPossible(path).print_and_die();
+    };
+}
+
 /// Runs wasm-strip.
 pub fn wasm_strip(contract_name: &str) {
     let command = Command::new("wasm-strip")
-        .current_dir("wasm")
-        .arg(format!("{}.wasm", contract_name))
+        .current_dir(paths::project_dir())
+        .arg(paths::wasm_path_in_wasm_dir(contract_name))
         .status();
 
     if command.is_ok() && command.unwrap().success() {
@@ -65,7 +77,7 @@ pub fn wasm_strip(contract_name: &str) {
     Error::WasmstripNotInstalled.print_and_die();
 }
 
-/// Runs cargo with given args
+/// Runs cargo with given args.
 fn cargo(current_dir: PathBuf, command: &str, tail_args: Vec<&str>) {
     let mut args = vec![command];
 
@@ -133,11 +145,13 @@ pub fn cargo_fmt(current_dir: PathBuf) {
     cargo(current_dir, "fmt", vec![]);
 }
 
+/// Runs cargo test.
 pub fn cargo_test_mock_vm(current_dir: PathBuf, args: Vec<&str>) {
     log::info("Running cargo test...");
     cargo(current_dir, "test", args);
 }
 
+/// Runs cargo test with backend features.
 pub fn cargo_test_backend(current_dir: PathBuf, backend_name: &str, tail_args: Vec<&str>) {
     log::info("Running cargo test...");
     let mut args = vec!["--no-default-features", "--features", backend_name];
@@ -148,6 +162,36 @@ pub fn cargo_test_backend(current_dir: PathBuf, backend_name: &str, tail_args: V
     cargo(current_dir, "test", args)
 }
 
+/// Runs cargo clean.
+pub fn cargo_clean(current_dir: PathBuf) {
+    log::info("Running cargo clean...");
+    cargo(current_dir, "clean", vec![]);
+}
+
+/// Writes a content to a file at the given path.
+pub fn write_to_file(path: PathBuf, content: &str) {
+    let mut file = File::create(path).unwrap();
+    file.write_all(content.as_bytes()).unwrap();
+}
+
+/// Appends a content to a file at the given path.
+pub fn append_file(path: PathBuf, content: &str) {
+    let mut file = OpenOptions::new()
+        .write(true)
+        .append(true)
+        .open(path)
+        .unwrap();
+
+    file.write_all(content.as_bytes()).unwrap();
+}
+
+/// Loads a file to a string.
+pub fn read_file_content(path: PathBuf) -> io::Result<String> {
+    fs::read_to_string(path)
+}
+
+// TODO: Is there a better way? A global static to hold that?
+/// Extracts verbosity, by parsing bin arguments.
 fn verbosity_arg<'a>() -> Option<&'a str> {
     let Cargo::Odra(args) = Cargo::parse();
     if args.verbose {

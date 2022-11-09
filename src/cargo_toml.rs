@@ -1,14 +1,15 @@
 //! Module containing functions used by Builder for managing its Cargo.toml file
 
-use crate::errors::Error;
-use crate::odra_toml::OdraToml;
-use crate::paths::BuilderPaths;
-
 use cargo_toml::{Dependency, DepsSet, Edition, FeatureSet, Manifest, Package, Product};
-use std::fs::File;
-use std::io::Write;
 
-/// Builds and saves Cargo.toml file for backend
+use crate::{
+    command,
+    errors::Error,
+    odra_toml::OdraToml,
+    paths::{self, BuilderPaths},
+};
+
+/// Builds and saves Cargo.toml file for backend.
 pub fn builder_cargo_toml(
     builder_paths: &BuilderPaths,
     builder_deps: DepsSet,
@@ -26,18 +27,20 @@ pub fn builder_cargo_toml(
     let mut bins = vec![];
     for contract in odra_toml.contracts.iter() {
         let build_name = format!("{}_build", contract.name.clone());
+        let path = builder_paths
+            .relative()
+            .wasm_build_as_string(&contract.name);
         bins.push(Product {
-            path: Some(
-                builder_paths
-                    .relative()
-                    .wasm_build_as_string(&contract.name),
-            ),
+            path: Some(path),
             name: Some(build_name),
             ..default_bin.clone()
         });
 
+        let path = builder_paths
+            .relative()
+            .wasm_source_as_string(&contract.name);
         bins.push(Product {
-            path: Some(builder_paths.relative().wasm_source_file(&contract.name)),
+            path: Some(path),
             name: Some(contract.name.clone()),
             ..default_bin.clone()
         });
@@ -63,22 +66,23 @@ pub fn builder_cargo_toml(
         replace: Default::default(),
     };
 
-    let toml_contente = toml::to_string_pretty(&cargo_toml).unwrap();
-    let mut cargo_toml_file = File::create(builder_paths.cargo_toml()).unwrap();
-    cargo_toml_file.write_all(toml_contente.as_bytes()).unwrap();
+    let toml_content = toml::to_string_pretty(&cargo_toml).unwrap();
+    command::write_to_file(builder_paths.cargo_toml(), &toml_content);
 }
 
-/// Returns Dependency of Odra, taken from project's Cargo.toml
+/// Returns Dependency of Odra, taken from project's Cargo.toml.
 pub fn odra_dependency() -> Dependency {
     load_cargo_toml().dependencies.get("odra").unwrap().clone()
 }
 
+/// Returns project's name from Cargo.toml.
 pub fn project_name() -> String {
     load_cargo_toml().package.unwrap().name
 }
 
+/// Returns Cargo.toml as Manifest struct.
 fn load_cargo_toml() -> Manifest {
-    match Manifest::from_path("Cargo.toml") {
+    match Manifest::from_path(paths::cargo_toml()) {
         Ok(manifest) => manifest,
         Err(err) => {
             Error::FailedToReadCargo(err.to_string()).print_and_die();

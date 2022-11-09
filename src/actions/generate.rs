@@ -1,29 +1,37 @@
-//! Module responsible for generating contracts code for user
-use crate::errors::Error;
-use crate::odra_toml::{Contract, OdraToml};
-use crate::{cli::GenerateCommand, log, template};
+//! Module responsible for generating contracts code for user.
 
-use convert_case::{Case, Casing};
-use std::fs;
-use std::fs::OpenOptions;
-use std::io::Write;
 use std::path::PathBuf;
 
-/// GenerateAction struct
+use convert_case::{Case, Casing};
+
+use crate::{
+    cargo_toml,
+    command,
+    errors::Error,
+    log,
+    odra_toml::{Contract, OdraToml},
+    paths,
+    template,
+};
+
+/// GenerateAction configuration.
 pub struct GenerateAction {
     contract_name: String,
     module_ident: String,
 }
 
+/// GenerateAction implementation.
 impl GenerateAction {
-    pub fn new(generate: GenerateCommand) -> GenerateAction {
+    /// Crate a new GenerateAction for a given contract.
+    pub fn new(contract_name: String) -> GenerateAction {
         OdraToml::assert_exists();
         GenerateAction {
-            contract_name: generate.contract_name.to_case(Case::Snake),
-            module_ident: generate.contract_name.to_case(Case::UpperCamel),
+            contract_name: paths::to_snake_case(&contract_name),
+            module_ident: contract_name.to_case(Case::UpperCamel),
         }
     }
 
+    /// Main function that runs the generation action.
     pub fn generate_contract(&self) {
         log::info(format!("Adding new contract: {} ...", self.contract_name()));
         self.add_contract_file_to_src();
@@ -31,20 +39,27 @@ impl GenerateAction {
         self.update_odra_toml();
     }
 
+    /// Returns the contract name.
     fn contract_name(&self) -> &str {
         &self.contract_name
     }
 
+    /// Returns the module identifier. It is the struct name.
     fn module_ident(&self) -> &str {
         &self.module_ident
     }
 
-    fn module_file_path(&self) -> PathBuf {
-        PathBuf::from("src")
-            .join(self.contract_name())
-            .with_extension("rs")
+    /// Returns project's crate name.
+    fn project_crate_name(&self) -> String {
+        paths::to_snake_case(cargo_toml::project_name())
     }
 
+    /// Returns a path to file with contract definition.
+    fn module_file_path(&self) -> PathBuf {
+        paths::module_file_path(self.contract_name())
+    }
+
+    /// Crates a new module file in src directory.
     fn add_contract_file_to_src(&self) {
         // Rename module name.
         let contract_body = template::module_template(self.module_ident());
@@ -56,29 +71,23 @@ impl GenerateAction {
         }
 
         // Write to file.
-        fs::write(path, contract_body).unwrap();
+        command::write_to_file(path, &contract_body);
     }
 
+    /// Append `mod` section to lib.rs.
     fn update_lib_rs(&self) {
-        // Read src/lib.rs.
-        let mut lib_rs = OpenOptions::new()
-            .write(true)
-            .append(true)
-            .open("src/lib.rs")
-            .unwrap();
-
         // Prepare code to add.
         let register_module_code =
             template::register_module_snippet(self.contract_name(), self.module_ident());
 
         // Write to file.
-        writeln!(lib_rs, "{}", &register_module_code).unwrap();
-        lib_rs.flush().unwrap();
+        command::append_file(paths::project_lib_rs(), &register_module_code);
 
         // Print info.
-        log::info(format!("Added to src/lib.rs: \n\n{}", register_module_code));
+        log::info(format!("Added to src/lib.rs:\n{}", register_module_code));
     }
 
+    /// Add contract definition to Odra.toml.
     fn update_odra_toml(&self) {
         let mut odra_toml = OdraToml::load();
         let contract_name = self.contract_name();
@@ -92,8 +101,12 @@ impl GenerateAction {
         // Add contract to Odra.toml.
         odra_toml.contracts.push(Contract {
             name: self.contract_name().to_string(),
-            // @TODO: Prepend with cargo module name.
-            fqn: format!("{}::{}", self.contract_name(), self.module_ident()),
+            fqn: format!(
+                "{}::{}::{}",
+                self.project_crate_name(),
+                self.contract_name(),
+                self.module_ident()
+            ),
         });
 
         // Write to file.
