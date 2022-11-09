@@ -29,6 +29,7 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
+          components: rustfmt, clippy
       - run: just check-lint
       - run: just install
       - run: just test-project-generation
