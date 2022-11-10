@@ -4,8 +4,11 @@ default:
 install:
     cargo install --path .
 
-test-project-generation:
+prepare-test-env:
     rustup target add wasm32-unknown-unknown
+    sudo apt install wabt
+
+test-project-generation:
     rm -rf testproject
     cargo odra new --name testproject --git-branch 0.2.0-pre
     cd testproject && cargo odra generate -c plascoin

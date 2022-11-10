@@ -32,4 +32,5 @@ jobs:
           components: rustfmt, clippy
       - run: just check-lint
       - run: just install
+      - run: just prepare-test-env
       - run: just test-project-generation
