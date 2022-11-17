@@ -9,6 +9,19 @@ written using Odra framework.
 * [Links](#links)
 * [Contact](#contact)
 
+## Prerequisites
+
+- Rust toolchain installed (see [rustup.rs](https://rustup.rs/))
+- wasmstrip tool installed (see [wabt](https://github.com/WebAssembly/wabt))
+
+## Install
+
+Use `cargo` to install `cargo-odra`:
+
+```bash
+$ cargo install cargo-odra
+```
+
 ## Usage
 
 To create a new project use `init` or `new` command:
@@ -20,13 +33,13 @@ $ cargo odra new --name myproject && cd myproject
 A sample contract - Flipper - will be created for you, with some sample tests.
 To run them against MockVM, simply type:
 
-```
+```bash
 $ cargo odra test
 ```
 
 If you want to test your code using real backend VM type:
 
-```
+```bash
 $ cargo odra test -b casper
 ```
 
@@ -47,7 +60,6 @@ To see exact syntax of each command, type `cargo odra command --help`.
 * [Odra](https://github.com/odradev/odra)
 * [Cargo Odra](https://github.com/odradev/cargo-odra)
 * [Odra Template](https://github.com/odradev/odra-template)
-* [Example Contract: Owned Token](https://github.com/odradev/owned-token)
 * [Odra Casper](https://github.com/odradev/odra-casper)
 * [Original Proposal for Odra Framework](https://github.com/odradev/odra-proposal)
 
