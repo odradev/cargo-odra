@@ -1,63 +1,63 @@
-//! Errors
-use crate::error;
-use std::fmt::{Display, Formatter};
-use std::process::exit;
+//! Errors.
 
-/// Errors enum
+use std::{path::PathBuf, process::exit};
+
+use crate::log;
+
+/// Errors enum.
+#[derive(Debug, thiserror::Error)]
 pub enum Error {
+    #[error("Command {0} failed.")]
     CommandFailed(String),
+
+    #[error("Invalid command {0}.")]
     InvalidInternalCommand(String),
+
+    #[error("Failed to read Cargo.toml: {0}.")]
     FailedToReadCargo(String),
-    NoBackendConfigured,
-    NoSuchBackend,
+
+    #[error("wasm32-unknown-unknown target is not present, install it by executing:\n\rustup target add wasm32-unknown-unknown")]
     WasmTargetNotInstalled,
+
+    #[error("This command can be executed only in folder with Odra project.")]
     NotAnOdraProject,
+
+    #[error("There was an error while running wasm-strip - is it installed?")]
     WasmstripNotInstalled,
-}
 
-impl Display for Error {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let msg = match self {
-            Error::CommandFailed(msg) => msg.to_string(),
-            Error::InvalidInternalCommand(command) => format!("Invalid command {}", command),
-            Error::FailedToReadCargo(error) => {
-                format!("Failed to read Cargo.toml: {}", error)
-            }
-            Error::NoBackendConfigured => "No backend configured".to_string(),
-            Error::NoSuchBackend => "No such backend".to_string(),
-            Error::WasmTargetNotInstalled => {
-                "wasm32-unknown-unknown target is not present, install it by executing:\n\
-            rustup target add wasm32-unknown-unknown"
-                    .to_string()
-            }
-            Error::NotAnOdraProject => {
-                "This command can be executed only in folder with Odra project.".to_string()
-            }
-            Error::WasmstripNotInstalled => {
-                "There was an error while running wasm-strip - is it installed?".to_string()
-            }
-        };
+    #[error("Current directory is not empty.")]
+    CurrentDirIsNotEmpty,
 
-        write!(f, "{}", msg)
-    }
+    #[error("File {0} already exists.")]
+    FileAlreadyExists(PathBuf),
+
+    #[error("Contract {0} already in Odra.toml")]
+    ContractAlreadyInOdraToml(String),
+
+    #[error("Removing {0} directory failed.")]
+    RemoveDirNotPossible(PathBuf),
 }
 
 impl Error {
+    /// Returns error code.
     pub fn code(&self) -> i32 {
         match self {
             Error::CommandFailed(_) => 1,
             Error::InvalidInternalCommand(_) => 2,
             Error::FailedToReadCargo(_) => 3,
-            Error::NoBackendConfigured => 4,
-            Error::NoSuchBackend => 5,
-            Error::WasmTargetNotInstalled => 6,
-            Error::NotAnOdraProject => 7,
-            Error::WasmstripNotInstalled => 8,
+            Error::WasmTargetNotInstalled => 4,
+            Error::NotAnOdraProject => 5,
+            Error::WasmstripNotInstalled => 6,
+            Error::CurrentDirIsNotEmpty => 7,
+            Error::FileAlreadyExists(_) => 8,
+            Error::ContractAlreadyInOdraToml(_) => 9,
+            Error::RemoveDirNotPossible(_) => 10,
         }
     }
 
+    /// Logs error message and exits with the given error code.
     pub fn print_and_die(&self) -> ! {
-        error(&format!("{}", self));
+        log::error(self.to_string());
         exit(self.code());
     }
 }
