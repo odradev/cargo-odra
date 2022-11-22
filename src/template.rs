@@ -27,12 +27,12 @@ impl #module_name {
     /// #module_name constructor.
     /// Initializes the contract with the value of value.
     #[odra(init)]
-    pub fn initial_settings(&self) {
+    pub fn initial_settings(&mut self) {
         self.value.set(false);
     }
 
     /// Replaces the current value with the passed argument.
-    pub fn set(&self, value: bool) {
+    pub fn set(&mut self, value: bool) {
         self.value.set(value);
     }
 
@@ -45,11 +45,11 @@ impl #module_name {
 
 #[cfg(test)]
 mod tests {
-    use super::#module_name;
+    use super::#module_nameDeployer;
 
     #[test]
     fn it_works() {
-        let contract = #module_name::deploy_initial_settings();
+        let mut contract = #module_nameDeployer::initial_settings();
         assert!(!contract.get());
         contract.set(true);
         assert!(contract.get());
