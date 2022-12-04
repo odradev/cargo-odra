@@ -50,7 +50,7 @@ impl BuilderPaths {
 
     /// Returns *_build.rs path.
     pub fn wasm_build(&self, contract_name: &str) -> PathBuf {
-        self.src().join(format!("{}_build.rs", contract_name))
+        self.src().join(format!("{contract_name}_build.rs"))
     }
 
     /// Returns *_build.rs path as a String.
@@ -63,7 +63,7 @@ impl BuilderPaths {
 
     /// Returns *_wasm.rs path.
     pub fn wasm_source(&self, contract_name: &str) -> PathBuf {
-        self.src().join(format!("{}_wasm.rs", contract_name))
+        self.src().join(format!("{contract_name}_wasm.rs"))
     }
 
     /// Returns *_wasm.rs path as a String.

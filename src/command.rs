@@ -97,7 +97,7 @@ fn cargo(current_dir: PathBuf, command: &str, tail_args: Vec<&str>) {
 
     parse_command_result(
         command,
-        Error::CommandFailed(format!("Couldn't run cargo with args {:?}", args)),
+        Error::CommandFailed(format!("Couldn't run cargo with args {args:?}")),
     );
 }
 
@@ -126,7 +126,7 @@ pub fn cargo_build_wasm_sources(current_dir: PathBuf, contract_name: &str) {
         "run",
         vec![
             "--bin",
-            format!("{}_build", contract_name).as_str(),
+            format!("{contract_name}_build").as_str(),
             "--release",
             "--no-default-features",
             "--target-dir",
