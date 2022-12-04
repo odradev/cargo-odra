@@ -10,7 +10,7 @@ prepare-test-env:
 
 test-project-generation:
     rm -rf testproject
-    cargo odra new --name testproject --git-branch release/0.2.0
+    cargo odra new --name testproject
     cd testproject && cargo odra generate -c plascoin
     cd testproject && cargo odra test
     cd testproject && cargo odra test -b casper
