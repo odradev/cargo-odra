@@ -7,15 +7,21 @@ use crate::{command, paths};
 pub struct TestAction {
     backend: Option<String>,
     passthrough_args: Vec<String>,
+    skip_build: bool,
 }
 
 /// TestAction implementation.
 impl TestAction {
     /// Creates a TestAction struct.
-    pub fn new(backend: Option<String>, passthrough_args: Vec<String>) -> TestAction {
+    pub fn new(
+        backend: Option<String>,
+        passthrough_args: Vec<String>,
+        skip_build: bool,
+    ) -> TestAction {
         TestAction {
             backend,
             passthrough_args,
+            skip_build,
         }
     }
 
@@ -24,7 +30,9 @@ impl TestAction {
         if self.backend.is_none() {
             self.test_mock_vm();
         } else {
-            self.build_wasm_files();
+            if !self.skip_build {
+                self.build_wasm_files();
+            }
             self.test_backend();
         }
     }

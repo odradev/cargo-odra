@@ -84,7 +84,7 @@ impl GenerateAction {
         command::append_file(paths::project_lib_rs(), &register_module_code);
 
         // Print info.
-        log::info(format!("Added to src/lib.rs:\n{}", register_module_code));
+        log::info(format!("Added to src/lib.rs:\n{register_module_code}"));
     }
 
     /// Add contract definition to Odra.toml.

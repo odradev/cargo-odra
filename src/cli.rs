@@ -88,6 +88,9 @@ pub struct TestCommand {
     /// A list of arguments is passed to the cargo test command.
     #[clap(raw = true)]
     pub args: Vec<String>,
+    /// Skip building wasm files.
+    #[clap(value_parser, long, short, default_value = "false")]
+    pub skip_build: bool,
 }
 
 #[derive(clap::Args, Debug)]
@@ -118,7 +121,7 @@ pub fn make_action() {
             BuildAction::new(build.backend).build();
         }
         OdraSubcommand::Test(test) => {
-            TestAction::new(test.backend, test.args).test();
+            TestAction::new(test.backend, test.args, test.skip_build).test();
         }
         OdraSubcommand::Generate(generate) => {
             GenerateAction::new(generate.contract_name).generate_contract();
