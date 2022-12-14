@@ -2,6 +2,10 @@
 
 Changelog for `cargo-odra`.
 
+## [0.0.5] - 2022-12-14
+### Added
+- `test` command can skip build using `--skip-build` flag. 
+
 ## [0.0.4] - 2022-11-10
 ### Removed
 - `backend` command is no logner needed.
