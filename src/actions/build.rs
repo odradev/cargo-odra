@@ -1,6 +1,6 @@
 //! Module for managing and building backends.
 
-use cargo_toml::{Dependency, DependencyDetail, DepsSet};
+use cargo_toml::{Dependency, DependencyDetail, DepsSet, PatchSet};
 
 use crate::{
     cargo_toml::{odra_dependency, project_name},
@@ -44,6 +44,16 @@ impl BuildAction {
         dependencies
     }
 
+    /// This function creates a PatchSet and inserts a DepsSet with the key "crates-io" 
+    /// and value of the function call self.casper_types_dependency().
+    pub fn builder_patch(&self) -> PatchSet {
+        let mut patch_set = PatchSet::new();
+        let mut crates_io_patch_deps = DepsSet::new();
+        crates_io_patch_deps.insert("casper-types".to_string(), self.casper_types_dependency());
+        patch_set.insert("crates-io".to_string(), crates_io_patch_deps);
+        patch_set
+    }
+
     /// Main function that runs the whole workflow for a backend.
     pub fn build(&self) {
         self.check_target_requirements();
@@ -79,6 +89,7 @@ impl BuildAction {
         crate::cargo_toml::builder_cargo_toml(
             &self.builder_paths,
             self.builder_dependencies(),
+            self.builder_patch(),
             &self.odra_toml,
         );
 
@@ -157,6 +168,17 @@ impl BuildAction {
                 Dependency::Detailed(odra_details)
             }
         }
+    }
+
+    /// This function creates a Dependency object with 
+    /// the git repository set to "https://github.com/kpob/casper-node" 
+    /// and the branch set to "feature/k256-update". 
+    fn casper_types_dependency(&self) -> Dependency {
+        Dependency::Detailed(DependencyDetail { 
+            git: Some("https://github.com/kpob/casper-node".to_string()), 
+            branch: Some("feature/k256-update".to_string()),
+            ..Default::default() 
+        })
     }
 
     /// Returns project dependency with specific feature enabled.

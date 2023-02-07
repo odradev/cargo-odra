@@ -138,7 +138,7 @@ dependencies = [
 
 [[package]]
 name = "cargo-odra"
-version = "0.0.5"
+version = "0.0.5-cosmos"
 dependencies = [
  "cargo-generate",
  "cargo_toml",

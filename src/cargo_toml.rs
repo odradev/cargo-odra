@@ -1,6 +1,6 @@
 //! Module containing functions used by Builder for managing its Cargo.toml file
 
-use cargo_toml::{Dependency, DepsSet, Edition, FeatureSet, Manifest, Package, Product};
+use cargo_toml::{Dependency, DepsSet, Edition, FeatureSet, Manifest, Package, Product, PatchSet};
 
 use crate::{
     command,
@@ -13,6 +13,7 @@ use crate::{
 pub fn builder_cargo_toml(
     builder_paths: &BuilderPaths,
     builder_deps: DepsSet,
+    builder_patch: PatchSet,
     odra_toml: &OdraToml,
 ) {
     let default_bin = Product {
@@ -55,7 +56,7 @@ pub fn builder_cargo_toml(
         build_dependencies: Default::default(),
         target: Default::default(),
         features: FeatureSet::new(),
-        patch: Default::default(),
+        patch: builder_patch,
         lib: None,
         profile: Default::default(),
         badges: Default::default(),
