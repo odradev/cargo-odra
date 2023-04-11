@@ -5,13 +5,11 @@ use std::path::PathBuf;
 use convert_case::{Case, Casing};
 
 use crate::{
-    cargo_toml,
-    command,
+    cargo_toml, command,
     errors::Error,
     log,
     odra_toml::{Contract, OdraToml},
-    paths,
-    template,
+    paths, template,
 };
 
 /// GenerateAction configuration.
@@ -89,7 +87,8 @@ impl GenerateAction {
 
     /// Add contract definition to Odra.toml.
     fn update_odra_toml(&self) {
-        let mut odra_toml = OdraToml::load();
+        // TODO: remove unwrap
+        let mut odra_toml = OdraToml::load().unwrap();
         let contract_name = self.contract_name();
 
         // Check if Odra.toml has already a contract.

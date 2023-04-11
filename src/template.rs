@@ -1,3 +1,9 @@
+pub const WORKSPACE_CARGO_TOML: &str = r##"
+[workspace]
+members = [
+]
+"##;
+
 /// Wasm source builder file template.
 const WASM_SOURCE_BUILDER: &str = r##"
 fn main() {

@@ -1,7 +1,9 @@
 //! Module containing functions used by Builder for managing its Cargo.toml file
 
-use cargo_toml::{Dependency, DepsSet, Edition, FeatureSet, Manifest, Package, Product};
+use std::path::PathBuf;
+use cargo_toml::{Dependency, DepsSet, Edition, FeatureSet, Manifest, Package, Product, Workspace};
 
+use crate::project::{Member, Project};
 use crate::{
     command,
     errors::Error,
@@ -49,7 +51,13 @@ pub fn builder_cargo_toml(
     #[allow(deprecated)]
     let cargo_toml: Manifest = cargo_toml::Manifest {
         package: Some(Package::new("builder".to_string(), "1.0.0".to_string())),
-        workspace: None,
+        workspace: Some(Workspace {
+            members: vec![],
+            default_members: vec![],
+            exclude: vec![],
+            metadata: None,
+            resolver: None,
+        }),
         dependencies: builder_deps,
         dev_dependencies: Default::default(),
         build_dependencies: Default::default(),
@@ -71,18 +79,34 @@ pub fn builder_cargo_toml(
 }
 
 /// Returns Dependency of Odra, taken from project's Cargo.toml.
-pub fn odra_dependency() -> Dependency {
-    load_cargo_toml().dependencies.get("odra").unwrap().clone()
+pub fn odra_dependency(cargo_toml_path: PathBuf) -> Dependency {
+    load_cargo_toml(cargo_toml_path).dependencies.get("odra").unwrap().clone()
 }
 
 /// Returns project's name from Cargo.toml.
 pub fn project_name() -> String {
-    load_cargo_toml().package.unwrap().name
+    load_main_cargo_toml().package.unwrap().name
+}
+
+pub fn members() -> Vec<(String, String)> {
+    match load_main_cargo_toml().workspace {
+        Some(workspace) => workspace
+            .members
+            .iter()
+            .map(|member| (member.clone(), member.clone()))
+            .collect(),
+        None => vec![(project_name(), "".to_string())],
+    }
 }
 
 /// Returns Cargo.toml as Manifest struct.
-fn load_cargo_toml() -> Manifest {
-    match Manifest::from_path(paths::cargo_toml()) {
+pub fn load_main_cargo_toml() -> Manifest {
+    load_cargo_toml(Project::find_cargo_toml().unwrap())
+}
+
+/// Returns Cargo.toml as Manifest struct.
+pub fn load_cargo_toml(path: PathBuf) -> Manifest {
+    match Manifest::from_path(path) {
         Ok(manifest) => manifest,
         Err(err) => {
             Error::FailedToReadCargo(err.to_string()).print_and_die();

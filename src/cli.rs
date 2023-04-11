@@ -2,17 +2,16 @@
 
 use clap::{Parser, Subcommand};
 
+use crate::actions::init::WorkspaceInitAction;
+use crate::odra_toml::OdraToml;
 use crate::{
     actions::{
-        build::BuildAction,
-        clean::clean_action,
-        generate::GenerateAction,
-        init::InitAction,
-        test::TestAction,
-        update::update_action,
+        build::BuildAction, clean::clean_action, generate::GenerateAction, init::InitAction,
+        test::TestAction, update::update_action,
     },
     consts,
 };
+use crate::project::Project;
 
 #[derive(Parser)]
 #[clap(name = "cargo")]
@@ -45,6 +44,8 @@ pub enum OdraSubcommand {
     New(InitCommand),
     /// Initializes a new Odra project in an existing, empty directory.
     Init(InitCommand),
+    /// Initializes a new Odra workspace in an existing, empty directory.
+    InitWorkspace(InitWorkspaceCommand),
     /// Builds the project, including backend and producing wasm files.
     Build(BuildCommand),
     /// Runs test. Without the backend parameter, the tests will be run against Mock VM.
@@ -70,6 +71,10 @@ pub struct InitCommand {
     #[clap(value_parser, long, short, default_value = consts::ODRA_TEMPLATE_GH_BRANCH)]
     pub git_branch: String,
 }
+
+#[derive(clap::Args)]
+/// `cargo odra init-workspace`
+pub struct InitWorkspaceCommand {}
 
 #[derive(clap::Args)]
 /// `cargo odra build`
@@ -133,10 +138,14 @@ pub fn make_action() {
             InitAction::new(init.name, init.repo_uri, init.git_branch).generate_project(true);
         }
         OdraSubcommand::Clean(_) => {
+            dbg!(Project::detect());
             clean_action();
         }
         OdraSubcommand::Update(update) => {
             update_action(update);
+        }
+        OdraSubcommand::InitWorkspace(_) => {
+            WorkspaceInitAction::new().init_workspace();
         }
     }
 }

@@ -1,7 +1,9 @@
 //! Module for managing and building backends.
 
+use std::path::PathBuf;
 use cargo_toml::{Dependency, DependencyDetail, DepsSet};
 
+use crate::cargo_toml::members;
 use crate::{
     cargo_toml::{odra_dependency, project_name},
     command,
@@ -11,22 +13,26 @@ use crate::{
     paths::{self, BuilderPaths},
     template,
 };
+use crate::project::Project;
 
 /// BuildAction configuration.
 pub struct BuildAction {
     backend: String,
-    builder_paths: BuilderPaths,
     odra_toml: OdraToml,
+    builder_paths: BuilderPaths,
+    project: Project,
 }
 
 /// BuildAction implementation.
 impl BuildAction {
     /// Crate a new BuildAction for a given backend.
     pub fn new(backend: String) -> Self {
+        let project = Project::detect();
         BuildAction {
             backend: backend.clone(),
+            odra_toml: OdraToml::load().unwrap(),
             builder_paths: BuilderPaths::new(backend),
-            odra_toml: OdraToml::load(),
+            project,
         }
     }
 
@@ -40,7 +46,9 @@ impl BuildAction {
     pub fn builder_dependencies(&self) -> DepsSet {
         let mut dependencies = DepsSet::new();
         dependencies.insert(String::from("odra"), self.odra_dependency());
-        dependencies.insert(project_name(), self.project_dependency());
+        self.project.members.iter().for_each(|member| {
+            dependencies.insert(member.name.clone(), self.project_dependency(&member.name));
+        });
         dependencies
     }
 
@@ -72,7 +80,6 @@ impl BuildAction {
             self.builder_paths.root().display()
         ));
 
-        // Prepare directories.
         command::mkdir(self.builder_paths.src());
 
         // Build Cargo.toml
@@ -143,7 +150,8 @@ impl BuildAction {
 
     /// Returns Odra dependency tailored for use by builder.
     fn odra_dependency(&self) -> Dependency {
-        match odra_dependency() {
+        let first_member = self.project.members.first().unwrap();
+        match odra_dependency(first_member.cargo_toml.clone()) {
             Dependency::Simple(simple) => Dependency::Detailed(DependencyDetail {
                 version: Some(simple),
                 ..Default::default()
@@ -160,9 +168,9 @@ impl BuildAction {
     }
 
     /// Returns project dependency with specific feature enabled.
-    fn project_dependency(&self) -> Dependency {
+    fn project_dependency(&self, location: &String) -> Dependency {
         Dependency::Detailed(DependencyDetail {
-            path: Some("..".to_string()),
+            path: Some(format!("../{}", location.clone())),
             features: vec![self.backend_name()],
             default_features: Some(false),
             ..Default::default()

@@ -1,7 +1,10 @@
 //! Module managing Odra.toml configuration.
 
 use serde_derive::{Deserialize, Serialize};
+use std::fs::DirEntry;
+use std::path::PathBuf;
 
+use crate::project::{Member, Project};
 use crate::{command, errors::Error, paths};
 
 /// Struct describing contract.
@@ -21,13 +24,29 @@ pub struct OdraToml {
 }
 
 impl OdraToml {
+    /// Creates a new Odra.toml configuration.
+    pub fn new() -> OdraToml {
+        OdraToml {
+            contracts: Vec::new(),
+        }
+    }
+
     /// Loads configuration from Odra.toml file.
-    pub fn load() -> OdraToml {
-        let odra_conf = command::read_file_content(paths::odra_toml());
-        match odra_conf {
-            Ok(conf_file) => toml::from_str(conf_file.as_str()).unwrap(),
-            Err(_) => {
-                Error::NotAnOdraProject.print_and_die();
+    pub fn load() -> Option<OdraToml> {
+        let odra_conf_location = Project::find_odra_toml();
+        match odra_conf_location {
+            None => {
+                return None;
+            }
+            Some(location) => {
+                let odra_conf = command::read_file_content(location.clone());
+                match odra_conf {
+                    Ok(conf_file) => {
+                        println!("found odra toml: {}", location.to_str().unwrap());
+                        Some(toml::from_str(conf_file.as_str()).unwrap())
+                    }
+                    Err(_) => None,
+                }
             }
         }
     }
@@ -48,5 +67,9 @@ impl OdraToml {
     /// Check if the contract is defined in Odra.toml file.
     pub fn has_contract(&self, contract_name: &str) -> bool {
         self.contracts.iter().any(|c| c.name == contract_name)
+    }
+
+    pub fn is_workspace(&self) -> bool {
+        true
     }
 }
