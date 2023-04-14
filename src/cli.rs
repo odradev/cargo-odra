@@ -1,17 +1,13 @@
 //! Module containing code that parses CLI input.
 
 use clap::{Parser, Subcommand};
+use std::env;
 
-use crate::actions::init::WorkspaceInitAction;
-use crate::odra_toml::OdraToml;
+use crate::project::Project;
 use crate::{
-    actions::{
-        build::BuildAction, clean::clean_action, generate::GenerateAction, init::InitAction,
-        test::TestAction, update::update_action,
-    },
+    actions::{build::BuildAction, clean::clean_action, init::InitAction, update::update_action},
     consts,
 };
-use crate::project::Project;
 
 #[derive(Parser)]
 #[clap(name = "cargo")]
@@ -44,8 +40,6 @@ pub enum OdraSubcommand {
     New(InitCommand),
     /// Initializes a new Odra project in an existing, empty directory.
     Init(InitCommand),
-    /// Initializes a new Odra workspace in an existing, empty directory.
-    InitWorkspace(InitWorkspaceCommand),
     /// Builds the project, including backend and producing wasm files.
     Build(BuildCommand),
     /// Runs test. Without the backend parameter, the tests will be run against Mock VM.
@@ -71,10 +65,6 @@ pub struct InitCommand {
     #[clap(value_parser, long, short, default_value = consts::ODRA_TEMPLATE_GH_BRANCH)]
     pub git_branch: String,
 }
-
-#[derive(clap::Args)]
-/// `cargo odra init-workspace`
-pub struct InitWorkspaceCommand {}
 
 #[derive(clap::Args)]
 /// `cargo odra build`
@@ -104,6 +94,9 @@ pub struct GenerateCommand {
     /// Name of the contract to be created.
     #[clap(value_parser, long, short)]
     pub contract_name: String,
+    /// Name of the module in which the contract will be created.
+    #[clap(value_parser, long, short)]
+    pub module: Option<String>,
 }
 
 #[derive(clap::Args, Debug)]
@@ -126,26 +119,36 @@ pub fn make_action() {
             BuildAction::new(build.backend).build();
         }
         OdraSubcommand::Test(test) => {
-            TestAction::new(test.backend, test.args, test.skip_build).test();
+            Project::detect(Some(env::current_dir().unwrap())).test(test);
         }
         OdraSubcommand::Generate(generate) => {
-            GenerateAction::new(generate.contract_name).generate_contract();
+            Project::detect(Some(env::current_dir().unwrap())).generate(generate);
         }
         OdraSubcommand::New(init) => {
-            InitAction::new(init.name, init.repo_uri, init.git_branch).generate_project(false);
+            Project::new(InitAction {
+                project_name: init.name,
+                generate: true,
+                init: false,
+                repo_uri: init.repo_uri,
+                branch: init.git_branch,
+                workspace: false,
+            });
         }
         OdraSubcommand::Init(init) => {
-            InitAction::new(init.name, init.repo_uri, init.git_branch).generate_project(true);
+            Project::new(InitAction {
+                project_name: init.name,
+                generate: true,
+                init: true,
+                repo_uri: init.repo_uri,
+                branch: init.git_branch,
+                workspace: false,
+            });
         }
         OdraSubcommand::Clean(_) => {
-            dbg!(Project::detect());
             clean_action();
         }
         OdraSubcommand::Update(update) => {
             update_action(update);
-        }
-        OdraSubcommand::InitWorkspace(_) => {
-            WorkspaceInitAction::new().init_workspace();
         }
     }
 }

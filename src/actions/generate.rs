@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use convert_case::{Case, Casing};
 
 use crate::{
-    cargo_toml, command,
+    command,
     errors::Error,
     log,
     odra_toml::{Contract, OdraToml},
@@ -15,17 +15,20 @@ use crate::{
 /// GenerateAction configuration.
 pub struct GenerateAction {
     contract_name: String,
-    module_ident: String,
+    contract_module_ident: String,
+    module_root: PathBuf,
+    module_name: String,
 }
 
 /// GenerateAction implementation.
 impl GenerateAction {
     /// Crate a new GenerateAction for a given contract.
-    pub fn new(contract_name: String) -> GenerateAction {
-        OdraToml::assert_exists();
+    pub fn new(contract_name: String, module_root: PathBuf, module_name: String) -> GenerateAction {
         GenerateAction {
             contract_name: paths::to_snake_case(&contract_name),
-            module_ident: contract_name.to_case(Case::UpperCamel),
+            contract_module_ident: contract_name.to_case(Case::UpperCamel),
+            module_root,
+            module_name,
         }
     }
 
@@ -44,17 +47,15 @@ impl GenerateAction {
 
     /// Returns the module identifier. It is the struct name.
     fn module_ident(&self) -> &str {
-        &self.module_ident
-    }
-
-    /// Returns project's crate name.
-    fn project_crate_name(&self) -> String {
-        paths::to_snake_case(cargo_toml::project_name())
+        &self.contract_module_ident
     }
 
     /// Returns a path to file with contract definition.
     fn module_file_path(&self) -> PathBuf {
-        paths::module_file_path(self.contract_name())
+        self.module_root
+            .join("src")
+            .join(self.contract_name())
+            .with_extension("rs")
     }
 
     /// Crates a new module file in src directory.
@@ -79,7 +80,7 @@ impl GenerateAction {
             template::register_module_snippet(self.contract_name(), self.module_ident());
 
         // Write to file.
-        command::append_file(paths::project_lib_rs(), &register_module_code);
+        command::append_file(self.module_root.join("src/lib.rs"), &register_module_code);
 
         // Print info.
         log::info(format!("Added to src/lib.rs:\n{register_module_code}"));
@@ -102,7 +103,7 @@ impl GenerateAction {
             name: self.contract_name().to_string(),
             fqn: format!(
                 "{}::{}::{}",
-                self.project_crate_name(),
+                self.module_name,
                 self.contract_name(),
                 self.module_ident()
             ),

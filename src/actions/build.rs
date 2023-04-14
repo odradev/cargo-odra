@@ -1,11 +1,11 @@
 //! Module for managing and building backends.
 
-use std::path::PathBuf;
 use cargo_toml::{Dependency, DependencyDetail, DepsSet};
+use std::path::PathBuf;
 
-use crate::cargo_toml::members;
+use crate::project::Project;
 use crate::{
-    cargo_toml::{odra_dependency, project_name},
+    cargo_toml::odra_dependency,
     command,
     errors::Error,
     log,
@@ -13,7 +13,6 @@ use crate::{
     paths::{self, BuilderPaths},
     template,
 };
-use crate::project::Project;
 
 /// BuildAction configuration.
 pub struct BuildAction {
@@ -27,7 +26,7 @@ pub struct BuildAction {
 impl BuildAction {
     /// Crate a new BuildAction for a given backend.
     pub fn new(backend: String) -> Self {
-        let project = Project::detect();
+        let project = Project::detect(None);
         BuildAction {
             backend: backend.clone(),
             odra_toml: OdraToml::load().unwrap(),
@@ -47,7 +46,7 @@ impl BuildAction {
         let mut dependencies = DepsSet::new();
         dependencies.insert(String::from("odra"), self.odra_dependency());
         self.project.members.iter().for_each(|member| {
-            dependencies.insert(member.name.clone(), self.project_dependency(&member.name));
+            dependencies.insert(member.name.clone(), self.project_dependency(&member.root));
         });
         dependencies
     }
@@ -160,17 +159,24 @@ impl BuildAction {
                 odra_details.features = vec![self.backend_name()];
                 odra_details.default_features = Some(false);
                 if odra_details.path.is_some() {
-                    odra_details.path = Some(format!("../{}", odra_details.path.unwrap()));
+                    odra_details.path = Some(odra_details.path.unwrap());
                 }
                 Dependency::Detailed(odra_details)
             }
         }
     }
 
-    /// Returns project dependency with specific feature enabled.
-    fn project_dependency(&self, location: &String) -> Dependency {
+    /// Returns project dependency with specific backend feature enabled.
+    fn project_dependency(&self, location: &PathBuf) -> Dependency {
         Dependency::Detailed(DependencyDetail {
-            path: Some(format!("../{}", location.clone())),
+            path: Some(
+                location
+                    .clone()
+                    .into_os_string()
+                    .to_str()
+                    .unwrap()
+                    .to_string(),
+            ),
             features: vec![self.backend_name()],
             default_features: Some(false),
             ..Default::default()

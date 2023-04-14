@@ -102,24 +102,6 @@ pub fn wasm_dir() -> PathBuf {
     project_dir().join("wasm")
 }
 
-/// Returns module file path in src directory.
-pub fn module_file_path(contract_name: &str) -> PathBuf {
-    project_dir()
-        .join("src")
-        .join(contract_name)
-        .with_extension("rs")
-}
-
-/// Returns project's src/lib.rs path.
-pub fn project_lib_rs() -> PathBuf {
-    project_dir().join("src/lib.rs")
-}
-
-/// Returns project's Cargo.toml path.
-pub fn cargo_toml() -> PathBuf {
-    project_dir().join("Cargo.toml")
-}
-
 /// Returns project's Odra.toml path.
 pub fn odra_toml() -> PathBuf {
     project_dir().join("Odra.toml")

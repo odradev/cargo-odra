@@ -1,6 +1,7 @@
 //! Module containing code that runs external commands.
 
 use std::{
+    env,
     fs::{self, File, OpenOptions},
     io::{self, Write},
     path::PathBuf,
@@ -10,6 +11,8 @@ use std::{
 use clap::Parser;
 use Error::InvalidInternalCommand;
 
+use crate::consts::ODRA_WASM_PATH_ENV_KEY;
+use crate::project::Project;
 use crate::{cli::Cargo, errors::Error, log, paths};
 
 /// Returns output of a command as a String.
@@ -153,6 +156,16 @@ pub fn cargo_test_mock_vm(current_dir: PathBuf, args: Vec<&str>) {
 
 /// Runs cargo test with backend features.
 pub fn cargo_test_backend(current_dir: PathBuf, backend_name: &str, tail_args: Vec<&str>) {
+    env::set_var(
+        ODRA_WASM_PATH_ENV_KEY,
+        Project::detect(None)
+            .odra_toml
+            .parent()
+            .unwrap()
+            .join("wasm")
+            .to_str()
+            .unwrap(),
+    );
     log::info("Running cargo test...");
     let mut args = vec!["--no-default-features", "--features", backend_name];
     for arg in tail_args {
@@ -170,6 +183,7 @@ pub fn cargo_clean(current_dir: PathBuf) {
 
 /// Writes a content to a file at the given path.
 pub fn write_to_file(path: PathBuf, content: &str) {
+    dbg!(path.clone());
     let mut file = File::create(path).unwrap();
     file.write_all(content.as_bytes()).unwrap();
 }

@@ -11,7 +11,7 @@ mod command;
 mod consts;
 mod errors;
 mod log;
-mod project;
 mod odra_toml;
 mod paths;
+mod project;
 mod template;
