@@ -9,14 +9,16 @@ use convert_case::{Boundary, Case, Casing};
 pub struct BuilderPaths {
     backend_name: String,
     full: bool,
+    project_root: PathBuf,
 }
 
 /// Implementation of BuilderPaths struct.
 impl BuilderPaths {
     /// Creates a new BuilderPath for a given backend.
-    pub fn new(backend_name: String) -> Self {
+    pub fn new(backend_name: String, project_root: PathBuf) -> Self {
         Self {
             backend_name,
+            project_root,
             full: true,
         }
     }
@@ -26,15 +28,17 @@ impl BuilderPaths {
         BuilderPaths {
             backend_name: self.backend_name.clone(),
             full: false,
+            project_root: Default::default(),
         }
     }
 
     /// Returns root directory of the builder.
     pub fn root(&self) -> PathBuf {
         if self.full {
-            PathBuf::from(format!(".builder_{}", self.backend_name))
+            self.project_root
+                .join(PathBuf::from(format!(".builder_{}", self.backend_name)))
         } else {
-            PathBuf::new()
+            self.project_root.join(PathBuf::new())
         }
     }
 
@@ -75,36 +79,26 @@ impl BuilderPaths {
     }
 }
 
-/// Returns root project directory.
-pub fn project_dir() -> PathBuf {
-    PathBuf::from(".")
-}
-
-/// Returns *.wasm file path.
+/// Returns *.wasm filename.
 pub fn wasm_file_name(contract_name: &str) -> PathBuf {
     PathBuf::from(contract_name).with_extension("wasm")
 }
 
 /// Returns *.wasm file path in target directory.
-pub fn wasm_path_in_target(contract_name: &str) -> PathBuf {
-    project_dir()
+pub fn wasm_path_in_target(contract_name: &str, project_root: PathBuf) -> PathBuf {
+    project_root
         .join("target/wasm32-unknown-unknown/release")
         .join(wasm_file_name(contract_name))
 }
 
 /// Returns *.wasm file path in wasm directory.
-pub fn wasm_path_in_wasm_dir(contract_name: &str) -> PathBuf {
-    wasm_dir().join(wasm_file_name(contract_name))
+pub fn wasm_path_in_wasm_dir(contract_name: &str, project_root: PathBuf) -> PathBuf {
+    wasm_dir(project_root).join(wasm_file_name(contract_name))
 }
 
 /// Returns wasm directory path.
-pub fn wasm_dir() -> PathBuf {
-    project_dir().join("wasm")
-}
-
-/// Returns project's Odra.toml path.
-pub fn odra_toml() -> PathBuf {
-    project_dir().join("Odra.toml")
+pub fn wasm_dir(project_root: PathBuf) -> PathBuf {
+    project_root.join("wasm")
 }
 
 /// Convert text to a sneak case.

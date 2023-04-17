@@ -1,12 +1,13 @@
 //! Module containing code that parses CLI input.
 
-use clap::{Parser, Subcommand};
 use std::env;
 
-use crate::project::Project;
+use clap::{Parser, Subcommand};
+
 use crate::{
     actions::{build::BuildAction, clean::clean_action, init::InitAction, update::update_action},
     consts,
+    project::Project,
 };
 
 #[derive(Parser)]
@@ -64,6 +65,10 @@ pub struct InitCommand {
     /// Git branch to use.
     #[clap(value_parser, long, short, default_value = consts::ODRA_TEMPLATE_GH_BRANCH)]
     pub git_branch: String,
+    /// Template to use. Default is "full", which contains a sample contract and a test.
+    /// To see all available templates, run `cargo odra new --list`.
+    #[clap(value_parser, long, short, default_value = consts::ODRA_TEMPLATE_DEFAULT_TEMPLATE)]
+    pub template: String,
 }
 
 #[derive(clap::Args)]
@@ -116,7 +121,11 @@ pub fn make_action() {
     let Cargo::Odra(args) = Cargo::parse();
     match args.subcommand {
         OdraSubcommand::Build(build) => {
-            BuildAction::new(build.backend).build();
+            BuildAction::new(
+                Project::detect(Some(env::current_dir().unwrap())),
+                build.backend,
+            )
+            .build();
         }
         OdraSubcommand::Test(test) => {
             Project::detect(Some(env::current_dir().unwrap())).test(test);
@@ -132,6 +141,7 @@ pub fn make_action() {
                 repo_uri: init.repo_uri,
                 branch: init.git_branch,
                 workspace: false,
+                template: init.template,
             });
         }
         OdraSubcommand::Init(init) => {
@@ -142,13 +152,16 @@ pub fn make_action() {
                 repo_uri: init.repo_uri,
                 branch: init.git_branch,
                 workspace: false,
+                template: init.template,
             });
         }
         OdraSubcommand::Clean(_) => {
-            clean_action();
+            let project = Project::detect(Some(env::current_dir().unwrap()));
+            clean_action(project.project_root());
         }
         OdraSubcommand::Update(update) => {
-            update_action(update);
+            let project = Project::detect(Some(env::current_dir().unwrap()));
+            update_action(update, project.project_root());
         }
     }
 }

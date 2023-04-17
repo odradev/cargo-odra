@@ -9,6 +9,7 @@ pub struct InitAction {
     pub repo_uri: String,
     pub branch: String,
     pub workspace: bool,
+    pub template: String,
 }
 
 /// InitAction implementation.

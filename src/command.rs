@@ -11,9 +11,7 @@ use std::{
 use clap::Parser;
 use Error::InvalidInternalCommand;
 
-use crate::consts::ODRA_WASM_PATH_ENV_KEY;
-use crate::project::Project;
-use crate::{cli::Cargo, errors::Error, log, paths};
+use crate::{cli::Cargo, consts::ODRA_WASM_PATH_ENV_KEY, errors::Error, log, paths};
 
 /// Returns output of a command as a String.
 pub fn command_output(command: &str) -> String {
@@ -67,10 +65,10 @@ pub fn rm_dir(path: PathBuf) {
 }
 
 /// Runs wasm-strip.
-pub fn wasm_strip(contract_name: &str) {
+pub fn wasm_strip(contract_name: &str, project_root: PathBuf) {
     let command = Command::new("wasm-strip")
-        .current_dir(paths::project_dir())
-        .arg(paths::wasm_path_in_wasm_dir(contract_name))
+        .current_dir(project_root.clone())
+        .arg(paths::wasm_path_in_wasm_dir(contract_name, project_root))
         .status();
 
     if command.is_ok() && command.unwrap().success() {
@@ -155,16 +153,10 @@ pub fn cargo_test_mock_vm(current_dir: PathBuf, args: Vec<&str>) {
 }
 
 /// Runs cargo test with backend features.
-pub fn cargo_test_backend(current_dir: PathBuf, backend_name: &str, tail_args: Vec<&str>) {
+pub fn cargo_test_backend(project_root: PathBuf, backend_name: &str, tail_args: Vec<&str>) {
     env::set_var(
         ODRA_WASM_PATH_ENV_KEY,
-        Project::detect(None)
-            .odra_toml
-            .parent()
-            .unwrap()
-            .join("wasm")
-            .to_str()
-            .unwrap(),
+        project_root.join("wasm").to_str().unwrap(),
     );
     log::info("Running cargo test...");
     let mut args = vec!["--no-default-features", "--features", backend_name];
@@ -172,7 +164,7 @@ pub fn cargo_test_backend(current_dir: PathBuf, backend_name: &str, tail_args: V
         args.push(arg);
     }
 
-    cargo(current_dir, "test", args)
+    cargo(project_root, "test", args)
 }
 
 /// Runs cargo clean.
@@ -183,7 +175,6 @@ pub fn cargo_clean(current_dir: PathBuf) {
 
 /// Writes a content to a file at the given path.
 pub fn write_to_file(path: PathBuf, content: &str) {
-    dbg!(path.clone());
     let mut file = File::create(path).unwrap();
     file.write_all(content.as_bytes()).unwrap();
 }

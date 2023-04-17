@@ -40,8 +40,11 @@ pub enum Error {
     #[error("Module {0} not found.")]
     ModuleNotFound(String),
 
-    #[error("Module not specified.")]
-    ModuleNotSpecified,
+    #[error("Odra.toml not found at location {0}")]
+    OdraTomlNotFound(PathBuf),
+
+    #[error("Not implemented: {0}")]
+    NotImplemented(String),
 }
 
 impl Error {
@@ -59,7 +62,8 @@ impl Error {
             Error::ContractAlreadyInOdraToml(_) => 9,
             Error::RemoveDirNotPossible(_) => 10,
             Error::ModuleNotFound(_) => 11,
-            Error::ModuleNotSpecified => 12,
+            Error::OdraTomlNotFound(_) => 12,
+            Error::NotImplemented(_) => 13,
         }
     }
 

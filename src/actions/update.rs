@@ -6,9 +6,9 @@ use crate::{cli::UpdateCommand, command, log, paths};
 
 /// Runs `cargo update` on project and backends in .builder* folders.
 /// If backend is specified update will be made only in its folder.
-pub fn update_action(update_command: UpdateCommand) {
+pub fn update_action(update_command: UpdateCommand, project_root: PathBuf) {
     if let Some(backend) = update_command.backend {
-        let builder_paths = paths::BuilderPaths::new(backend);
+        let builder_paths = paths::BuilderPaths::new(backend, project_root);
         update_builder(builder_paths.root());
     } else {
         update_all_builders();

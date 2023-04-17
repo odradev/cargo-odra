@@ -1,10 +1,10 @@
 //! Module containing functions used by Builder for managing its Cargo.toml file
 
-use cargo_toml::{Dependency, DepsSet, Edition, FeatureSet, Manifest, Package, Product, Workspace};
 use std::path::PathBuf;
 
-use crate::project::Project;
-use crate::{command, errors::Error, odra_toml::OdraToml, paths::BuilderPaths};
+use cargo_toml::{Dependency, DepsSet, Edition, FeatureSet, Manifest, Package, Product, Workspace};
+
+use crate::{command, errors::Error, odra_toml::OdraToml, paths::BuilderPaths, project::Project};
 
 /// Builds and saves Cargo.toml file for backend.
 pub fn builder_cargo_toml(
@@ -17,7 +17,7 @@ pub fn builder_cargo_toml(
         doctest: false,
         bench: false,
         doc: false,
-        edition: Some(Edition::E2021),
+        edition: Edition::E2021,
         ..Default::default()
     };
 
@@ -48,10 +48,12 @@ pub fn builder_cargo_toml(
         package: Some(Package::new("builder".to_string(), "1.0.0".to_string())),
         workspace: Some(Workspace {
             members: vec![],
+            package: None,
             default_members: vec![],
             exclude: vec![],
             metadata: None,
             resolver: None,
+            dependencies: Default::default(),
         }),
         dependencies: builder_deps,
         dev_dependencies: Default::default(),

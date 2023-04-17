@@ -1,9 +1,9 @@
 //! Module for managing and building backends.
 
-use cargo_toml::{Dependency, DependencyDetail, DepsSet};
 use std::path::PathBuf;
 
-use crate::project::Project;
+use cargo_toml::{Dependency, DependencyDetail, DepsSet};
+
 use crate::{
     cargo_toml::odra_dependency,
     command,
@@ -11,6 +11,7 @@ use crate::{
     log,
     odra_toml::OdraToml,
     paths::{self, BuilderPaths},
+    project::Project,
     template,
 };
 
@@ -25,12 +26,11 @@ pub struct BuildAction {
 /// BuildAction implementation.
 impl BuildAction {
     /// Crate a new BuildAction for a given backend.
-    pub fn new(backend: String) -> Self {
-        let project = Project::detect(None);
+    pub fn new(project: Project, backend: String) -> Self {
         BuildAction {
             backend: backend.clone(),
-            odra_toml: OdraToml::load().unwrap(),
-            builder_paths: BuilderPaths::new(backend),
+            odra_toml: OdraToml::load(project.odra_toml_location()),
+            builder_paths: BuilderPaths::new(backend, project.project_root.clone()),
             project,
         }
     }
@@ -126,10 +126,10 @@ impl BuildAction {
     /// Copy *.wasm files into wasm directory.
     fn copy_wasm_files(&self) {
         log::info("Copying wasm files...");
-        command::mkdir(paths::wasm_dir());
+        command::mkdir(paths::wasm_dir(self.project.project_root()));
         for contract in self.odra_toml.contracts.iter() {
-            let source = paths::wasm_path_in_target(&contract.name);
-            let target = paths::wasm_path_in_wasm_dir(&contract.name);
+            let source = paths::wasm_path_in_target(&contract.name, self.project.project_root());
+            let target = paths::wasm_path_in_wasm_dir(&contract.name, self.project.project_root());
             log::info(format!("Saving {}", target.display()));
             command::cp(source, target);
         }
@@ -137,8 +137,9 @@ impl BuildAction {
 
     /// Run wasm-strip on *.wasm files in wasm directory.
     fn optimize_wasm_files(&self) {
+        log::info("Optimizing wasm files...");
         for contract in self.odra_toml.contracts.iter() {
-            command::wasm_strip(&contract.name);
+            command::wasm_strip(&contract.name, self.project.project_root());
         }
     }
 
@@ -157,11 +158,15 @@ impl BuildAction {
             }),
             Dependency::Detailed(mut odra_details) => {
                 odra_details.features = vec![self.backend_name()];
-                odra_details.default_features = Some(false);
+                odra_details.default_features = false;
                 if odra_details.path.is_some() {
                     odra_details.path = Some(odra_details.path.unwrap());
                 }
                 Dependency::Detailed(odra_details)
+            }
+            Dependency::Inherited(_) => {
+                Error::NotImplemented("Inherited dependencies are not supported yet.".to_string())
+                    .print_and_die();
             }
         }
     }
@@ -178,7 +183,7 @@ impl BuildAction {
                     .to_string(),
             ),
             features: vec![self.backend_name()],
-            default_features: Some(false),
+            default_features: false,
             ..Default::default()
         })
     }

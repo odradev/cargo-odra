@@ -9,7 +9,9 @@ use crate::{
     errors::Error,
     log,
     odra_toml::{Contract, OdraToml},
-    paths, template,
+    paths,
+    project::Project,
+    template,
 };
 
 /// GenerateAction configuration.
@@ -18,17 +20,23 @@ pub struct GenerateAction {
     contract_module_ident: String,
     module_root: PathBuf,
     module_name: String,
+    project_root: PathBuf,
 }
 
 /// GenerateAction implementation.
 impl GenerateAction {
     /// Crate a new GenerateAction for a given contract.
-    pub fn new(contract_name: String, module_root: PathBuf, module_name: String) -> GenerateAction {
+    pub fn new(
+        project: &Project,
+        contract_name: String,
+        module_name: Option<String>,
+    ) -> GenerateAction {
         GenerateAction {
             contract_name: paths::to_snake_case(&contract_name),
             contract_module_ident: contract_name.to_case(Case::UpperCamel),
-            module_root,
-            module_name,
+            module_root: project.module_root(module_name.clone()),
+            module_name: project.module_name(module_name),
+            project_root: project.project_root(),
         }
     }
 
@@ -48,6 +56,10 @@ impl GenerateAction {
     /// Returns the module identifier. It is the struct name.
     fn module_ident(&self) -> &str {
         &self.contract_module_ident
+    }
+
+    fn project_root(&self) -> PathBuf {
+        self.project_root.clone()
     }
 
     /// Returns a path to file with contract definition.
@@ -89,7 +101,7 @@ impl GenerateAction {
     /// Add contract definition to Odra.toml.
     fn update_odra_toml(&self) {
         // TODO: remove unwrap
-        let mut odra_toml = OdraToml::load().unwrap();
+        let mut odra_toml = OdraToml::load(self.project_root().join("Odra.toml"));
         let contract_name = self.contract_name();
 
         // Check if Odra.toml has already a contract.
