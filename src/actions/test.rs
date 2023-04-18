@@ -1,39 +1,40 @@
 //! Module responsible for running contracts tests.
 
-use std::path::PathBuf;
-
 use super::build::BuildAction;
 use crate::{command, log, project::Project};
 
 /// TestAction configuration.
-pub struct TestAction {
+pub struct TestAction<'a> {
+    project: &'a Project,
     backend: Option<String>,
     passthrough_args: Vec<String>,
     skip_build: bool,
-    project_root: PathBuf,
 }
 
 /// TestAction implementation.
-impl TestAction {
+impl<'a> TestAction<'a> {
     /// Creates a TestAction struct.
     pub fn new(
+        project: &Project,
         backend: Option<String>,
         passthrough_args: Vec<String>,
         skip_build: bool,
-        project_root: PathBuf,
     ) -> TestAction {
         TestAction {
             backend,
             passthrough_args,
             skip_build,
-            project_root,
+            project,
         }
     }
+}
 
+impl TestAction<'_> {
     /// Runs a test suite.
     pub fn test(&self) {
+        dbg!(1);
         if self.backend.is_none() {
-            self.test_mock_vm(self.project_root());
+            self.test_mock_vm();
         } else {
             if !self.skip_build {
                 self.build_wasm_files();
@@ -43,16 +44,16 @@ impl TestAction {
     }
 
     /// Test code against MockVM.
-    fn test_mock_vm(&self, project_root: PathBuf) {
+    fn test_mock_vm(&self) {
         log::info("Testing against MockVM ...");
-        command::cargo_test_mock_vm(project_root, self.get_passthrough_args());
+        command::cargo_test_mock_vm(self.project.project_root(), self.get_passthrough_args());
     }
 
     /// Test specific backend.
     fn test_backend(&self) {
         log::info(format!("Testing backend: {}...", self.backend_name()));
         command::cargo_test_backend(
-            self.project_root(),
+            self.project.project_root(),
             self.backend_name(),
             self.get_passthrough_args(),
         );
@@ -62,10 +63,6 @@ impl TestAction {
     fn backend_name(&self) -> &str {
         self.backend.as_ref().unwrap()
     }
-    /// Returns project root directory.
-    fn project_root(&self) -> PathBuf {
-        self.project_root.clone()
-    }
 
     /// Returns passthrough args to be appended at the end of `cargo test` command.
     fn get_passthrough_args(&self) -> Vec<&str> {
@@ -74,11 +71,7 @@ impl TestAction {
 
     /// Build *.wasm files before testing.
     fn build_wasm_files(&self) {
-        BuildAction::new(
-            Project::detect(Some(self.project_root())),
-            String::from(self.backend_name()),
-        )
-        .build();
+        BuildAction::new(self.project, String::from(self.backend_name())).build();
         log::info("Building finished.")
     }
 }

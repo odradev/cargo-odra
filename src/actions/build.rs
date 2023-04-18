@@ -1,40 +1,49 @@
 //! Module for managing and building backends.
 
-use std::path::PathBuf;
+use std::path::Path;
 
 use cargo_toml::{Dependency, DependencyDetail, DepsSet};
 
 use crate::{
     cargo_toml::odra_dependency,
     command,
+    consts::ODRA_TEMPLATE_GH_RAW_REPO,
     errors::Error,
     log,
     odra_toml::OdraToml,
     paths::{self, BuilderPaths},
     project::Project,
-    template,
+    template::TemplateGenerator,
 };
 
 /// BuildAction configuration.
-pub struct BuildAction {
+pub struct BuildAction<'a> {
     backend: String,
     odra_toml: OdraToml,
     builder_paths: BuilderPaths,
-    project: Project,
+    project: &'a Project,
+    template_generator: TemplateGenerator,
 }
 
 /// BuildAction implementation.
-impl BuildAction {
+impl<'a> BuildAction<'a> {
     /// Crate a new BuildAction for a given backend.
-    pub fn new(project: Project, backend: String) -> Self {
+    pub fn new(project: &'a Project, backend: String) -> Self {
+        let branch = project.branch();
         BuildAction {
             backend: backend.clone(),
             odra_toml: OdraToml::load(project.odra_toml_location()),
             builder_paths: BuilderPaths::new(backend, project.project_root.clone()),
             project,
+            template_generator: TemplateGenerator::new(
+                ODRA_TEMPLATE_GH_RAW_REPO.to_string(),
+                branch,
+            ),
         }
     }
+}
 
+impl BuildAction<'_> {
     /// Returns the name of the backend.
     /// It is also the name of the Odra's feature.
     pub fn backend_name(&self) -> String {
@@ -97,7 +106,7 @@ impl BuildAction {
         for contract in self.odra_toml.contracts.iter() {
             let path = self.builder_paths.wasm_build(&contract.name);
             if !path.exists() {
-                let content = template::wasm_source_builder(
+                let content = self.template_generator.wasm_source_builder(
                     &contract.fqn,
                     &contract.name,
                     &self.backend_name(),
@@ -172,11 +181,11 @@ impl BuildAction {
     }
 
     /// Returns project dependency with specific backend feature enabled.
-    fn project_dependency(&self, location: &PathBuf) -> Dependency {
+    fn project_dependency(&self, location: &Path) -> Dependency {
         Dependency::Detailed(DependencyDetail {
             path: Some(
                 location
-                    .clone()
+                    .to_path_buf()
                     .into_os_string()
                     .to_str()
                     .unwrap()

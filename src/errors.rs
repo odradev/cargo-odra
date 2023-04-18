@@ -45,6 +45,15 @@ pub enum Error {
 
     #[error("Not implemented: {0}")]
     NotImplemented(String),
+
+    #[error("Failed to fetch template: {0}")]
+    FailedToFetchTemplate(String),
+
+    #[error("Failed to parse template: {0}")]
+    FailedToParseTemplate(String),
+
+    #[error("Could not determine the current directory, please make sure you have permissions to access it.")]
+    CouldNotDetermineCurrentDirectory,
 }
 
 impl Error {
@@ -64,6 +73,9 @@ impl Error {
             Error::ModuleNotFound(_) => 11,
             Error::OdraTomlNotFound(_) => 12,
             Error::NotImplemented(_) => 13,
+            Error::FailedToFetchTemplate(_) => 14,
+            Error::FailedToParseTemplate(_) => 15,
+            Error::CouldNotDetermineCurrentDirectory => 16,
         }
     }
 

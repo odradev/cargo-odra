@@ -6,12 +6,13 @@ use convert_case::{Case, Casing};
 
 use crate::{
     command,
+    consts::ODRA_TEMPLATE_GH_RAW_REPO,
     errors::Error,
     log,
     odra_toml::{Contract, OdraToml},
     paths,
     project::Project,
-    template,
+    template::TemplateGenerator,
 };
 
 /// GenerateAction configuration.
@@ -21,6 +22,7 @@ pub struct GenerateAction {
     module_root: PathBuf,
     module_name: String,
     project_root: PathBuf,
+    template_generator: TemplateGenerator,
 }
 
 /// GenerateAction implementation.
@@ -30,6 +32,7 @@ impl GenerateAction {
         project: &Project,
         contract_name: String,
         module_name: Option<String>,
+        branch: String,
     ) -> GenerateAction {
         GenerateAction {
             contract_name: paths::to_snake_case(&contract_name),
@@ -37,6 +40,10 @@ impl GenerateAction {
             module_root: project.module_root(module_name.clone()),
             module_name: project.module_name(module_name),
             project_root: project.project_root(),
+            template_generator: TemplateGenerator::new(
+                ODRA_TEMPLATE_GH_RAW_REPO.to_string(),
+                branch,
+            ),
         }
     }
 
@@ -73,7 +80,7 @@ impl GenerateAction {
     /// Crates a new module file in src directory.
     fn add_contract_file_to_src(&self) {
         // Rename module name.
-        let contract_body = template::module_template(self.module_ident());
+        let contract_body = self.template_generator.module_template(self.module_ident());
 
         // Make sure the file do not exists.
         let path = self.module_file_path();
@@ -88,8 +95,9 @@ impl GenerateAction {
     /// Append `mod` section to lib.rs.
     fn update_lib_rs(&self) {
         // Prepare code to add.
-        let register_module_code =
-            template::register_module_snippet(self.contract_name(), self.module_ident());
+        let register_module_code = self
+            .template_generator
+            .register_module_snippet(self.contract_name(), self.module_ident());
 
         // Write to file.
         command::append_file(self.module_root.join("src/lib.rs"), &register_module_code);

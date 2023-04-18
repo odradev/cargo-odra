@@ -7,15 +7,15 @@ use cargo_generate::{GenerateArgs, TemplatePath, Vcs};
 use chrono::Utc;
 
 use crate::{
-    actions::{generate::GenerateAction, init::InitAction, test::TestAction},
-    cargo_toml::{load_cargo_toml, load_main_cargo_toml},
+    actions::{build::BuildAction, generate::GenerateAction, init::InitAction, test::TestAction},
+    cargo_toml::load_cargo_toml,
     cli::{GenerateCommand, TestCommand},
     errors::Error,
     paths,
 };
 
 /// Struct representing the whole project.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Project {
     /// Name of the project.
     pub name: String,
@@ -27,13 +27,15 @@ pub struct Project {
     pub odra_toml_location: PathBuf,
     /// Members of the project.
     pub members: Vec<Member>,
+    /// Branch of Odra to use
+    pub branch: String,
 }
 
 impl Project {
     /// Create a new Project.
-    pub fn new(init_action: InitAction) {
+    pub fn init(init_action: InitAction) {
         if init_action.generate {
-            Self::generate_project(init_action.clone());
+            Self::generate_project(init_action);
         }
     }
 
@@ -77,7 +79,7 @@ impl Project {
     }
 
     /// Detects an existing project.
-    pub fn detect(path: Option<PathBuf>) -> Project {
+    pub fn detect(path: PathBuf) -> Project {
         let odra_toml_path = Self::find_odra_toml(path.clone()).unwrap_or_else(|| {
             Error::NotAnOdraProject.print_and_die();
         });
@@ -86,7 +88,7 @@ impl Project {
         });
         let root = odra_toml_path.parent().unwrap().to_path_buf();
         let members = Self::find_members(cargo_toml_path.clone());
-        let name = match load_main_cargo_toml().package {
+        let name = match load_cargo_toml(cargo_toml_path.clone()).package {
             None => {
                 let cwd = env::current_dir().unwrap();
                 cwd.strip_prefix(cwd.parent().unwrap())
@@ -103,23 +105,30 @@ impl Project {
             cargo_toml_location: cargo_toml_path,
             odra_toml_location: odra_toml_path,
             members,
+            // todo: get branch from Odra.toml
+            branch: "feature/cargo_odra_templates".to_string(),
         }
+    }
+
+    /// Builds the project
+    pub fn build(&self, backend: String) {
+        BuildAction::new(self, backend).build();
     }
 
     /// Runs test in the Project.
     pub fn test(&self, test: TestCommand) {
-        TestAction::new(
-            test.backend,
-            test.args,
-            test.skip_build,
-            self.project_root(),
-        )
-        .test();
+        TestAction::new(self, test.backend, test.args, test.skip_build).test();
     }
 
     /// Generates a new contract in the Project.
     pub fn generate(&self, generate: GenerateCommand) {
-        GenerateAction::new(self, generate.contract_name, generate.module).generate_contract();
+        GenerateAction::new(
+            self,
+            generate.contract_name,
+            generate.module,
+            generate.git_branch,
+        )
+        .generate_contract();
     }
 
     /// Odra.toml location for the Project.
@@ -131,9 +140,7 @@ impl Project {
     /// If the project does not use workspaces, the root directory is the same as the project root.
     pub fn module_root(&self, module_name: Option<String>) -> PathBuf {
         match module_name {
-            None => {
-                return self.project_root.clone();
-            }
+            None => self.project_root.clone(),
             Some(module_name) => self
                 .members
                 .iter()
@@ -150,9 +157,7 @@ impl Project {
     /// If there is no module name, the project name is returned.
     pub fn module_name(&self, module_name: Option<String>) -> String {
         match module_name {
-            None => {
-                return self.name.clone();
-            }
+            None => self.name.clone(),
             Some(module_name) => self
                 .members
                 .iter()
@@ -166,7 +171,7 @@ impl Project {
     }
 
     /// Searches for main Projects' Cargo.toml.
-    pub fn find_cargo_toml(path: Option<PathBuf>) -> Option<PathBuf> {
+    pub fn find_cargo_toml(path: PathBuf) -> Option<PathBuf> {
         match Self::find_file_upwards("Odra.toml", path) {
             None => None,
             Some(odra_toml_path) => {
@@ -183,6 +188,11 @@ impl Project {
     /// Root directory of the Project.
     pub fn project_root(&self) -> PathBuf {
         self.project_root.clone()
+    }
+
+    // todo: get branch from Cargo.toml, or even better - use Dependency
+    pub fn branch(&self) -> String {
+        "feature/cargo-odra-templates".to_string()
     }
 
     fn assert_current_dir_is_empty() {
@@ -207,13 +217,12 @@ impl Project {
             .collect()
     }
 
-    fn find_odra_toml(path: Option<PathBuf>) -> Option<PathBuf> {
+    fn find_odra_toml(path: PathBuf) -> Option<PathBuf> {
         Self::find_file_upwards("Odra.toml", path)
     }
 
-    fn find_file_upwards(filename: &str, path: Option<PathBuf>) -> Option<PathBuf> {
-        let mut path = path
-            .unwrap_or_else(|| std::env::current_dir().expect("Failed to get current directory"));
+    fn find_file_upwards(filename: &str, path: PathBuf) -> Option<PathBuf> {
+        let mut path = path;
         loop {
             let file_path = path.join(filename);
             if file_path.exists() {
