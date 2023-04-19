@@ -2,6 +2,10 @@
 
 Changelog for `cargo-odra`.
 
+## [0.0.6] - <TODO>
+### Added
+- `--contract-name` filter for `build` command.
+
 ## [0.0.5] - 2022-12-14
 ### Added
 - `test` command can skip build using `--skip-build` flag. 

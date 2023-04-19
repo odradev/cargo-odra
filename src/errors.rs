@@ -37,6 +37,24 @@ pub enum Error {
     #[error("Removing {0} directory failed.")]
     RemoveDirNotPossible(PathBuf),
 
+    #[error("Module {0} not found.")]
+    ModuleNotFound(String),
+
+    #[error("Odra.toml not found at location {0}")]
+    OdraTomlNotFound(PathBuf),
+
+    #[error("Not implemented: {0}")]
+    NotImplemented(String),
+
+    #[error("Failed to fetch template: {0}")]
+    FailedToFetchTemplate(String),
+
+    #[error("Failed to parse template: {0}")]
+    FailedToParseTemplate(String),
+
+    #[error("Could not determine the current directory, please make sure you have permissions to access it.")]
+    CouldNotDetermineCurrentDirectory,
+
     #[error("Contract {0} not found in Odra.toml")]
     ContractNotFound(String),
 }
@@ -55,7 +73,13 @@ impl Error {
             Error::FileAlreadyExists(_) => 8,
             Error::ContractAlreadyInOdraToml(_) => 9,
             Error::RemoveDirNotPossible(_) => 10,
-            Error::ContractNotFound(_) => 11,
+            Error::ModuleNotFound(_) => 11,
+            Error::OdraTomlNotFound(_) => 12,
+            Error::NotImplemented(_) => 13,
+            Error::FailedToFetchTemplate(_) => 14,
+            Error::FailedToParseTemplate(_) => 15,
+            Error::CouldNotDetermineCurrentDirectory => 16,
+            Error::ContractNotFound(_) => 17,
         }
     }
 

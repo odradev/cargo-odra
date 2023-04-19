@@ -1,37 +1,51 @@
 //! Module for managing and building backends.
 
+use std::path::Path;
+
 use cargo_toml::{Dependency, DependencyDetail, DepsSet};
 
 use crate::{
-    cargo_toml::{odra_dependency, project_name},
+    cargo_toml::odra_dependency,
     command,
+    consts::ODRA_TEMPLATE_GH_RAW_REPO,
     errors::Error,
     log,
-    odra_toml::{OdraToml, Contract},
+    odra_toml::{Contract, OdraToml},
     paths::{self, BuilderPaths},
-    template,
+    project::Project,
+    template::TemplateGenerator,
 };
 
 /// BuildAction configuration.
-pub struct BuildAction {
+pub struct BuildAction<'a> {
     backend: String,
-    builder_paths: BuilderPaths,
     odra_toml: OdraToml,
-    contract_name: Option<String>
+    contract_name: Option<String>,
+    builder_paths: BuilderPaths,
+    project: &'a Project,
+    template_generator: TemplateGenerator,
 }
 
 /// BuildAction implementation.
-impl BuildAction {
+impl<'a> BuildAction<'a> {
     /// Crate a new BuildAction for a given backend.
-    pub fn new(backend: String, contract_name: Option<String>) -> Self {
+    pub fn new(project: &'a Project, backend: String, contract_name: Option<String>) -> Self {
+        let branch = project.branch();
         BuildAction {
             backend: backend.clone(),
-            builder_paths: BuilderPaths::new(backend),
-            odra_toml: OdraToml::load(),
-            contract_name
+            odra_toml: OdraToml::load(project.odra_toml_location()),
+            contract_name,
+            builder_paths: BuilderPaths::new(backend, project.project_root.clone()),
+            project,
+            template_generator: TemplateGenerator::new(
+                ODRA_TEMPLATE_GH_RAW_REPO.to_string(),
+                branch,
+            ),
         }
     }
+}
 
+impl BuildAction<'_> {
     /// Returns the name of the backend.
     /// It is also the name of the Odra's feature.
     pub fn backend_name(&self) -> String {
@@ -42,7 +56,9 @@ impl BuildAction {
     pub fn builder_dependencies(&self) -> DepsSet {
         let mut dependencies = DepsSet::new();
         dependencies.insert(String::from("odra"), self.odra_dependency());
-        dependencies.insert(project_name(), self.project_dependency());
+        self.project.members.iter().for_each(|member| {
+            dependencies.insert(member.name.clone(), self.project_dependency(&member.root));
+        });
         dependencies
     }
 
@@ -61,7 +77,11 @@ impl BuildAction {
     /// Returns list of contract to process.
     fn contracts(&self) -> Vec<&Contract> {
         if let Some(contract_name) = &self.contract_name {
-            self.odra_toml.contracts.iter().filter(|c| c.name == *contract_name).collect()
+            self.odra_toml
+                .contracts
+                .iter()
+                .filter(|c| c.name == *contract_name)
+                .collect()
         } else {
             self.odra_toml.contracts.iter().collect()
         }
@@ -79,7 +99,12 @@ impl BuildAction {
     /// Check if contract name argument is valid if set.
     fn validate_contract_name_argument(&self) {
         if let Some(contract_name) = &self.contract_name {
-            if !self.odra_toml.contracts.iter().any(|c| c.name == *contract_name) {
+            if !self
+                .odra_toml
+                .contracts
+                .iter()
+                .any(|c| c.name == *contract_name)
+            {
                 Error::ContractNotFound(contract_name.clone()).print_and_die();
             }
         }
@@ -93,14 +118,13 @@ impl BuildAction {
             self.builder_paths.root().display()
         ));
 
-        // Prepare directories.
         command::mkdir(self.builder_paths.src());
 
         // Build Cargo.toml
         crate::cargo_toml::builder_cargo_toml(
             &self.builder_paths,
             self.builder_dependencies(),
-            &self.odra_toml,
+            self.contracts(),
         );
 
         // Build files.
@@ -112,7 +136,7 @@ impl BuildAction {
         for contract in self.contracts() {
             let path = self.builder_paths.wasm_build(&contract.name);
             if !path.exists() {
-                let content = template::wasm_source_builder(
+                let content = self.template_generator.wasm_source_builder(
                     &contract.fqn,
                     &contract.name,
                     &self.backend_name(),
@@ -141,10 +165,10 @@ impl BuildAction {
     /// Copy *.wasm files into wasm directory.
     fn copy_wasm_files(&self) {
         log::info("Copying wasm files...");
-        command::mkdir(paths::wasm_dir());
+        command::mkdir(paths::wasm_dir(self.project.project_root()));
         for contract in self.contracts() {
-            let source = paths::wasm_path_in_target(&contract.name);
-            let target = paths::wasm_path_in_wasm_dir(&contract.name);
+            let source = paths::wasm_path_in_target(&contract.name, self.project.project_root());
+            let target = paths::wasm_path_in_wasm_dir(&contract.name, self.project.project_root());
             log::info(format!("Saving {}", target.display()));
             command::cp(source, target);
         }
@@ -152,8 +176,9 @@ impl BuildAction {
 
     /// Run wasm-strip on *.wasm files in wasm directory.
     fn optimize_wasm_files(&self) {
+        log::info("Optimizing wasm files...");
         for contract in self.contracts() {
-            command::wasm_strip(&contract.name);
+            command::wasm_strip(&contract.name, self.project.project_root());
         }
     }
 
@@ -164,28 +189,44 @@ impl BuildAction {
 
     /// Returns Odra dependency tailored for use by builder.
     fn odra_dependency(&self) -> Dependency {
-        match odra_dependency() {
+        let first_member = self.project.members.first().unwrap();
+        match odra_dependency(first_member.cargo_toml.clone()) {
             Dependency::Simple(simple) => Dependency::Detailed(DependencyDetail {
                 version: Some(simple),
                 ..Default::default()
             }),
             Dependency::Detailed(mut odra_details) => {
                 odra_details.features = vec![self.backend_name()];
-                odra_details.default_features = Some(false);
+                odra_details.default_features = false;
                 if odra_details.path.is_some() {
-                    odra_details.path = Some(format!("../{}", odra_details.path.unwrap()));
+                    if self.project.is_workspace() {
+                        odra_details.path = Some(odra_details.path.unwrap());
+                    } else {
+                        odra_details.path = Some(format!("../{}", odra_details.path.unwrap()));
+                    }
                 }
                 Dependency::Detailed(odra_details)
+            }
+            Dependency::Inherited(_) => {
+                Error::NotImplemented("Inherited dependencies are not supported yet.".to_string())
+                    .print_and_die();
             }
         }
     }
 
-    /// Returns project dependency with specific feature enabled.
-    fn project_dependency(&self) -> Dependency {
+    /// Returns project dependency with specific backend feature enabled.
+    fn project_dependency(&self, location: &Path) -> Dependency {
         Dependency::Detailed(DependencyDetail {
-            path: Some("..".to_string()),
+            path: Some(
+                location
+                    .to_path_buf()
+                    .into_os_string()
+                    .to_str()
+                    .unwrap()
+                    .to_string(),
+            ),
             features: vec![self.backend_name()],
-            default_features: Some(false),
+            default_features: false,
             ..Default::default()
         })
     }
