@@ -36,6 +36,9 @@ pub enum Error {
 
     #[error("Removing {0} directory failed.")]
     RemoveDirNotPossible(PathBuf),
+
+    #[error("Contract {0} not found in Odra.toml")]
+    ContractNotFound(String),
 }
 
 impl Error {
@@ -52,6 +55,7 @@ impl Error {
             Error::FileAlreadyExists(_) => 8,
             Error::ContractAlreadyInOdraToml(_) => 9,
             Error::RemoveDirNotPossible(_) => 10,
+            Error::ContractNotFound(_) => 11,
         }
     }
 

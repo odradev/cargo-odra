@@ -63,6 +63,6 @@ impl TestAction {
 
     /// Build *.wasm files before testing.
     fn build_wasm_files(&self) {
-        BuildAction::new(String::from(self.backend_name())).build();
+        BuildAction::new(String::from(self.backend_name()), None).build();
     }
 }

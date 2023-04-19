@@ -77,6 +77,10 @@ pub struct BuildCommand {
     /// Name of the backend that will be used for the build process (e.g. casper).
     #[clap(value_parser, long, short, possible_values = [consts::ODRA_CASPER_BACKEND])]
     pub backend: String,
+
+    /// Contract name that matches the name in Odra.toml.
+    #[clap(value_parser, long, short)]
+    pub contract_name: Option<String>,
 }
 
 #[derive(clap::Args, Debug)]
@@ -118,7 +122,7 @@ pub fn make_action() {
     let Cargo::Odra(args) = Cargo::parse();
     match args.subcommand {
         OdraSubcommand::Build(build) => {
-            BuildAction::new(build.backend).build();
+            BuildAction::new(build.backend, build.contract_name).build();
         }
         OdraSubcommand::Test(test) => {
             TestAction::new(test.backend, test.args, test.skip_build).test();

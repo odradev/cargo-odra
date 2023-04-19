@@ -7,7 +7,7 @@ use crate::{
     command,
     errors::Error,
     log,
-    odra_toml::OdraToml,
+    odra_toml::{OdraToml, Contract},
     paths::{self, BuilderPaths},
     template,
 };
@@ -17,16 +17,18 @@ pub struct BuildAction {
     backend: String,
     builder_paths: BuilderPaths,
     odra_toml: OdraToml,
+    contract_name: Option<String>
 }
 
 /// BuildAction implementation.
 impl BuildAction {
     /// Crate a new BuildAction for a given backend.
-    pub fn new(backend: String) -> Self {
+    pub fn new(backend: String, contract_name: Option<String>) -> Self {
         BuildAction {
             backend: backend.clone(),
             builder_paths: BuilderPaths::new(backend),
             odra_toml: OdraToml::load(),
+            contract_name
         }
     }
 
@@ -47,6 +49,7 @@ impl BuildAction {
     /// Main function that runs the whole workflow for a backend.
     pub fn build(&self) {
         self.check_target_requirements();
+        self.validate_contract_name_argument();
         self.prepare_builder();
         self.build_wasm_sources();
         self.build_wasm_files();
@@ -55,12 +58,30 @@ impl BuildAction {
         self.optimize_wasm_files();
     }
 
+    /// Returns list of contract to process.
+    fn contracts(&self) -> Vec<&Contract> {
+        if let Some(contract_name) = &self.contract_name {
+            self.odra_toml.contracts.iter().filter(|c| c.name == *contract_name).collect()
+        } else {
+            self.odra_toml.contracts.iter().collect()
+        }
+    }
+
     /// Check if wasm32-unknown-unknown target is installed.
     fn check_target_requirements(&self) {
         if !command::command_output("rustup target list --installed")
             .contains("wasm32-unknown-unknown")
         {
             Error::WasmTargetNotInstalled.print_and_die();
+        }
+    }
+
+    /// Check if contract name argument is valid if set.
+    fn validate_contract_name_argument(&self) {
+        if let Some(contract_name) = &self.contract_name {
+            if !self.odra_toml.contracts.iter().any(|c| c.name == *contract_name) {
+                Error::ContractNotFound(contract_name.clone()).print_and_die();
+            }
         }
     }
 
@@ -88,7 +109,7 @@ impl BuildAction {
 
     /// Prepare _build.rs files.
     fn create_build_files(&self) {
-        for contract in self.odra_toml.contracts.iter() {
+        for contract in self.contracts() {
             let path = self.builder_paths.wasm_build(&contract.name);
             if !path.exists() {
                 let content = template::wasm_source_builder(
@@ -104,7 +125,7 @@ impl BuildAction {
     /// Prepare _wasm.rs file.
     fn build_wasm_sources(&self) {
         log::info("Generating _wasm.rs files...");
-        for contract in self.odra_toml.contracts.iter() {
+        for contract in self.contracts() {
             command::cargo_build_wasm_sources(self.builder_paths.root(), &contract.name);
         }
     }
@@ -112,7 +133,7 @@ impl BuildAction {
     /// Build _wasm.rs files into .wasm files.
     fn build_wasm_files(&self) {
         log::info("Generating wasm files...");
-        for contract in self.odra_toml.contracts.iter() {
+        for contract in self.contracts() {
             command::cargo_build_wasm_files(self.builder_paths.root(), &contract.name);
         }
     }
@@ -121,7 +142,7 @@ impl BuildAction {
     fn copy_wasm_files(&self) {
         log::info("Copying wasm files...");
         command::mkdir(paths::wasm_dir());
-        for contract in self.odra_toml.contracts.iter() {
+        for contract in self.contracts() {
             let source = paths::wasm_path_in_target(&contract.name);
             let target = paths::wasm_path_in_wasm_dir(&contract.name);
             log::info(format!("Saving {}", target.display()));
@@ -131,7 +152,7 @@ impl BuildAction {
 
     /// Run wasm-strip on *.wasm files in wasm directory.
     fn optimize_wasm_files(&self) {
-        for contract in self.odra_toml.contracts.iter() {
+        for contract in self.contracts() {
             command::wasm_strip(&contract.name);
         }
     }
