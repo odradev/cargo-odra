@@ -7,7 +7,7 @@ pub struct InitAction {
     pub generate: bool,
     pub init: bool,
     pub repo_uri: String,
-    pub branch: String,
+    pub source: Option<String>,
     pub workspace: bool,
     pub template: String,
 }

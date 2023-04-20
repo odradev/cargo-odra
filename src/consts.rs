@@ -9,8 +9,7 @@ pub const ODRA_TEMPLATE_GH_REPO: &str = "https://github.com/odradev/odra.git";
 /// Template raw repository path.
 pub const ODRA_TEMPLATE_GH_RAW_REPO: &str = "https://raw.githubusercontent.com/odradev/odra";
 
-/// Default odra-template git branch.
-pub const ODRA_TEMPLATE_GH_BRANCH: &str = "feature/cargo-odra-templates";
+pub const ODRA_GITHUB_API_DATA: &str = "https://api.github.com/repos/odradev/odra/releases/latest";
 
 /// Default template name.
 pub const ODRA_TEMPLATE_DEFAULT_TEMPLATE: &str = "full";

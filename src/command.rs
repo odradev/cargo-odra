@@ -190,6 +190,13 @@ pub fn append_file(path: PathBuf, content: &str) {
     file.write_all(content.as_bytes()).unwrap();
 }
 
+/// Replaces strings in a file.
+pub fn replace_in_file(path: PathBuf, from: &str, to: &str) {
+    let content = read_file_content(path.clone()).unwrap();
+    let new_content = content.replace(from, to);
+    write_to_file(path, new_content.as_str());
+}
+
 /// Loads a file to a string.
 pub fn read_file_content(path: PathBuf) -> io::Result<String> {
     fs::read_to_string(path)

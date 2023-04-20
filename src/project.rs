@@ -4,12 +4,16 @@ use std::{
 };
 
 use cargo_generate::{GenerateArgs, TemplatePath, Vcs};
+use cargo_toml::{Dependency, DependencyDetail};
 use chrono::Utc;
+use ureq::serde_json;
 
 use crate::{
     actions::{build::BuildAction, generate::GenerateAction, init::InitAction, test::TestAction},
     cargo_toml::load_cargo_toml,
     cli::{GenerateCommand, TestCommand},
+    command::replace_in_file,
+    consts::{ODRA_GITHUB_API_DATA, ODRA_TEMPLATE_GH_REPO},
     errors::Error,
     paths,
 };
@@ -27,8 +31,6 @@ pub struct Project {
     pub odra_toml_location: PathBuf,
     /// Members of the project.
     pub members: Vec<Member>,
-    /// Branch of Odra to use
-    pub branch: String,
 }
 
 impl Project {
@@ -45,17 +47,33 @@ impl Project {
             Self::assert_current_dir_is_empty();
         }
 
-        cargo_generate::generate(GenerateArgs {
-            template_path: TemplatePath {
-                auto_path: Some(init_action.repo_uri),
+        let odra_location = Self::odra_location(init_action.source);
+
+        let template_path = match odra_location.clone() {
+            OdraLocation::Local(local_path) => TemplatePath {
+                auto_path: Some(local_path.as_os_str().to_str().unwrap().to_string()),
                 subfolder: Some(format!("templates/{}", init_action.template)),
                 test: false,
                 git: None,
-                branch: Some(init_action.branch.clone()),
+                branch: None,
                 tag: None,
                 path: None,
                 favorite: None,
             },
+            OdraLocation::Remote(repo, branch) => TemplatePath {
+                auto_path: Some(repo),
+                subfolder: Some(format!("templates/{}", init_action.template)),
+                test: false,
+                git: None,
+                branch,
+                tag: None,
+                path: None,
+                favorite: None,
+            },
+        };
+
+        cargo_generate::generate(GenerateArgs {
+            template_path,
             list_favorites: false,
             name: Some(paths::to_snake_case(&init_action.project_name)),
             force: true,
@@ -76,6 +94,33 @@ impl Project {
             other_args: None,
         })
         .unwrap();
+
+        let cargo_toml_path = match init_action.init {
+            true => {
+                let mut path = env::current_dir().unwrap();
+                path.push("Cargo.toml");
+                path
+            }
+            false => {
+                let mut path = env::current_dir().unwrap();
+                path.push(paths::to_snake_case(&init_action.project_name));
+                path.push("Cargo.toml");
+                path
+            }
+        };
+
+        replace_in_file(
+            cargo_toml_path,
+            "#odra_dependency",
+            format!(
+                "odra = {{ {} }}",
+                toml::to_string(&Self::odra_dependency(odra_location, init_action.init))
+                    .unwrap()
+                    .trim_end()
+                    .replace('\n', ", ")
+            )
+            .as_str(),
+        );
     }
 
     /// Detects an existing project.
@@ -105,8 +150,6 @@ impl Project {
             cargo_toml_location: cargo_toml_path,
             odra_toml_location: odra_toml_path,
             members,
-            // todo: get branch from Odra.toml
-            branch: "feature/cargo_odra_templates".to_string(),
         }
     }
 
@@ -122,13 +165,8 @@ impl Project {
 
     /// Generates a new contract in the Project.
     pub fn generate(&self, generate: GenerateCommand) {
-        GenerateAction::new(
-            self,
-            generate.contract_name,
-            generate.module,
-            generate.git_branch,
-        )
-        .generate_contract();
+        GenerateAction::new(self, generate.contract_name, generate.module, self.branch())
+            .generate_contract();
     }
 
     /// Odra.toml location for the Project.
@@ -254,6 +292,91 @@ impl Project {
     fn detect_project_name(cargo_toml_path: PathBuf) -> String {
         load_cargo_toml(cargo_toml_path).package.unwrap().name
     }
+
+    fn odra_dependency(odra_location: OdraLocation, init: bool) -> Dependency {
+        let (version, path, git, branch) = match odra_location {
+            OdraLocation::Local(path) => {
+                let path = match init {
+                    true => path,
+                    false => PathBuf::from("..").join(path),
+                };
+                let path = path
+                    .join("core")
+                    .into_os_string()
+                    .to_str()
+                    .unwrap()
+                    .to_string();
+                (None, Some(path), None, None)
+            }
+            OdraLocation::Remote(repo, branch) => match branch {
+                None => (Some(Self::odra_latest_version()), None, None, None),
+                Some(branch) => (None, None, Some(repo), Some(branch)),
+            },
+        };
+
+        Dependency::Detailed(DependencyDetail {
+            version,
+            registry: None,
+            registry_index: None,
+            path,
+            inherited: false,
+            git,
+            branch,
+            tag: None,
+            rev: None,
+            features: vec![],
+            optional: false,
+            default_features: false,
+            package: None,
+        })
+    }
+
+    fn odra_latest_version() -> String {
+        let response: serde_json::Value = ureq::get(ODRA_GITHUB_API_DATA)
+            .call()
+            .unwrap_or_else(|_| {
+                Error::FailedToFetchTemplate(ODRA_GITHUB_API_DATA.to_string()).print_and_die()
+            })
+            .into_json()
+            .unwrap_or_else(|_| {
+                Error::FailedToParseTemplate(ODRA_GITHUB_API_DATA.to_string()).print_and_die()
+            });
+        response["tag_name"].as_str().unwrap().to_string()
+    }
+
+    fn odra_location(source: Option<String>) -> OdraLocation {
+        // repo
+        let source = if let Some(source) = source {
+            source
+        } else {
+            return OdraLocation::Remote(ODRA_TEMPLATE_GH_REPO.to_string(), None);
+        };
+
+        // location on disk
+        let local = PathBuf::from(&source);
+        if local.exists() {
+            OdraLocation::Local(local)
+        } else {
+            // version
+            let version_regex = regex::Regex::new(r"^\d+\.\d+\.\d+$").unwrap();
+            if version_regex.is_match(&source) {
+                OdraLocation::Remote(
+                    ODRA_TEMPLATE_GH_REPO.to_string(),
+                    Some(format!("release/{}", source)),
+                )
+            } else {
+                // branch
+                OdraLocation::Remote(ODRA_TEMPLATE_GH_REPO.to_string(), Some(source))
+            }
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum OdraLocation {
+    Local(PathBuf),
+    /// git repo, branch
+    Remote(String, Option<String>),
 }
 
 #[derive(Debug, Clone)]

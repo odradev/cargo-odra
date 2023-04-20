@@ -63,9 +63,10 @@ pub struct InitCommand {
     /// URI of the repository containing the template.
     #[clap(value_parser, long, short, default_value = consts::ODRA_TEMPLATE_GH_REPO)]
     pub repo_uri: String,
-    /// Git branch to use.
-    #[clap(value_parser, long, short, default_value = consts::ODRA_TEMPLATE_GH_BRANCH)]
-    pub git_branch: String,
+    /// Odra source to use. By default, it uses latest release of Odra.
+    /// It can be a version, a branch, commit hash or a location on the filesystem.
+    #[clap(value_parser, long, short)]
+    pub source: Option<String>,
     /// Template to use. Default is "full", which contains a sample contract and a test.
     /// To see all available templates, run `cargo odra new --list`.
     #[clap(value_parser, long, short, default_value = consts::ODRA_TEMPLATE_DEFAULT_TEMPLATE)]
@@ -107,9 +108,6 @@ pub struct GenerateCommand {
     /// Name of the module in which the contract will be created.
     #[clap(value_parser, long, short)]
     pub module: Option<String>,
-    /// Git branch to use.
-    #[clap(value_parser, long, short, default_value = consts::ODRA_TEMPLATE_GH_BRANCH)]
-    pub git_branch: String,
 }
 
 #[derive(clap::Args, Debug)]
@@ -145,7 +143,7 @@ pub fn make_action() {
                 generate: true,
                 init: false,
                 repo_uri: init.repo_uri,
-                branch: init.git_branch,
+                source: init.source,
                 workspace: false,
                 template: init.template,
             });
@@ -156,7 +154,7 @@ pub fn make_action() {
                 generate: true,
                 init: true,
                 repo_uri: init.repo_uri,
-                branch: init.git_branch,
+                source: init.source,
                 workspace: false,
                 template: init.template,
             });
