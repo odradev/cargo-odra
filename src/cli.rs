@@ -77,7 +77,7 @@ pub struct InitCommand {
 /// `cargo odra build`
 pub struct BuildCommand {
     /// Name of the backend that will be used for the build process (e.g. casper).
-    #[clap(value_parser, long, short, possible_values = [consts::ODRA_CASPER_BACKEND])]
+    #[clap(value_parser, long, short, value_parser = [consts::ODRA_CASPER_BACKEND])]
     pub backend: String,
 
     /// Contract name that matches the name in Odra.toml.
@@ -89,7 +89,7 @@ pub struct BuildCommand {
 /// `cargo odra test`
 pub struct TestCommand {
     /// If set, runs tests against a backend VM with the given name (e.g. casper).
-    #[clap(value_parser, long, short, possible_values = [consts::ODRA_CASPER_BACKEND])]
+    #[clap(value_parser, long, short, value_parser = [consts::ODRA_CASPER_BACKEND])]
     pub backend: Option<String>,
     /// A list of arguments is passed to the cargo test command.
     #[clap(raw = true)]
@@ -118,7 +118,7 @@ pub struct CleanCommand {}
 /// `cargo odra update`
 pub struct UpdateCommand {
     /// If set, runs cargo update for the given builder instead of everyone.
-    #[clap(value_parser, long, short, possible_values = [consts::ODRA_CASPER_BACKEND])]
+    #[clap(value_parser, long, short, value_parser = [consts::ODRA_CASPER_BACKEND])]
     pub backend: Option<String>,
 }
 
