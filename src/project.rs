@@ -15,6 +15,7 @@ use crate::{
     command::replace_in_file,
     consts::{ODRA_GITHUB_API_DATA, ODRA_TEMPLATE_GH_REPO},
     errors::Error,
+    odra_toml::OdraToml,
     paths,
 };
 
@@ -132,8 +133,8 @@ impl Project {
             Error::NotAnOdraProject.print_and_die();
         });
         let root = odra_toml_path.parent().unwrap().to_path_buf();
-        let members = Self::find_members(cargo_toml_path.clone());
-        let name = match load_cargo_toml(cargo_toml_path.clone()).package {
+        let members = Self::find_members(&cargo_toml_path);
+        let name = match load_cargo_toml(&cargo_toml_path).package {
             None => {
                 let cwd = env::current_dir().unwrap();
                 cwd.strip_prefix(cwd.parent().unwrap())
@@ -166,11 +167,6 @@ impl Project {
     /// Generates a new contract in the Project.
     pub fn generate(&self, generate: GenerateCommand) {
         GenerateAction::new(self, generate.contract_name, generate.module).generate_contract();
-    }
-
-    /// Odra.toml location for the Project.
-    pub fn odra_toml_location(&self) -> PathBuf {
-        self.odra_toml_location.clone()
     }
 
     /// Root directory of the module.
@@ -232,6 +228,11 @@ impl Project {
         self.members.len() > 1 || self.members[0].root != self.project_root()
     }
 
+    /// Returns project's OdraToml.
+    pub fn odra_toml(&self) -> OdraToml {
+        OdraToml::load(&self.odra_toml_location)
+    }
+
     fn assert_current_dir_is_empty() {
         let not_empty = Path::new(".").read_dir().unwrap().next().is_some();
         if not_empty {
@@ -239,8 +240,8 @@ impl Project {
         }
     }
 
-    fn find_members(cargo_toml_path: PathBuf) -> Vec<Member> {
-        Self::detect_members(cargo_toml_path.clone())
+    fn find_members(cargo_toml_path: &PathBuf) -> Vec<Member> {
+        Self::detect_members(cargo_toml_path)
             .iter()
             .map(|member| {
                 let root = cargo_toml_path.parent().unwrap().join(member.clone().1);
@@ -272,8 +273,8 @@ impl Project {
         }
     }
 
-    fn detect_members(cargo_toml_path: PathBuf) -> Vec<(String, String)> {
-        match load_cargo_toml(cargo_toml_path.clone()).workspace {
+    fn detect_members(cargo_toml_path: &PathBuf) -> Vec<(String, String)> {
+        match load_cargo_toml(cargo_toml_path).workspace {
             Some(workspace) => workspace
                 .members
                 .iter()
@@ -283,7 +284,7 @@ impl Project {
         }
     }
 
-    fn detect_project_name(cargo_toml_path: PathBuf) -> String {
+    fn detect_project_name(cargo_toml_path: &PathBuf) -> String {
         load_cargo_toml(cargo_toml_path).package.unwrap().name
     }
 
@@ -339,7 +340,7 @@ impl Project {
     }
 
     pub fn project_odra_location(&self) -> OdraLocation {
-        let cargo_toml = load_cargo_toml(self.cargo_toml_location.clone());
+        let cargo_toml = load_cargo_toml(&self.cargo_toml_location);
         let odra_dependency = cargo_toml
             .dependencies
             .iter()

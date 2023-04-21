@@ -9,7 +9,7 @@ use crate::{
     consts::ODRA_TEMPLATE_GH_RAW_REPO,
     errors::Error,
     log,
-    odra_toml::{Contract, OdraToml},
+    odra_toml::Contract,
     paths,
     project::Project,
     template::TemplateGenerator,
@@ -101,8 +101,7 @@ impl GenerateAction<'_> {
 
     /// Add contract definition to Odra.toml.
     fn update_odra_toml(&self) {
-        // TODO: remove unwrap
-        let mut odra_toml = OdraToml::load(self.project.project_root().join("Odra.toml"));
+        let mut odra_toml = self.project.odra_toml();
         let contract_name = self.contract_name();
 
         // Check if Odra.toml has already a contract.

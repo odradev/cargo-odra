@@ -10,7 +10,7 @@ use crate::{command, errors::Error, odra_toml::Contract, paths::BuilderPaths};
 pub fn builder_cargo_toml(
     builder_paths: &BuilderPaths,
     builder_deps: DepsSet,
-    contracts: Vec<&Contract>,
+    contracts: Vec<Contract>,
 ) {
     let default_bin = Product {
         test: false,
@@ -76,17 +76,16 @@ pub fn builder_cargo_toml(
 }
 
 /// Returns Dependency of Odra, taken from project's Cargo.toml.
-pub fn odra_dependency(cargo_toml_path: PathBuf) -> Dependency {
-    // TODO: Handle when odra is not a dependency.
+pub fn odra_dependency(cargo_toml_path: &PathBuf) -> Dependency {
     load_cargo_toml(cargo_toml_path)
         .dependencies
         .get("odra")
-        .unwrap()
+        .unwrap_or_else(|| Error::OdraNotADependency.print_and_die())
         .clone()
 }
 
 /// Returns Cargo.toml as Manifest struct.
-pub fn load_cargo_toml(path: PathBuf) -> Manifest {
+pub fn load_cargo_toml(path: &PathBuf) -> Manifest {
     match Manifest::from_path(path) {
         Ok(manifest) => manifest,
         Err(err) => {

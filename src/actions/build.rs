@@ -10,7 +10,7 @@ use crate::{
     consts::ODRA_TEMPLATE_GH_RAW_REPO,
     errors::Error,
     log,
-    odra_toml::{Contract, OdraToml},
+    odra_toml::Contract,
     paths::{self, BuilderPaths},
     project::Project,
     template::TemplateGenerator,
@@ -19,7 +19,6 @@ use crate::{
 /// BuildAction configuration.
 pub struct BuildAction<'a> {
     backend: String,
-    odra_toml: OdraToml,
     contract_name: Option<String>,
     builder_paths: BuilderPaths,
     project: &'a Project,
@@ -32,7 +31,6 @@ impl<'a> BuildAction<'a> {
     pub fn new(project: &'a Project, backend: String, contract_name: Option<String>) -> Self {
         BuildAction {
             backend: backend.clone(),
-            odra_toml: OdraToml::load(project.odra_toml_location()),
             contract_name,
             builder_paths: BuilderPaths::new(backend, project.project_root.clone()),
             project,
@@ -74,15 +72,16 @@ impl BuildAction<'_> {
     }
 
     /// Returns list of contract to process.
-    fn contracts(&self) -> Vec<&Contract> {
+    fn contracts(&self) -> Vec<Contract> {
+        let odra_toml = self.project.odra_toml();
         if let Some(contract_name) = &self.contract_name {
-            self.odra_toml
+            odra_toml
                 .contracts
-                .iter()
+                .into_iter()
                 .filter(|c| c.name == *contract_name)
                 .collect()
         } else {
-            self.odra_toml.contracts.iter().collect()
+            odra_toml.contracts.into_iter().collect()
         }
     }
 
@@ -99,7 +98,8 @@ impl BuildAction<'_> {
     fn validate_contract_name_argument(&self) {
         if let Some(contract_name) = &self.contract_name {
             if !self
-                .odra_toml
+                .project
+                .odra_toml()
                 .contracts
                 .iter()
                 .any(|c| c.name == *contract_name)
@@ -189,7 +189,7 @@ impl BuildAction<'_> {
     /// Returns Odra dependency tailored for use by builder.
     fn odra_dependency(&self) -> Dependency {
         let first_member = self.project.members.first().unwrap();
-        match odra_dependency(first_member.cargo_toml.clone()) {
+        match odra_dependency(&first_member.cargo_toml) {
             Dependency::Simple(simple) => Dependency::Detailed(DependencyDetail {
                 version: Some(simple),
                 ..Default::default()

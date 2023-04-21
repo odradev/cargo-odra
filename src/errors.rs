@@ -57,6 +57,9 @@ pub enum Error {
 
     #[error("Contract {0} not found in Odra.toml")]
     ContractNotFound(String),
+
+    #[error("Odra is not a dependency of this project.")]
+    OdraNotADependency,
 }
 
 impl Error {
@@ -80,6 +83,7 @@ impl Error {
             Error::FailedToParseTemplate(_) => 15,
             Error::CouldNotDetermineCurrentDirectory => 16,
             Error::ContractNotFound(_) => 17,
+            Error::OdraNotADependency => 18,
         }
     }
 

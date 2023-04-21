@@ -1,6 +1,6 @@
 //! Module managing Odra.toml configuration.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use serde_derive::{Deserialize, Serialize};
 
@@ -26,14 +26,14 @@ pub struct OdraToml {
 
 impl OdraToml {
     /// Loads configuration from Odra.toml file.
-    pub fn load(location: PathBuf) -> OdraToml {
-        let odra_conf = command::read_file_content(location.clone());
+    pub fn load(location: &Path) -> OdraToml {
+        let odra_conf = command::read_file_content(location.to_path_buf());
         let mut odra_toml: OdraToml = match odra_conf {
             Ok(conf_file) => toml::from_str(conf_file.as_str()).unwrap(),
-            Err(_) => Error::OdraTomlNotFound(location).print_and_die(),
+            Err(_) => Error::OdraTomlNotFound(location.to_path_buf()).print_and_die(),
         };
 
-        odra_toml.location = location;
+        odra_toml.location = location.to_path_buf();
         odra_toml
     }
 
