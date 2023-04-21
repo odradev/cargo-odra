@@ -1,21 +1,6 @@
 /// Wasm source builder file template.
 const WASM_SOURCE_BUILDER: &str = r##"
-fn main() {
-    let ident = <#contract_fqn as odra::types::contract_def::HasIdent>::ident();
-    let entrypoints = <#contract_fqn as odra::types::contract_def::HasEntrypoints>::entrypoints();
-    let events = <#contract_fqn as odra::types::contract_def::HasEvents>::events();
-    let code = odra::#backend_name::codegen::gen_contract(
-        ident,
-        entrypoints,
-        events,
-        "#contract_fqn".to_string()
-    );
-
-    use std::fs::File;
-    use std::io::prelude::*;
-    let mut file = File::create("src/#contract_name_wasm.rs").unwrap();
-    file.write_all(&code.to_string().into_bytes()).unwrap();
-}
+odra::#backend_name::codegen::gen_contract!(#contract_fqn, "#contract_name");
 "##;
 
 /// Module file template.
