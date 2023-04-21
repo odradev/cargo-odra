@@ -1,5 +1,7 @@
 //! Module responsible for initializing an Odra project.
 
+use std::path::PathBuf;
+
 /// InitAction configuration.
 #[derive(Clone)]
 pub struct InitAction {
@@ -10,6 +12,7 @@ pub struct InitAction {
     pub source: Option<String>,
     pub workspace: bool,
     pub template: String,
+    pub current_dir: PathBuf,
 }
 
 /// InitAction implementation.

@@ -1,7 +1,4 @@
-use std::{
-    env,
-    path::{Path, PathBuf},
-};
+use std::{env, path::PathBuf};
 
 use cargo_generate::{GenerateArgs, TemplatePath, Vcs};
 use cargo_toml::{Dependency, DependencyDetail};
@@ -45,7 +42,7 @@ impl Project {
     /// Generates a new project.
     pub fn generate_project(init_action: InitAction) {
         if init_action.init {
-            Self::assert_current_dir_is_empty();
+            Self::assert_dir_is_empty(init_action.current_dir.clone());
         }
 
         let odra_location = Self::odra_location(init_action.source);
@@ -94,16 +91,18 @@ impl Project {
             overwrite: false,
             other_args: None,
         })
-        .unwrap();
+        .unwrap_or_else(|e| {
+            Error::FailedToGenerateProjectFromTemplate(e.to_string()).print_and_die();
+        });
 
         let cargo_toml_path = match init_action.init {
             true => {
-                let mut path = env::current_dir().unwrap();
+                let mut path = init_action.current_dir;
                 path.push("Cargo.toml");
                 path
             }
             false => {
-                let mut path = env::current_dir().unwrap();
+                let mut path = init_action.current_dir;
                 path.push(paths::to_snake_case(&init_action.project_name));
                 path.push("Cargo.toml");
                 path
@@ -233,9 +232,8 @@ impl Project {
         OdraToml::load(&self.odra_toml_location)
     }
 
-    fn assert_current_dir_is_empty() {
-        let not_empty = Path::new(".").read_dir().unwrap().next().is_some();
-        if not_empty {
+    fn assert_dir_is_empty(dir: PathBuf) {
+        if dir.read_dir().unwrap().next().is_some() {
             Error::CurrentDirIsNotEmpty.print_and_die();
         }
     }

@@ -60,6 +60,9 @@ pub enum Error {
 
     #[error("Odra is not a dependency of this project.")]
     OdraNotADependency,
+
+    #[error("Failed to generate project from template: {0}")]
+    FailedToGenerateProjectFromTemplate(String),
 }
 
 impl Error {
@@ -84,6 +87,7 @@ impl Error {
             Error::CouldNotDetermineCurrentDirectory => 16,
             Error::ContractNotFound(_) => 17,
             Error::OdraNotADependency => 18,
+            Error::FailedToGenerateProjectFromTemplate(_) => 19,
         }
     }
 

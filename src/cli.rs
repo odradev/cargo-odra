@@ -146,6 +146,7 @@ pub fn make_action() {
                 source: init.source,
                 workspace: false,
                 template: init.template,
+                current_dir,
             });
         }
         OdraSubcommand::Init(init) => {
@@ -157,6 +158,7 @@ pub fn make_action() {
                 source: init.source,
                 workspace: false,
                 template: init.template,
+                current_dir,
             });
         }
         OdraSubcommand::Clean(_) => {
