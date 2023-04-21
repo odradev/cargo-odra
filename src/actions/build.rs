@@ -30,7 +30,6 @@ pub struct BuildAction<'a> {
 impl<'a> BuildAction<'a> {
     /// Crate a new BuildAction for a given backend.
     pub fn new(project: &'a Project, backend: String, contract_name: Option<String>) -> Self {
-        let branch = project.branch();
         BuildAction {
             backend: backend.clone(),
             odra_toml: OdraToml::load(project.odra_toml_location()),
@@ -39,7 +38,7 @@ impl<'a> BuildAction<'a> {
             project,
             template_generator: TemplateGenerator::new(
                 ODRA_TEMPLATE_GH_RAW_REPO.to_string(),
-                branch,
+                project.project_odra_location(),
             ),
         }
     }

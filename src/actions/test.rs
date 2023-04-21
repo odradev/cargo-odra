@@ -32,7 +32,6 @@ impl<'a> TestAction<'a> {
 impl TestAction<'_> {
     /// Runs a test suite.
     pub fn test(&self) {
-        dbg!(1);
         if self.backend.is_none() {
             self.test_mock_vm();
         } else {

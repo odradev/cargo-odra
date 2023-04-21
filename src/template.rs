@@ -1,38 +1,58 @@
 use ureq::get;
 
 use crate::{
+    command::read_file_content,
     consts::{MODULE_REGISTER, MODULE_TEMPLATE, WASM_SOURCE_BUILDER},
     errors::Error,
+    project::OdraLocation,
 };
 
 /// This module contains templates for generating new contracts.
 pub struct TemplateGenerator {
     raw_repository_path: String,
-    branch: String,
+    odra_location: OdraLocation,
 }
 
 impl TemplateGenerator {
-    pub fn new(repository_path: String, branch: String) -> Self {
+    pub fn new(repository_path: String, odra_location: OdraLocation) -> Self {
         Self {
             raw_repository_path: repository_path,
-            branch,
+            odra_location,
         }
     }
 
-    fn template_path(&self, template_name: &str) -> String {
+    fn template_path(&self, template_name: &str, branch: String) -> String {
         format!(
-            "{}/{}/templates/{}.template",
-            self.raw_repository_path, self.branch, template_name
+            "{}/{}/templates/{}.rs.template",
+            self.raw_repository_path, branch, template_name
         )
     }
 
     fn fetch_template(&self, template_name: &str) -> String {
-        let template_path = self.template_path(template_name);
-        get(&template_path)
-            .call()
-            .unwrap_or_else(|_| Error::FailedToFetchTemplate(template_path.clone()).print_and_die())
-            .into_string()
-            .unwrap_or_else(|_| Error::FailedToParseTemplate(template_path.clone()).print_and_die())
+        match self.odra_location.clone() {
+            OdraLocation::Local(path) => {
+                dbg!(path.clone());
+                let path = path
+                    .join("templates")
+                    .join(template_name)
+                    .with_extension("rs.template");
+                dbg!(path.clone());
+                read_file_content(path).unwrap()
+            }
+            OdraLocation::Remote(_, branch) => {
+                let branch = branch.unwrap_or_else(|| "releases/latest".to_string());
+                let template_path = self.template_path(template_name, branch);
+                get(&template_path)
+                    .call()
+                    .unwrap_or_else(|_| {
+                        Error::FailedToFetchTemplate(template_path.clone()).print_and_die()
+                    })
+                    .into_string()
+                    .unwrap_or_else(|_| {
+                        Error::FailedToParseTemplate(template_path.clone()).print_and_die()
+                    })
+            }
+        }
     }
 
     /// Returns content of the new _builder.rs file.

@@ -16,37 +16,34 @@ use crate::{
 };
 
 /// GenerateAction configuration.
-pub struct GenerateAction {
+pub struct GenerateAction<'a> {
+    project: &'a Project,
     contract_name: String,
     contract_module_ident: String,
     module_root: PathBuf,
     module_name: String,
-    project_root: PathBuf,
     template_generator: TemplateGenerator,
 }
 
 /// GenerateAction implementation.
-impl GenerateAction {
+impl<'a> GenerateAction<'a> {
     /// Crate a new GenerateAction for a given contract.
-    pub fn new(
-        project: &Project,
-        contract_name: String,
-        module_name: Option<String>,
-        branch: String,
-    ) -> GenerateAction {
+    pub fn new(project: &'a Project, contract_name: String, module_name: Option<String>) -> Self {
         GenerateAction {
+            project,
             contract_name: paths::to_snake_case(&contract_name),
             contract_module_ident: contract_name.to_case(Case::UpperCamel),
             module_root: project.module_root(module_name.clone()),
             module_name: project.module_name(module_name),
-            project_root: project.project_root(),
             template_generator: TemplateGenerator::new(
                 ODRA_TEMPLATE_GH_RAW_REPO.to_string(),
-                branch,
+                project.project_odra_location(),
             ),
         }
     }
+}
 
+impl GenerateAction<'_> {
     /// Main function that runs the generation action.
     pub fn generate_contract(&self) {
         log::info(format!("Adding new contract: {} ...", self.contract_name()));
@@ -63,10 +60,6 @@ impl GenerateAction {
     /// Returns the module identifier. It is the struct name.
     fn module_ident(&self) -> &str {
         &self.contract_module_ident
-    }
-
-    fn project_root(&self) -> PathBuf {
-        self.project_root.clone()
     }
 
     /// Returns a path to file with contract definition.
@@ -109,7 +102,7 @@ impl GenerateAction {
     /// Add contract definition to Odra.toml.
     fn update_odra_toml(&self) {
         // TODO: remove unwrap
-        let mut odra_toml = OdraToml::load(self.project_root().join("Odra.toml"));
+        let mut odra_toml = OdraToml::load(self.project.project_root().join("Odra.toml"));
         let contract_name = self.contract_name();
 
         // Check if Odra.toml has already a contract.

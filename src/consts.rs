@@ -18,10 +18,10 @@ pub const ODRA_TEMPLATE_DEFAULT_TEMPLATE: &str = "full";
 pub const ODRA_WASM_PATH_ENV_KEY: &str = "ODRA_WASM_PATH";
 
 /// WASM Source builder template.
-pub const WASM_SOURCE_BUILDER: &str = "wasm_source_builder.rs";
+pub const WASM_SOURCE_BUILDER: &str = "wasm_source_builder";
 
 /// Module template.
-pub const MODULE_TEMPLATE: &str = "module.rs";
+pub const MODULE_TEMPLATE: &str = "module";
 
 /// Module register snippet.
-pub const MODULE_REGISTER: &str = "module_register.rs";
+pub const MODULE_REGISTER: &str = "module_register";

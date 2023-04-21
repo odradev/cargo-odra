@@ -165,8 +165,7 @@ impl Project {
 
     /// Generates a new contract in the Project.
     pub fn generate(&self, generate: GenerateCommand) {
-        GenerateAction::new(self, generate.contract_name, generate.module, self.branch())
-            .generate_contract();
+        GenerateAction::new(self, generate.contract_name, generate.module).generate_contract();
     }
 
     /// Odra.toml location for the Project.
@@ -226,11 +225,6 @@ impl Project {
     /// Root directory of the Project.
     pub fn project_root(&self) -> PathBuf {
         self.project_root.clone()
-    }
-
-    // todo: get branch from Cargo.toml, or even better - use Dependency
-    pub fn branch(&self) -> String {
-        "feature/cargo-odra-templates".to_string()
     }
 
     /// Check if the project is a workspace.
@@ -342,6 +336,40 @@ impl Project {
                 Error::FailedToParseTemplate(ODRA_GITHUB_API_DATA.to_string()).print_and_die()
             });
         response["tag_name"].as_str().unwrap().to_string()
+    }
+
+    pub fn project_odra_location(&self) -> OdraLocation {
+        let cargo_toml = load_cargo_toml(self.cargo_toml_location.clone());
+        let odra_dependency = cargo_toml
+            .dependencies
+            .iter()
+            .find(|dependency| dependency.0 == "odra")
+            .unwrap()
+            .1
+            .clone();
+        match odra_dependency {
+            Dependency::Detailed(DependencyDetail {
+                path: Some(path),
+                git: None,
+                ..
+            }) => {
+                let path = PathBuf::from(path);
+                OdraLocation::Local(PathBuf::from(path.parent().unwrap()))
+            }
+            Dependency::Detailed(DependencyDetail {
+                git: Some(git),
+                branch: Some(branch),
+                ..
+            }) => OdraLocation::Remote(git, Some(branch)),
+            Dependency::Detailed(DependencyDetail {
+                git: Some(git),
+                branch: None,
+                ..
+            }) => OdraLocation::Remote(git, None),
+            _ => {
+                Error::FailedToReadCargo("Cargo.toml".to_string()).print_and_die();
+            }
+        }
     }
 
     fn odra_location(source: Option<String>) -> OdraLocation {
