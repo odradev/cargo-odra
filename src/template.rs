@@ -31,12 +31,10 @@ impl TemplateGenerator {
     fn fetch_template(&self, template_name: &str) -> String {
         match self.odra_location.clone() {
             OdraLocation::Local(path) => {
-                dbg!(path.clone());
                 let path = path
                     .join("templates")
                     .join(template_name)
                     .with_extension("rs.template");
-                dbg!(path.clone());
                 read_file_content(path).unwrap()
             }
             OdraLocation::Remote(_, branch) => {

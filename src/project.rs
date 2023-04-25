@@ -339,13 +339,18 @@ impl Project {
 
     pub fn project_odra_location(&self) -> OdraLocation {
         let cargo_toml = load_cargo_toml(&self.cargo_toml_location);
-        let odra_dependency = cargo_toml
-            .dependencies
+        let dependencies = match cargo_toml.workspace {
+            None => cargo_toml.dependencies,
+            Some(workspace) => workspace.dependencies,
+        };
+
+        let odra_dependency = dependencies
             .iter()
             .find(|dependency| dependency.0 == "odra")
-            .unwrap()
+            .unwrap_or_else(|| Error::OdraNotADependency.print_and_die())
             .1
             .clone();
+
         match odra_dependency {
             Dependency::Detailed(DependencyDetail {
                 path: Some(path),
