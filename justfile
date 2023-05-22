@@ -10,7 +10,7 @@ prepare:
 
 test-project-generation:
     rm -rf testproject
-    cargo odra new --name testproject --source release/0.2.1
+    cargo odra new --name testproject --source release/0.3.0
     cd testproject && cargo odra generate -c plascoin
     cd testproject && cargo odra test
     cd testproject && cargo odra test -b casper
