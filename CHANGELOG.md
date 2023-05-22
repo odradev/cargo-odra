@@ -2,7 +2,7 @@
 
 Changelog for `cargo-odra`.
 
-## [0.0.6] - <TODO>
+## [0.0.6] - 2023-05-22
 ### Added
 - `--contract-name` filter for `build` command.
 - `--source` for `new` and `init` commands replacing `--branch`

@@ -2,7 +2,7 @@ default:
     just --list
 
 install:
-    cargo install --path .
+    cargo install --path . --locked
 
 prepare-test-env:
     rustup target add wasm32-unknown-unknown
