@@ -68,6 +68,16 @@ impl Project {
                 path: None,
                 favorite: None,
             },
+            OdraLocation::CratesIO(version) => TemplatePath {
+                auto_path: Some(ODRA_TEMPLATE_GH_REPO.to_string()),
+                subfolder: Some(format!("templates/{}", init_action.template)),
+                test: false,
+                git: None,
+                branch: Some(format!("release/{}", version)),
+                tag: None,
+                path: None,
+                favorite: None,
+            },
         };
 
         cargo_generate::generate(GenerateArgs {
@@ -305,6 +315,7 @@ impl Project {
                 None => (Some(Self::odra_latest_version()), None, None, None),
                 Some(branch) => (None, None, Some(repo), Some(branch)),
             },
+            OdraLocation::CratesIO(version) => (Some(version), None, None, None),
         };
 
         Dependency::Detailed(DependencyDetail {
@@ -353,6 +364,11 @@ impl Project {
 
         match odra_dependency {
             Dependency::Detailed(DependencyDetail {
+                version: Some(version),
+                git: None,
+                ..
+            }) => OdraLocation::CratesIO(version),
+            Dependency::Detailed(DependencyDetail {
                 path: Some(path),
                 git: None,
                 ..
@@ -371,7 +387,8 @@ impl Project {
                 ..
             }) => OdraLocation::Remote(git, None),
             _ => {
-                Error::FailedToReadCargo("Cargo.toml".to_string()).print_and_die();
+                Error::FailedToReadCargo("Unsupported location of Odra.".to_string())
+                    .print_and_die();
             }
         }
     }
@@ -409,6 +426,7 @@ pub enum OdraLocation {
     Local(PathBuf),
     /// git repo, branch
     Remote(String, Option<String>),
+    CratesIO(String),
 }
 
 #[derive(Debug, Clone)]

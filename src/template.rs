@@ -50,6 +50,19 @@ impl TemplateGenerator {
                         Error::FailedToParseTemplate(template_path.clone()).print_and_die()
                     })
             }
+            OdraLocation::CratesIO(version) => {
+                let branch = format!("release/{}", version);
+                let template_path = self.template_path(template_name, branch);
+                get(&template_path)
+                    .call()
+                    .unwrap_or_else(|_| {
+                        Error::FailedToFetchTemplate(template_path.clone()).print_and_die()
+                    })
+                    .into_string()
+                    .unwrap_or_else(|_| {
+                        Error::FailedToParseTemplate(template_path.clone()).print_and_die()
+                    })
+            }
         }
     }
 

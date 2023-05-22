@@ -2,6 +2,11 @@
 
 Changelog for `cargo-odra`.
 
+## [0.0.7] - 2023-05-22
+
+### Added
+- Support for Odra from crates.io. 
+
 ## [0.0.6] - 2023-05-22
 ### Added
 - `--contract-name` filter for `build` command.
