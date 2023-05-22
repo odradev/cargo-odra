@@ -19,7 +19,7 @@ written using Odra framework.
 Use `cargo` to install `cargo-odra`:
 
 ```bash
-$ cargo install cargo-odra
+$ cargo install cargo-odra --locked
 ```
 
 ## Usage
