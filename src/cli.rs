@@ -1,17 +1,14 @@
 //! Module containing code that parses CLI input.
 
+use std::env;
+
 use clap::{Parser, Subcommand};
 
 use crate::{
-    actions::{
-        build::BuildAction,
-        clean::clean_action,
-        generate::GenerateAction,
-        init::InitAction,
-        test::TestAction,
-        update::update_action,
-    },
+    actions::{clean::clean_action, init::InitAction, update::update_action},
     consts,
+    errors::Error,
+    project::Project,
 };
 
 #[derive(Parser)]
@@ -66,24 +63,33 @@ pub struct InitCommand {
     /// URI of the repository containing the template.
     #[clap(value_parser, long, short, default_value = consts::ODRA_TEMPLATE_GH_REPO)]
     pub repo_uri: String,
-    /// Git branch to use.
-    #[clap(value_parser, long, short, default_value = consts::ODRA_TEMPLATE_GH_BRANCH)]
-    pub git_branch: String,
+    /// Odra source to use. By default, it uses latest release of Odra.
+    /// It can be a version, a branch, commit hash or a location on the filesystem.
+    #[clap(value_parser, long, short)]
+    pub source: Option<String>,
+    /// Template to use. Default is "full", which contains a sample contract and a test.
+    /// To see all available templates, run `cargo odra new --list`.
+    #[clap(value_parser, long, short, default_value = consts::ODRA_TEMPLATE_DEFAULT_TEMPLATE)]
+    pub template: String,
 }
 
 #[derive(clap::Args)]
 /// `cargo odra build`
 pub struct BuildCommand {
     /// Name of the backend that will be used for the build process (e.g. casper).
-    #[clap(value_parser, long, short, possible_values = [consts::ODRA_CASPER_BACKEND])]
+    #[clap(value_parser, long, short, value_parser = [consts::ODRA_CASPER_BACKEND])]
     pub backend: String,
+
+    /// Contract name that matches the name in Odra.toml.
+    #[clap(value_parser, long, short)]
+    pub contract_name: Option<String>,
 }
 
 #[derive(clap::Args, Debug)]
 /// `cargo odra test`
 pub struct TestCommand {
     /// If set, runs tests against a backend VM with the given name (e.g. casper).
-    #[clap(value_parser, long, short, possible_values = [consts::ODRA_CASPER_BACKEND])]
+    #[clap(value_parser, long, short, value_parser = [consts::ODRA_CASPER_BACKEND])]
     pub backend: Option<String>,
     /// A list of arguments is passed to the cargo test command.
     #[clap(raw = true)]
@@ -99,6 +105,9 @@ pub struct GenerateCommand {
     /// Name of the contract to be created.
     #[clap(value_parser, long, short)]
     pub contract_name: String,
+    /// Name of the module in which the contract will be created.
+    #[clap(value_parser, long, short)]
+    pub module: Option<String>,
 }
 
 #[derive(clap::Args, Debug)]
@@ -109,34 +118,56 @@ pub struct CleanCommand {}
 /// `cargo odra update`
 pub struct UpdateCommand {
     /// If set, runs cargo update for the given builder instead of everyone.
-    #[clap(value_parser, long, short, possible_values = [consts::ODRA_CASPER_BACKEND])]
+    #[clap(value_parser, long, short, value_parser = [consts::ODRA_CASPER_BACKEND])]
     pub backend: Option<String>,
 }
 
 /// Cargo odra main parser function.
 pub fn make_action() {
     let Cargo::Odra(args) = Cargo::parse();
+    let current_dir = env::current_dir()
+        .unwrap_or_else(|_| Error::CouldNotDetermineCurrentDirectory.print_and_die());
     match args.subcommand {
         OdraSubcommand::Build(build) => {
-            BuildAction::new(build.backend).build();
+            Project::detect(current_dir).build(build.backend, build.contract_name);
         }
         OdraSubcommand::Test(test) => {
-            TestAction::new(test.backend, test.args, test.skip_build).test();
+            Project::detect(current_dir).test(test);
         }
         OdraSubcommand::Generate(generate) => {
-            GenerateAction::new(generate.contract_name).generate_contract();
+            Project::detect(current_dir).generate(generate);
         }
         OdraSubcommand::New(init) => {
-            InitAction::new(init.name, init.repo_uri, init.git_branch).generate_project(false);
+            Project::init(InitAction {
+                project_name: init.name,
+                generate: true,
+                init: false,
+                repo_uri: init.repo_uri,
+                source: init.source,
+                workspace: false,
+                template: init.template,
+                current_dir,
+            });
         }
         OdraSubcommand::Init(init) => {
-            InitAction::new(init.name, init.repo_uri, init.git_branch).generate_project(true);
+            Project::init(InitAction {
+                project_name: init.name,
+                generate: true,
+                init: true,
+                repo_uri: init.repo_uri,
+                source: init.source,
+                workspace: false,
+                template: init.template,
+                current_dir,
+            });
         }
         OdraSubcommand::Clean(_) => {
-            clean_action();
+            let project = Project::detect(current_dir);
+            clean_action(project.project_root());
         }
         OdraSubcommand::Update(update) => {
-            update_action(update);
+            let project = Project::detect(current_dir);
+            update_action(update, project.project_root());
         }
     }
 }

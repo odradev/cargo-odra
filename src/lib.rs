@@ -13,4 +13,5 @@ mod errors;
 mod log;
 mod odra_toml;
 mod paths;
+mod project;
 mod template;

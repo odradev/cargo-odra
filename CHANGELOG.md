@@ -2,6 +2,12 @@
 
 Changelog for `cargo-odra`.
 
+## [0.0.6] - 2023-05-22
+### Added
+- `--contract-name` filter for `build` command.
+- `--source` for `new` and `init` commands replacing `--branch`
+- Support for workspaces.
+
 ## [0.0.5] - 2022-12-14
 ### Added
 - `test` command can skip build using `--skip-build` flag. 

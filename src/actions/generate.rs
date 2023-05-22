@@ -5,32 +5,45 @@ use std::path::PathBuf;
 use convert_case::{Case, Casing};
 
 use crate::{
-    cargo_toml,
     command,
+    consts::ODRA_TEMPLATE_GH_RAW_REPO,
     errors::Error,
     log,
-    odra_toml::{Contract, OdraToml},
+    odra_toml::Contract,
     paths,
-    template,
+    project::Project,
+    template::TemplateGenerator,
 };
 
 /// GenerateAction configuration.
-pub struct GenerateAction {
+pub struct GenerateAction<'a> {
+    project: &'a Project,
     contract_name: String,
-    module_ident: String,
+    contract_module_ident: String,
+    module_root: PathBuf,
+    module_name: String,
+    template_generator: TemplateGenerator,
 }
 
 /// GenerateAction implementation.
-impl GenerateAction {
+impl<'a> GenerateAction<'a> {
     /// Crate a new GenerateAction for a given contract.
-    pub fn new(contract_name: String) -> GenerateAction {
-        OdraToml::assert_exists();
+    pub fn new(project: &'a Project, contract_name: String, module_name: Option<String>) -> Self {
         GenerateAction {
+            project,
             contract_name: paths::to_snake_case(&contract_name),
-            module_ident: contract_name.to_case(Case::UpperCamel),
+            contract_module_ident: contract_name.to_case(Case::UpperCamel),
+            module_root: project.module_root(module_name.clone()),
+            module_name: project.module_name(module_name),
+            template_generator: TemplateGenerator::new(
+                ODRA_TEMPLATE_GH_RAW_REPO.to_string(),
+                project.project_odra_location(),
+            ),
         }
     }
+}
 
+impl GenerateAction<'_> {
     /// Main function that runs the generation action.
     pub fn generate_contract(&self) {
         log::info(format!("Adding new contract: {} ...", self.contract_name()));
@@ -46,23 +59,21 @@ impl GenerateAction {
 
     /// Returns the module identifier. It is the struct name.
     fn module_ident(&self) -> &str {
-        &self.module_ident
-    }
-
-    /// Returns project's crate name.
-    fn project_crate_name(&self) -> String {
-        paths::to_snake_case(cargo_toml::project_name())
+        &self.contract_module_ident
     }
 
     /// Returns a path to file with contract definition.
     fn module_file_path(&self) -> PathBuf {
-        paths::module_file_path(self.contract_name())
+        self.module_root
+            .join("src")
+            .join(self.contract_name())
+            .with_extension("rs")
     }
 
     /// Crates a new module file in src directory.
     fn add_contract_file_to_src(&self) {
         // Rename module name.
-        let contract_body = template::module_template(self.module_ident());
+        let contract_body = self.template_generator.module_template(self.module_ident());
 
         // Make sure the file do not exists.
         let path = self.module_file_path();
@@ -77,11 +88,12 @@ impl GenerateAction {
     /// Append `mod` section to lib.rs.
     fn update_lib_rs(&self) {
         // Prepare code to add.
-        let register_module_code =
-            template::register_module_snippet(self.contract_name(), self.module_ident());
+        let register_module_code = self
+            .template_generator
+            .register_module_snippet(self.contract_name(), self.module_ident());
 
         // Write to file.
-        command::append_file(paths::project_lib_rs(), &register_module_code);
+        command::append_file(self.module_root.join("src/lib.rs"), &register_module_code);
 
         // Print info.
         log::info(format!("Added to src/lib.rs:\n{register_module_code}"));
@@ -89,7 +101,7 @@ impl GenerateAction {
 
     /// Add contract definition to Odra.toml.
     fn update_odra_toml(&self) {
-        let mut odra_toml = OdraToml::load();
+        let mut odra_toml = self.project.odra_toml();
         let contract_name = self.contract_name();
 
         // Check if Odra.toml has already a contract.
@@ -103,7 +115,7 @@ impl GenerateAction {
             name: self.contract_name().to_string(),
             fqn: format!(
                 "{}::{}::{}",
-                self.project_crate_name(),
+                self.module_name,
                 self.contract_name(),
                 self.module_ident()
             ),

@@ -55,6 +55,12 @@ $ cargo odra test -b casper
 
 To see exact syntax of each command, type `cargo odra command --help`.
 
+## Workspaces
+
+`cargo-odra` supports workspaces. To use it, simply move your `Odra.toml`
+file into root of your workspace. If you have multiple odra crates in your
+workspace, put all contracts in the same Odra.toml folder.
+
 ## Links
 
 * [Odra](https://github.com/odradev/odra)

@@ -1,84 +1,81 @@
-/// Wasm source builder file template.
-const WASM_SOURCE_BUILDER: &str = r##"
-fn main() {
-    let contract_def = <#contract_fqn as odra::types::contract_def::HasContractDef>::contract_def();
-    let code = odra::#backend_name::codegen::gen_contract(contract_def, "#contract_fqn".to_string());
+use ureq::get;
 
-    use std::fs::File;
-    use std::io::prelude::*;
-    let mut file = File::create("src/#contract_name_wasm.rs").unwrap();
-    file.write_all(&code.to_string().into_bytes()).unwrap();
-}
-"##;
+use crate::{
+    command::read_file_content,
+    consts::{MODULE_REGISTER, MODULE_TEMPLATE, WASM_SOURCE_BUILDER},
+    errors::Error,
+    project::OdraLocation,
+};
 
-/// Module file template.
-const MODULE_TEMPLATE: &str = r##"
-use odra::Variable;
-
-/// A #module_name module storage definition.
-#[odra::module]
-pub struct #module_name {
-    value: Variable<bool>,
+/// This module contains templates for generating new contracts.
+pub struct TemplateGenerator {
+    raw_repository_path: String,
+    odra_location: OdraLocation,
 }
 
-/// Module entrypoints implementation.
-#[odra::module]
-impl #module_name {
-    /// #module_name constructor.
-    /// Initializes the contract with the value of value.
-    #[odra(init)]
-    pub fn initial_settings(&mut self) {
-        self.value.set(false);
+impl TemplateGenerator {
+    pub fn new(repository_path: String, odra_location: OdraLocation) -> Self {
+        Self {
+            raw_repository_path: repository_path,
+            odra_location,
+        }
     }
 
-    /// Replaces the current value with the passed argument.
-    pub fn set(&mut self, value: bool) {
-        self.value.set(value);
+    fn template_path(&self, template_name: &str, branch: String) -> String {
+        format!(
+            "{}/{}/templates/{}.rs.template",
+            self.raw_repository_path, branch, template_name
+        )
     }
 
-    /// Retrieves value from the storage. 
-    /// If the value has never been set, the default value is returned.
-    pub fn get(&self) -> bool {
-        self.value.get_or_default()
+    fn fetch_template(&self, template_name: &str) -> String {
+        match self.odra_location.clone() {
+            OdraLocation::Local(path) => {
+                let path = path
+                    .join("templates")
+                    .join(template_name)
+                    .with_extension("rs.template");
+                read_file_content(path).unwrap()
+            }
+            OdraLocation::Remote(_, branch) => {
+                let branch = branch.unwrap_or_else(|| "releases/latest".to_string());
+                let template_path = self.template_path(template_name, branch);
+                get(&template_path)
+                    .call()
+                    .unwrap_or_else(|_| {
+                        Error::FailedToFetchTemplate(template_path.clone()).print_and_die()
+                    })
+                    .into_string()
+                    .unwrap_or_else(|_| {
+                        Error::FailedToParseTemplate(template_path.clone()).print_and_die()
+                    })
+            }
+        }
     }
-}
 
-#[cfg(test)]
-mod tests {
-    use super::#module_nameDeployer;
-
-    #[test]
-    fn it_works() {
-        let mut contract = #module_nameDeployer::initial_settings();
-        assert!(!contract.get());
-        contract.set(true);
-        assert!(contract.get());
+    /// Returns content of the new _builder.rs file.
+    pub fn wasm_source_builder(
+        &self,
+        fqn: &str,
+        contract_name: &str,
+        backend_name: &str,
+    ) -> String {
+        self.fetch_template(WASM_SOURCE_BUILDER)
+            .replace("#contract_fqn", fqn)
+            .replace("#contract_name", contract_name)
+            .replace("#backend_name", backend_name)
     }
-}
-"##;
 
-/// Code for src/lib.rs that registers new module.
-pub const MODULE_REGISTER: &str = r##"
-pub mod #contract_name;
-pub use #contract_name::{#module_name, #module_nameRef};
-"##;
+    /// Returns content of the new module file.
+    pub fn module_template(&self, module_name: &str) -> String {
+        self.fetch_template(MODULE_TEMPLATE)
+            .replace("#module_name", module_name)
+    }
 
-/// Returns content of the new _builder.rs file.
-pub fn wasm_source_builder(fqn: &str, contract_name: &str, backend_name: &str) -> String {
-    WASM_SOURCE_BUILDER
-        .replace("#contract_fqn", fqn)
-        .replace("#contract_name", contract_name)
-        .replace("#backend_name", backend_name)
-}
-
-/// Returns content of the new module file.
-pub fn module_template(module_name: &str) -> String {
-    MODULE_TEMPLATE.replace("#module_name", module_name)
-}
-
-/// Returns code for src/lib.rs that registers a new module.
-pub fn register_module_snippet(contract_name: &str, module_name: &str) -> String {
-    MODULE_REGISTER
-        .replace("#contract_name", contract_name)
-        .replace("#module_name", module_name)
+    /// Returns code for src/lib.rs that registers a new module.
+    pub fn register_module_snippet(&self, contract_name: &str, module_name: &str) -> String {
+        self.fetch_template(MODULE_REGISTER)
+            .replace("#contract_name", contract_name)
+            .replace("#module_name", module_name)
+    }
 }
