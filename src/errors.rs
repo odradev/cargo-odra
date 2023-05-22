@@ -16,7 +16,7 @@ pub enum Error {
     #[error("Failed to read Cargo.toml: {0}.")]
     FailedToReadCargo(String),
 
-    #[error("wasm32-unknown-unknown target is not present, install it by executing:\n\rustup target add wasm32-unknown-unknown")]
+    #[error("wasm32-unknown-unknown target is not present, install it by executing:\nrustup target add wasm32-unknown-unknown")]
     WasmTargetNotInstalled,
 
     #[error("This command can be executed only in folder with Odra project.")]
