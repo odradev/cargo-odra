@@ -29,7 +29,7 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           components: rustfmt, clippy
+      - run: just prepare
       - run: just check-lint
       - run: just install
-      - run: just prepare-test-env
       - run: just test-project-generation

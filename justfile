@@ -4,13 +4,13 @@ default:
 install:
     cargo install --path . --locked
 
-prepare-test-env:
+prepare:
     rustup target add wasm32-unknown-unknown
     sudo apt install wabt
 
 test-project-generation:
     rm -rf testproject
-    cargo odra new --name testproject
+    cargo odra new --name testproject --source release/0.2.1
     cd testproject && cargo odra generate -c plascoin
     cd testproject && cargo odra test
     cd testproject && cargo odra test -b casper
@@ -20,10 +20,10 @@ clippy:
 	cargo clippy --all-targets -- -D warnings
 
 check-lint: clippy
-	cargo +nightly fmt -- --check
+	cargo fmt -- --check
 
 lint: clippy
-	cargo +nightly fmt
+	cargo fmt
 
 clean:
 	cargo clean
