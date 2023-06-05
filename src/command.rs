@@ -127,7 +127,9 @@ pub fn cargo_build_wasm_sources(current_dir: PathBuf, contract_name: &str) {
         "run",
         vec![
             "--bin",
-            format!("{contract_name}_build").as_str(),
+            "contracts_build",
+            "--",
+            contract_name,
             "--release",
             "--no-default-features",
             "--target-dir",

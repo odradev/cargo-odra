@@ -63,6 +63,9 @@ pub enum Error {
 
     #[error("Failed to generate project from template: {0}")]
     FailedToGenerateProjectFromTemplate(String),
+
+    #[error("Failed to parse the argument: {0}")]
+    FailedToParseArgument(String),
 }
 
 impl Error {
@@ -88,6 +91,7 @@ impl Error {
             Error::ContractNotFound(_) => 17,
             Error::OdraNotADependency => 18,
             Error::FailedToGenerateProjectFromTemplate(_) => 19,
+            Error::FailedToParseArgument(_) => 20,
         }
     }
 

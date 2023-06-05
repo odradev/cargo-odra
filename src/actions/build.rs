@@ -1,6 +1,6 @@
 //! Module for managing and building backends.
 
-use std::path::Path;
+use std::{path::Path, ops::RangeBounds};
 
 use cargo_toml::{Dependency, DependencyDetail, DepsSet};
 
@@ -19,7 +19,7 @@ use crate::{
 /// BuildAction configuration.
 pub struct BuildAction<'a> {
     backend: String,
-    contract_name: Option<String>,
+    contracts_names: Vec<String>,
     builder_paths: BuilderPaths,
     project: &'a Project,
     template_generator: TemplateGenerator,
@@ -28,10 +28,10 @@ pub struct BuildAction<'a> {
 /// BuildAction implementation.
 impl<'a> BuildAction<'a> {
     /// Crate a new BuildAction for a given backend.
-    pub fn new(project: &'a Project, backend: String, contract_name: Option<String>) -> Self {
+    pub fn new(project: &'a Project, backend: String, contracts_names: Vec<String>) -> Self {
         BuildAction {
             backend: backend.clone(),
-            contract_name,
+            contracts_names,
             builder_paths: BuilderPaths::new(backend, project.project_root.clone()),
             project,
             template_generator: TemplateGenerator::new(
@@ -65,23 +65,23 @@ impl BuildAction<'_> {
         self.validate_contract_name_argument();
         self.prepare_builder();
         self.build_wasm_sources();
-        self.build_wasm_files();
         self.format_builder_files();
-        self.copy_wasm_files();
-        self.optimize_wasm_files();
+        // self.build_wasm_files();
+        // self.copy_wasm_files();
+        // self.optimize_wasm_files();
     }
 
     /// Returns list of contract to process.
     fn contracts(&self) -> Vec<Contract> {
         let odra_toml = self.project.odra_toml();
-        if let Some(contract_name) = &self.contract_name {
+        if self.contracts_names.is_empty() {
+            odra_toml.contracts
+        } else {
             odra_toml
                 .contracts
                 .into_iter()
-                .filter(|c| c.name == *contract_name)
+                .filter(|c| self.contracts_names.contains(&c.name))
                 .collect()
-        } else {
-            odra_toml.contracts.into_iter().collect()
         }
     }
 
@@ -96,7 +96,7 @@ impl BuildAction<'_> {
 
     /// Check if contract name argument is valid if set.
     fn validate_contract_name_argument(&self) {
-        if let Some(contract_name) = &self.contract_name {
+        self.contracts_names.iter().for_each(|contract_name| {
             if !self
                 .project
                 .odra_toml()
@@ -106,7 +106,7 @@ impl BuildAction<'_> {
             {
                 Error::ContractNotFound(contract_name.clone()).print_and_die();
             }
-        }
+        });
     }
 
     /// Prepare builder directories and all files.
@@ -127,7 +127,7 @@ impl BuildAction<'_> {
         );
 
         // Build files.
-        self.create_build_files();
+        self.create_default_build_file();
     }
 
     /// Prepare _build.rs files.
@@ -143,6 +143,53 @@ impl BuildAction<'_> {
                 command::write_to_file(path, &content);
             }
         }
+    }
+
+    fn create_default_build_file(&self) {
+        self.create_build_file(&self.contracts());
+    }
+
+    fn create_build_file(&self, contracts: &[Contract]) {
+        let path = self.builder_paths.wasm_build("contracts");
+        if path.exists() {
+            return;
+        }
+        
+        let contract_modules: Vec<_> = contracts
+            .iter()
+            .map(|contract| format!(
+                "mod {} {{ odra::{}::codegen::gen_contract!({}, \"{}\"); }}", 
+                contract.name, 
+                &self.backend_name(), 
+                contract.fqn, 
+                contract.name
+            ))
+            .collect();
+
+        let mod_matching: Vec<_> = contracts
+            .iter()
+            .map(|contract| format!(
+                "Some(\"{}\") => {}::main(),", 
+                contract.name, 
+                contract.name
+            ))
+            .collect();
+        let mod_matching: String = mod_matching.join("\n");
+
+        let main = format!(r#"
+            fn main() {{
+                let args: Vec<String> = std::env::args().collect();
+                match args.get(1).map(String::as_str) {{
+                    {}
+                    _ => println!("Please provide a valid module name!"),
+                }}
+            }}
+        "#, mod_matching);
+
+        let content = format!("{}\n{}", contract_modules.join("\n"), main);
+        
+        // let content = format!("odra::{}::codegen::gen_contract!({});", &self.backend_name(), contracts);
+        command::write_to_file(path, &content);
     }
 
     /// Prepare _wasm.rs file.
