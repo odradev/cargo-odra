@@ -1,6 +1,6 @@
 //! Module for managing and building backends.
 
-use std::{path::Path, ops::RangeBounds};
+use std::path::Path;
 
 use cargo_toml::{Dependency, DependencyDetail, DepsSet};
 
@@ -19,7 +19,7 @@ use crate::{
 /// BuildAction configuration.
 pub struct BuildAction<'a> {
     backend: String,
-    contracts_names: Vec<String>,
+    contracts_names: Option<String>,
     builder_paths: BuilderPaths,
     project: &'a Project,
     template_generator: TemplateGenerator,
@@ -28,7 +28,7 @@ pub struct BuildAction<'a> {
 /// BuildAction implementation.
 impl<'a> BuildAction<'a> {
     /// Crate a new BuildAction for a given backend.
-    pub fn new(project: &'a Project, backend: String, contracts_names: Vec<String>) -> Self {
+    pub fn new(project: &'a Project, backend: String, contracts_names: Option<String>) -> Self {
         BuildAction {
             backend: backend.clone(),
             contracts_names,
@@ -66,22 +66,22 @@ impl BuildAction<'_> {
         self.prepare_builder();
         self.build_wasm_sources();
         self.format_builder_files();
-        // self.build_wasm_files();
-        // self.copy_wasm_files();
-        // self.optimize_wasm_files();
+        self.build_wasm_files();
+        self.copy_wasm_files();
+        self.optimize_wasm_files();
     }
 
     /// Returns list of contract to process.
     fn contracts(&self) -> Vec<Contract> {
+        let names = self.parse_contracts_names();
         let odra_toml = self.project.odra_toml();
-        if self.contracts_names.is_empty() {
-            odra_toml.contracts
-        } else {
-            odra_toml
+        match names.is_empty() {
+            true => odra_toml.contracts,
+            false => odra_toml
                 .contracts
                 .into_iter()
-                .filter(|c| self.contracts_names.contains(&c.name))
-                .collect()
+                .filter(|c| names.contains(&c.name))
+                .collect(),
         }
     }
 
@@ -96,7 +96,8 @@ impl BuildAction<'_> {
 
     /// Check if contract name argument is valid if set.
     fn validate_contract_name_argument(&self) {
-        self.contracts_names.iter().for_each(|contract_name| {
+        let names = self.parse_contracts_names();
+        names.iter().for_each(|contract_name| {
             if !self
                 .project
                 .odra_toml()
@@ -127,69 +128,31 @@ impl BuildAction<'_> {
         );
 
         // Build files.
-        self.create_default_build_file();
+        self.create_build_file()
+            .unwrap_or_else(|err| err.print_and_die());
     }
 
-    /// Prepare _build.rs files.
-    fn create_build_files(&self) {
-        for contract in self.contracts() {
-            let path = self.builder_paths.wasm_build(&contract.name);
-            if !path.exists() {
-                let content = self.template_generator.wasm_source_builder(
-                    &contract.fqn,
-                    &contract.name,
-                    &self.backend_name(),
-                );
-                command::write_to_file(path, &content);
-            }
-        }
-    }
-
-    fn create_default_build_file(&self) {
-        self.create_build_file(&self.contracts());
-    }
-
-    fn create_build_file(&self, contracts: &[Contract]) {
-        let path = self.builder_paths.wasm_build("contracts");
+    /// Prepare contracts_build.rs files.
+    fn create_build_file(&self) -> Result<(), Error> {
+        let path = self.builder_paths.wasm_build();
         if path.exists() {
-            return;
+            return Ok(());
         }
-        
-        let contract_modules: Vec<_> = contracts
+
+        let contracts_names: Vec<_> = self
+            .project
+            .odra_toml()
+            .contracts
             .iter()
-            .map(|contract| format!(
-                "mod {} {{ odra::{}::codegen::gen_contract!({}, \"{}\"); }}", 
-                contract.name, 
-                &self.backend_name(), 
-                contract.fqn, 
-                contract.name
-            ))
+            .map(|contract| (contract.fqn.to_owned(), contract.name.to_owned()))
             .collect();
 
-        let mod_matching: Vec<_> = contracts
-            .iter()
-            .map(|contract| format!(
-                "Some(\"{}\") => {}::main(),", 
-                contract.name, 
-                contract.name
-            ))
-            .collect();
-        let mod_matching: String = mod_matching.join("\n");
+        let content = self
+            .template_generator
+            .wasm_source_builder(contracts_names, &self.backend_name())?;
 
-        let main = format!(r#"
-            fn main() {{
-                let args: Vec<String> = std::env::args().collect();
-                match args.get(1).map(String::as_str) {{
-                    {}
-                    _ => println!("Please provide a valid module name!"),
-                }}
-            }}
-        "#, mod_matching);
-
-        let content = format!("{}\n{}", contract_modules.join("\n"), main);
-        
-        // let content = format!("odra::{}::codegen::gen_contract!({});", &self.backend_name(), contracts);
         command::write_to_file(path, &content);
+        Ok(())
     }
 
     /// Prepare _wasm.rs file.
@@ -276,4 +239,30 @@ impl BuildAction<'_> {
             ..Default::default()
         })
     }
+
+    fn parse_contracts_names(&self) -> Vec<String> {
+        match &self.contracts_names {
+            Some(string) => remove_extra_spaces(&string)
+                .map(|string| {
+                    string
+                        .split(' ')
+                        .map(ToString::to_string)
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or_else(|_| {
+                    Error::FailedToParseArgument("contracts_names".to_string()).print_and_die()
+                }),
+            None => vec![],
+        }
+    }
+}
+
+fn remove_extra_spaces(input: &str) -> Result<String, &'static str> {
+    // Ensure there are no other separators
+    if input.chars().any(|c| c.is_whitespace() && c != ' ') {
+        return Err("Input contains non-space whitespace characters");
+    }
+
+    let trimmed = input.split_whitespace().collect::<Vec<&str>>().join(" ");
+    Ok(trimmed.to_owned())
 }

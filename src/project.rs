@@ -164,7 +164,7 @@ impl Project {
     }
 
     /// Builds the project
-    pub fn build(&self, backend: String, contracts_names: Vec<String>) {
+    pub fn build(&self, backend: String, contracts_names: Option<String>) {
         BuildAction::new(self, backend, contracts_names).build();
     }
 

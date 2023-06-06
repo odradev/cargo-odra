@@ -129,8 +129,7 @@ pub fn make_action() {
         .unwrap_or_else(|_| Error::CouldNotDetermineCurrentDirectory.print_and_die());
     match args.subcommand {
         OdraSubcommand::Build(build) => {
-            let contracts_names = parse_contracts_names(build.contracts_names);
-            Project::detect(current_dir).build(build.backend, contracts_names);
+            Project::detect(current_dir).build(build.backend, build.contracts_names);
         }
         OdraSubcommand::Test(test) => {
             Project::detect(current_dir).test(test);
@@ -171,25 +170,4 @@ pub fn make_action() {
             update_action(update, project.project_root());
         }
     }
-}
-
-fn parse_contracts_names(input: Option<String>) -> Vec<String> {
-    match input {
-        Some(string) => {
-            remove_extra_spaces(&string)
-                .map(|string| string.split(' ').map(ToString::to_string).collect::<Vec<_>>())
-                .unwrap_or_else(|_| Error::FailedToParseArgument("contracts_names".to_string()).print_and_die())
-        },
-        None => vec![],
-    }
-}
-
-fn remove_extra_spaces(input: &str) -> Result<String, &'static str> {
-    // Ensure there are no other separators
-    if input.chars().any(|c| c.is_whitespace() && c != ' ') {
-        return Err("Input contains non-space whitespace characters");
-    }
-
-    let trimmed = input.split_whitespace().collect::<Vec<&str>>().join(" ");
-    Ok(trimmed.to_owned())
 }
