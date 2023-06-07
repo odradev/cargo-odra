@@ -53,7 +53,7 @@ impl BuilderPaths {
     }
 
     pub fn wasm_build(&self) -> PathBuf {
-        self.src().join(format!("contracts_build.rs"))
+        self.src().join("contracts_build.rs")
     }
 
     /// Returns contracts_build.rs path as a String.

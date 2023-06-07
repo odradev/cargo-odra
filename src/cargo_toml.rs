@@ -22,7 +22,7 @@ pub fn builder_cargo_toml(
     };
 
     let mut bins = vec![];
-    let build_name = format!("contracts_build");
+    let build_name = "contracts_build".to_string();
     let path = builder_paths.relative().wasm_build_as_string();
 
     bins.push(Product {

@@ -242,7 +242,7 @@ impl BuildAction<'_> {
 
     fn parse_contracts_names(&self) -> Vec<String> {
         match &self.contracts_names {
-            Some(string) => remove_extra_spaces(&string)
+            Some(string) => remove_extra_spaces(string)
                 .map(|string| {
                     string
                         .split(' ')
@@ -264,5 +264,5 @@ fn remove_extra_spaces(input: &str) -> Result<String, &'static str> {
     }
 
     let trimmed = input.split_whitespace().collect::<Vec<&str>>().join(" ");
-    Ok(trimmed.to_owned())
+    Ok(trimmed)
 }
