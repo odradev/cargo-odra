@@ -73,7 +73,10 @@ impl GenerateAction<'_> {
     /// Crates a new module file in src directory.
     fn add_contract_file_to_src(&self) {
         // Rename module name.
-        let contract_body = self.template_generator.module_template(self.module_ident());
+        let contract_body = self
+            .template_generator
+            .module_template(self.module_ident())
+            .unwrap_or_else(|err| err.print_and_die());
 
         // Make sure the file do not exists.
         let path = self.module_file_path();
@@ -90,7 +93,8 @@ impl GenerateAction<'_> {
         // Prepare code to add.
         let register_module_code = self
             .template_generator
-            .register_module_snippet(self.contract_name(), self.module_ident());
+            .register_module_snippet(self.contract_name(), self.module_ident())
+            .unwrap_or_else(|err| err.print_and_die());
 
         // Write to file.
         command::append_file(self.module_root.join("src/lib.rs"), &register_module_code);

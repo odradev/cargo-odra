@@ -22,17 +22,15 @@ pub fn builder_cargo_toml(
     };
 
     let mut bins = vec![];
-    for contract in contracts {
-        let build_name = format!("{}_build", contract.name.clone());
-        let path = builder_paths
-            .relative()
-            .wasm_build_as_string(&contract.name);
-        bins.push(Product {
-            path: Some(path),
-            name: Some(build_name),
-            ..default_bin.clone()
-        });
+    let build_name = "contracts_build".to_string();
+    let path = builder_paths.relative().wasm_build_as_string();
 
+    bins.push(Product {
+        path: Some(path),
+        name: Some(build_name),
+        ..default_bin.clone()
+    });
+    for contract in contracts {
         let path = builder_paths
             .relative()
             .wasm_source_as_string(&contract.name);

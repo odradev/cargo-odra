@@ -52,17 +52,13 @@ impl BuilderPaths {
         self.root().join("src")
     }
 
-    /// Returns *_build.rs path.
-    pub fn wasm_build(&self, contract_name: &str) -> PathBuf {
-        self.src().join(format!("{contract_name}_build.rs"))
+    pub fn wasm_build(&self) -> PathBuf {
+        self.src().join("contracts_build.rs")
     }
 
-    /// Returns *_build.rs path as a String.
-    pub fn wasm_build_as_string(&self, contract_name: &str) -> String {
-        self.wasm_build(contract_name)
-            .into_os_string()
-            .into_string()
-            .unwrap()
+    /// Returns contracts_build.rs path as a String.
+    pub fn wasm_build_as_string(&self) -> String {
+        self.wasm_build().into_os_string().into_string().unwrap()
     }
 
     /// Returns *_wasm.rs path.

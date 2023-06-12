@@ -164,8 +164,8 @@ impl Project {
     }
 
     /// Builds the project
-    pub fn build(&self, backend: String, contract_name: Option<String>) {
-        BuildAction::new(self, backend, contract_name).build();
+    pub fn build(&self, backend: String, contracts_names: Option<String>) {
+        BuildAction::new(self, backend, contracts_names).build();
     }
 
     /// Runs test in the Project.

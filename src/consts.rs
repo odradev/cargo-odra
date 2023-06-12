@@ -18,7 +18,13 @@ pub const ODRA_TEMPLATE_DEFAULT_TEMPLATE: &str = "full";
 pub const ODRA_WASM_PATH_ENV_KEY: &str = "ODRA_WASM_PATH";
 
 /// WASM Source builder template.
-pub const WASM_SOURCE_BUILDER: &str = "wasm_source_builder";
+pub const WASM_SINGLE_SOURCE_BUILDER: &str = "contracts_builder/wasm_source_builder";
+
+/// WASM Source builder helper template.
+pub const MATCH_CONTRACT_NAME: &str = "contracts_builder/match_contract_name";
+
+/// WASM Source builder helper template.
+pub const GEN_CONTRACT_MOD: &str = "contracts_builder/gen_contract_mod";
 
 /// Module template.
 pub const MODULE_TEMPLATE: &str = "module";

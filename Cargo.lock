@@ -221,7 +221,7 @@ dependencies = [
 
 [[package]]
 name = "cargo-odra"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "cargo-generate",
  "cargo_toml",
