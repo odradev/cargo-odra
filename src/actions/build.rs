@@ -158,9 +158,12 @@ impl BuildAction<'_> {
     /// Prepare _wasm.rs file.
     fn build_wasm_sources(&self) {
         log::info("Generating _wasm.rs files...");
-        for contract in self.contracts() {
-            command::cargo_build_wasm_sources(self.builder_paths.root(), &contract.name);
-        }
+        let names = self
+            .contracts()
+            .iter()
+            .map(|c| c.name.to_owned())
+            .collect::<Vec<_>>();
+        command::cargo_build_wasm_sources(self.builder_paths.root(), &names);
     }
 
     /// Build _wasm.rs files into .wasm files.
