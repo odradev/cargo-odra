@@ -121,21 +121,18 @@ pub fn cargo_build_wasm_files(current_dir: PathBuf, contract_name: &str) {
 }
 
 /// Build wasm sources.
-pub fn cargo_build_wasm_sources(current_dir: PathBuf, contract_name: &str) {
-    cargo(
-        current_dir,
-        "run",
-        vec![
-            "--bin",
-            "contracts_build",
-            "--",
-            contract_name,
-            "--release",
-            "--no-default-features",
-            "--target-dir",
-            "../target",
-        ],
-    );
+pub fn cargo_build_wasm_sources(current_dir: PathBuf, contract_names: &[String]) {
+    let mut args = vec![
+        "--bin",
+        "contracts_build",
+        "--release",
+        "--no-default-features",
+        "--target-dir",
+        "../target",
+        "--",
+    ];
+    contract_names.iter().for_each(|name| args.push(name));
+    cargo(current_dir, "run", args);
 }
 
 /// Update a cargo module.
