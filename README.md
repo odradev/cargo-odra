@@ -52,6 +52,7 @@ $ cargo odra test -b casper
 * `generate` - generates sample contract,
 * `clean` - removes temporary files (builders and wasm files),
 * `update` - runs cargo update on project and backends.
+* `completions` - generates autocomplete script for given shell
 
 To see exact syntax of each command, type `cargo odra command --help`.
 

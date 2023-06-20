@@ -2,7 +2,7 @@
 
 use std::env;
 
-use clap::{Parser, Subcommand};
+use clap::{CommandFactory, Parser, Subcommand};
 
 use crate::{
     actions::{clean::clean_action, init::InitAction, update::update_action},
@@ -52,6 +52,12 @@ pub enum OdraSubcommand {
     Clean(CleanCommand),
     /// Updates project alongside builders.
     Update(UpdateCommand),
+    /// Generates completions for given shell
+    Completions {
+        /// The shell to generate the completions for
+        #[arg(value_enum)]
+        shell: clap_complete_command::Shell,
+    },
 }
 
 #[derive(clap::Args)]
@@ -168,6 +174,9 @@ pub fn make_action() {
         OdraSubcommand::Update(update) => {
             let project = Project::detect(current_dir);
             update_action(update, project.project_root());
+        }
+        OdraSubcommand::Completions { shell } => {
+            shell.generate(&mut Cargo::command(), &mut std::io::stdout());
         }
     }
 }
