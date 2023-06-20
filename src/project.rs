@@ -1,4 +1,7 @@
-use std::{env, path::PathBuf};
+use std::{
+    env,
+    path::{Path, PathBuf},
+};
 
 use cargo_generate::{GenerateArgs, TemplatePath, Vcs};
 use cargo_toml::{Dependency, DependencyDetail};
@@ -142,7 +145,7 @@ impl Project {
             Error::NotAnOdraProject.print_and_die();
         });
         let root = odra_toml_path.parent().unwrap().to_path_buf();
-        let members = Self::find_members(&cargo_toml_path);
+        let members = Self::find_members(&cargo_toml_path, &odra_toml_path);
         let name = match load_cargo_toml(&cargo_toml_path).package {
             None => {
                 let cwd = env::current_dir().unwrap();
@@ -248,8 +251,8 @@ impl Project {
         }
     }
 
-    fn find_members(cargo_toml_path: &PathBuf) -> Vec<Member> {
-        Self::detect_members(cargo_toml_path)
+    fn find_members(cargo_toml_path: &PathBuf, odra_toml_path: &Path) -> Vec<Member> {
+        Self::detect_members(cargo_toml_path, odra_toml_path)
             .iter()
             .map(|member| {
                 let root = cargo_toml_path.parent().unwrap().join(member.clone().1);
@@ -281,11 +284,13 @@ impl Project {
         }
     }
 
-    fn detect_members(cargo_toml_path: &PathBuf) -> Vec<(String, String)> {
+    fn detect_members(cargo_toml_path: &PathBuf, odra_toml_path: &Path) -> Vec<(String, String)> {
+        let odra_toml = OdraToml::load(odra_toml_path);
         match load_cargo_toml(cargo_toml_path).workspace {
             Some(workspace) => workspace
                 .members
                 .iter()
+                .filter(|member| odra_toml.has_module(member))
                 .map(|member| (member.clone(), member.clone()))
                 .collect(),
             None => vec![(Self::detect_project_name(cargo_toml_path), "".to_string())],
