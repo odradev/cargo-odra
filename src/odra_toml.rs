@@ -50,8 +50,12 @@ impl OdraToml {
 
     /// Check if any contract in Odra.toml is a part of a module with given name
     pub fn has_module(&self, module_name: &str) -> bool {
-        self.contracts
-            .iter()
-            .any(|c| c.fqn.split_terminator("::").any(|part| part == module_name))
+        self.contracts.iter().any(|c| {
+            c.fqn
+                .split_terminator("::")
+                .next()
+                .unwrap_or_else(|| Error::MalformedFqn.print_and_die())
+                == module_name
+        })
     }
 }

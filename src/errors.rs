@@ -66,6 +66,9 @@ pub enum Error {
 
     #[error("Failed to parse the argument: {0}")]
     FailedToParseArgument(String),
+
+    #[error("Malformed fqn of contract")]
+    MalformedFqn,
 }
 
 impl Error {
@@ -92,6 +95,7 @@ impl Error {
             Error::OdraNotADependency => 18,
             Error::FailedToGenerateProjectFromTemplate(_) => 19,
             Error::FailedToParseArgument(_) => 20,
+            Error::MalformedFqn => 21,
         }
     }
 
