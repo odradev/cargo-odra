@@ -32,4 +32,5 @@ jobs:
       - run: just prepare
       - run: just check-lint
       - run: just install
-      - run: just test-project-generation
+      - run: just test-project-generation-on-stable-odra
+      - run: just test-project-generation-on-future-odra
