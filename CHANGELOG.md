@@ -2,6 +2,15 @@
 
 Changelog for `cargo-odra`.
 
+## [0.0.8] - 2023-06-26
+
+### Added
+- Autocompletion.
+
+### Changed
+- Simplified wasm build process.
+- Better dependencies management for the `builder`.
+
 ## [0.0.7] - 2023-05-22
 
 ### Added
