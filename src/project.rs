@@ -123,14 +123,33 @@ impl Project {
         };
 
         replace_in_file(
-            cargo_toml_path,
+            cargo_toml_path.clone(),
             "#odra_dependency",
             format!(
                 "odra = {{ {} }}",
-                toml::to_string(&Self::odra_dependency(odra_location, init_action.init))
-                    .unwrap()
-                    .trim_end()
-                    .replace('\n', ", ")
+                toml::to_string(&Self::odra_project_dependency(
+                    odra_location.clone(),
+                    init_action.init
+                ))
+                .unwrap()
+                .trim_end()
+                .replace('\n', ", ")
+            )
+            .as_str(),
+        );
+
+        replace_in_file(
+            cargo_toml_path,
+            "#odra_build_dependency",
+            format!(
+                "odra-build = {{ {} }}",
+                toml::to_string(&Self::odra_build_dependency(
+                    odra_location,
+                    init_action.init
+                ))
+                .unwrap()
+                .trim_end()
+                .replace('\n', ", ")
             )
             .as_str(),
         );
@@ -301,7 +320,7 @@ impl Project {
         load_cargo_toml(cargo_toml_path).package.unwrap().name
     }
 
-    fn odra_dependency(odra_location: OdraLocation, init: bool) -> Dependency {
+    fn odra_project_dependency(odra_location: OdraLocation, init: bool) -> Dependency {
         let (version, path, git, branch) = match odra_location {
             OdraLocation::Local(path) => {
                 let path = match init {
@@ -338,6 +357,27 @@ impl Project {
             default_features: false,
             package: None,
         })
+    }
+
+    /// Returns dependency of an odra-build crate.
+    fn odra_build_dependency(odra_location: OdraLocation, init: bool) -> Dependency {
+        let odra_dependency = Self::odra_project_dependency(odra_location, init);
+        let mut detailed_dependency = match odra_dependency {
+            Dependency::Detailed(detailed_dependency) => detailed_dependency,
+            _ => unreachable!(),
+        };
+
+        let path = match detailed_dependency.path {
+            None => None,
+            Some(mut path) => {
+                path.push_str("/../build");
+                Some(path)
+            }
+        };
+
+        detailed_dependency.path = path;
+
+        Dependency::Detailed(detailed_dependency)
     }
 
     fn odra_latest_version() -> String {

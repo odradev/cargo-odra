@@ -5,7 +5,7 @@ use std::path::Path;
 use cargo_toml::{Dependency, DependencyDetail, DepsSet};
 
 use crate::{
-    cargo_toml::odra_dependency,
+    cargo_toml::odra_raw_dependency,
     command,
     consts::ODRA_TEMPLATE_GH_RAW_REPO,
     errors::Error,
@@ -52,7 +52,7 @@ impl BuildAction<'_> {
     /// Returns a set of dependencies used by backend.
     pub fn builder_dependencies(&self) -> DepsSet {
         let mut dependencies = DepsSet::new();
-        dependencies.insert(String::from("odra"), self.odra_dependency());
+        dependencies.insert(String::from("odra"), self.odra_builder_dependency());
         self.project.members.iter().for_each(|member| {
             dependencies.insert(member.name.clone(), self.project_dependency(&member.root));
         });
@@ -200,9 +200,9 @@ impl BuildAction<'_> {
     }
 
     /// Returns Odra dependency tailored for use by builder.
-    fn odra_dependency(&self) -> Dependency {
+    fn odra_builder_dependency(&self) -> Dependency {
         let first_member = self.project.members.first().unwrap();
-        match odra_dependency(&first_member.cargo_toml) {
+        match odra_raw_dependency(&first_member.cargo_toml) {
             Dependency::Simple(simple) => Dependency::Detailed(DependencyDetail {
                 version: Some(simple),
                 ..Default::default()

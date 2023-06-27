@@ -74,7 +74,7 @@ pub fn builder_cargo_toml(
 }
 
 /// Returns Dependency of Odra, taken from project's Cargo.toml.
-pub fn odra_dependency(cargo_toml_path: &PathBuf) -> Dependency {
+pub fn odra_raw_dependency(cargo_toml_path: &PathBuf) -> Dependency {
     load_cargo_toml(cargo_toml_path)
         .dependencies
         .get("odra")
