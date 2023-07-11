@@ -3,6 +3,7 @@
 use std::path::Path;
 
 use cargo_toml::{Dependency, DependencyDetail, DepsSet};
+use semver::Version;
 
 use crate::{
     cargo_toml::odra_dependency,
@@ -170,7 +171,11 @@ impl BuildAction<'_> {
     fn build_wasm_files(&self) {
         log::info("Generating wasm files...");
         for contract in self.contracts() {
-            command::cargo_build_wasm_files(self.builder_paths.root(), &contract.name);
+            command::cargo_build_wasm_files(
+                self.builder_paths.root(),
+                &contract.name,
+                &self.backend_name(),
+            );
         }
     }
 
@@ -203,13 +208,21 @@ impl BuildAction<'_> {
     fn odra_dependency(&self) -> Dependency {
         let first_member = self.project.members.first().unwrap();
         match odra_dependency(&first_member.cargo_toml) {
-            Dependency::Simple(simple) => Dependency::Detailed(DependencyDetail {
-                version: Some(simple),
-                ..Default::default()
-            }),
+            Dependency::Simple(simple) => {
+                assert_odra_version(&simple);
+                Dependency::Detailed(DependencyDetail {
+                    version: Some(simple),
+                    ..Default::default()
+                })
+            }
             Dependency::Detailed(mut odra_details) => {
-                odra_details.features = vec![self.backend_name()];
-                odra_details.default_features = false;
+                match odra_details.clone().version {
+                    None => {}
+                    Some(version) => {
+                        assert_odra_version(&version);
+                    }
+                }
+
                 if odra_details.path.is_some() {
                     if self.project.is_workspace() {
                         odra_details.path = Some(odra_details.path.unwrap());
@@ -217,6 +230,7 @@ impl BuildAction<'_> {
                         odra_details.path = Some(format!("../{}", odra_details.path.unwrap()));
                     }
                 }
+
                 Dependency::Detailed(odra_details)
             }
             Dependency::Inherited(_) => {
@@ -226,7 +240,7 @@ impl BuildAction<'_> {
         }
     }
 
-    /// Returns project dependency with specific backend feature enabled.
+    /// Returns the project dependency.
     fn project_dependency(&self, location: &Path) -> Dependency {
         Dependency::Detailed(DependencyDetail {
             path: Some(
@@ -237,8 +251,6 @@ impl BuildAction<'_> {
                     .unwrap()
                     .to_string(),
             ),
-            features: vec![self.backend_name()],
-            default_features: false,
             ..Default::default()
         })
     }
@@ -268,4 +280,14 @@ fn remove_extra_spaces(input: &str) -> Result<String, &'static str> {
 
     let trimmed = input.split_whitespace().collect::<Vec<&str>>().join(" ");
     Ok(trimmed)
+}
+
+fn assert_odra_version(version: &str) {
+    let version = Version::parse(version).unwrap_or_else(|_| {
+        Error::FailedToParseOdraVersion(version.to_string()).print_and_die();
+    });
+
+    if version.major == 0 && version.minor <= 4 {
+        Error::IncompatibleOdraVersion.print_and_die();
+    }
 }

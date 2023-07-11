@@ -10,7 +10,7 @@ description = "A cargo utility that helps to create, manage and test your smart 
 keywords = ["wasm", "webassembly", "blockchain"]
 categories = ["wasm", "smart contracts"]
 name = "cargo-odra"
-version = "0.0.8"
+version = "0.1.0"
 edition = "2021"
 
 [dependencies]
@@ -29,6 +29,7 @@ thiserror = "1.0.37"
 ureq = { version = "2.6.2", features = ["json"] }
 regex = "1.7.3"
 clap_complete_command = "0.5.1"
+semver = "1.0.17"
 
 [[bin]]
 name = "cargo-odra"

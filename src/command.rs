@@ -79,7 +79,7 @@ pub fn wasm_strip(contract_name: &str, project_root: PathBuf) {
 }
 
 /// Runs cargo with given args.
-fn cargo(current_dir: PathBuf, command: &str, tail_args: Vec<&str>) {
+fn cargo(current_dir: PathBuf, command: &str, tail_args: Vec<&str>, backend: Option<String>) {
     let mut args = vec![command];
 
     if let Some(verbosity) = verbosity_arg() {
@@ -90,11 +90,15 @@ fn cargo(current_dir: PathBuf, command: &str, tail_args: Vec<&str>) {
         args.push(arg);
     }
 
-    let command = Command::new("cargo")
-        .current_dir(current_dir)
-        .args(args.as_slice())
-        .status()
-        .unwrap();
+    let mut command = Command::new("cargo");
+
+    command.current_dir(current_dir).args(args.as_slice());
+
+    if let Some(backend) = backend {
+        command.env("ODRA_BACKEND", backend);
+    }
+
+    let command = command.status().unwrap();
 
     parse_command_result(
         command,
@@ -103,7 +107,7 @@ fn cargo(current_dir: PathBuf, command: &str, tail_args: Vec<&str>) {
 }
 
 /// Build wasm files.
-pub fn cargo_build_wasm_files(current_dir: PathBuf, contract_name: &str) {
+pub fn cargo_build_wasm_files(current_dir: PathBuf, contract_name: &str, backend: &str) {
     cargo(
         current_dir,
         "build",
@@ -117,6 +121,7 @@ pub fn cargo_build_wasm_files(current_dir: PathBuf, contract_name: &str) {
             "--target-dir",
             "../target",
         ],
+        Some(backend.to_string()),
     );
 }
 
@@ -132,23 +137,23 @@ pub fn cargo_build_wasm_sources(current_dir: PathBuf, contract_names: &[String])
         "--",
     ];
     contract_names.iter().for_each(|name| args.push(name));
-    cargo(current_dir, "run", args);
+    cargo(current_dir, "run", args, Some("casper".to_string()));
 }
 
 /// Update a cargo module.
 pub fn cargo_update(current_dir: PathBuf) {
-    cargo(current_dir, "update", vec![]);
+    cargo(current_dir, "update", vec![], None);
 }
 
 /// Runs cargo fmt.
 pub fn cargo_fmt(current_dir: PathBuf) {
-    cargo(current_dir, "fmt", vec![]);
+    cargo(current_dir, "fmt", vec![], None);
 }
 
 /// Runs cargo test.
 pub fn cargo_test_mock_vm(current_dir: PathBuf, args: Vec<&str>) {
     log::info("Running cargo test...");
-    cargo(current_dir, "test", args);
+    cargo(current_dir, "test", args, Some("mock-vm".to_string()));
 }
 
 /// Runs cargo test with backend features.
@@ -158,18 +163,18 @@ pub fn cargo_test_backend(project_root: PathBuf, backend_name: &str, tail_args: 
         project_root.join("wasm").to_str().unwrap(),
     );
     log::info("Running cargo test...");
-    let mut args = vec!["--no-default-features", "--features", backend_name];
+    let mut args = vec!["--no-default-features"];
     for arg in tail_args {
         args.push(arg);
     }
 
-    cargo(project_root, "test", args)
+    cargo(project_root, "test", args, Some(backend_name.to_string()));
 }
 
 /// Runs cargo clean.
 pub fn cargo_clean(current_dir: PathBuf) {
     log::info("Running cargo clean...");
-    cargo(current_dir, "clean", vec![]);
+    cargo(current_dir, "clean", vec![], None);
 }
 
 /// Writes a content to a file at the given path.

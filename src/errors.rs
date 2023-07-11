@@ -69,6 +69,14 @@ pub enum Error {
 
     #[error("Malformed fqn of contract")]
     MalformedFqn,
+
+    #[error("Failed to parse the Odra version: {0}")]
+    FailedToParseOdraVersion(String),
+
+    #[error(
+        "Incompatible Odra version. Upgrade Odra to >= 0.5.0 or downgrade Cargo odra to 0.0.8."
+    )]
+    IncompatibleOdraVersion,
 }
 
 impl Error {
@@ -96,6 +104,8 @@ impl Error {
             Error::FailedToGenerateProjectFromTemplate(_) => 19,
             Error::FailedToParseArgument(_) => 20,
             Error::MalformedFqn => 21,
+            Error::FailedToParseOdraVersion(_) => 22,
+            Error::IncompatibleOdraVersion => 23,
         }
     }
 
