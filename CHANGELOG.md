@@ -2,6 +2,8 @@
 
 Changelog for `cargo-odra`.
 
+## [0.0.10] - 2023-XX-XX
+
 ## [0.0.9] - 2023-07-19
 
 ### Added
