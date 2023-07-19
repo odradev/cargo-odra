@@ -69,6 +69,12 @@ pub enum Error {
 
     #[error("Malformed fqn of contract")]
     MalformedFqn,
+
+    #[error("src/lib.rs not found.")]
+    LibRsNotFound,
+
+    #[error("Module {0} already in src/lib.rs")]
+    ModuleAlreadyInLibRs(String),
 }
 
 impl Error {
@@ -96,6 +102,8 @@ impl Error {
             Error::FailedToGenerateProjectFromTemplate(_) => 19,
             Error::FailedToParseArgument(_) => 20,
             Error::MalformedFqn => 21,
+            Error::LibRsNotFound => 22,
+            Error::ModuleAlreadyInLibRs(_) => 23,
         }
     }
 
