@@ -62,6 +62,11 @@ impl GenerateAction<'_> {
         &self.contract_module_ident
     }
 
+    /// Returns the module Ref identifier.
+    fn module_ref_ident(&self) -> String {
+        format!("{}Ref", self.contract_module_ident)
+    }
+
     /// Returns a path to file with contract definition.
     fn module_file_path(&self) -> PathBuf {
         self.module_root
@@ -95,6 +100,27 @@ impl GenerateAction<'_> {
             .template_generator
             .register_module_snippet(self.contract_name(), self.module_ident())
             .unwrap_or_else(|err| err.print_and_die());
+
+        // Read the file.
+        let lib_rs_path = self.module_root.join("src/lib.rs");
+        let lib_rs = command::read_file_content(lib_rs_path)
+            .unwrap_or_else(|_| Error::LibRsNotFound.print_and_die());
+
+        // If the file already has module registered, throw an error.
+        if lib_rs.contains(&register_module_code) {
+            Error::ModuleAlreadyInLibRs(String::from(self.contract_name())).print_and_die();
+        }
+
+        // Check if he file might have the module registered in another form.
+        if lib_rs.contains(self.contract_name())
+            || (lib_rs.contains(self.module_ident()) && lib_rs.contains(&self.module_ref_ident()))
+        {
+            log::warn(format!(
+                "src/lib.rs probably already has {} enabled. Skipping.",
+                self.contract_name()
+            ));
+            return;
+        }
 
         // Write to file.
         command::append_file(self.module_root.join("src/lib.rs"), &register_module_code);

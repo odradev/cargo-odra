@@ -2,6 +2,11 @@
 
 Changelog for `cargo-odra`.
 
+## [0.0.9] - 2023-07-19
+
+### Added
+- `generate` command validates if the module is already added to `lib.rs`.
+
 ## [0.0.8] - 2023-06-26
 
 ### Added

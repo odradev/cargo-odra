@@ -6,7 +6,7 @@ pub fn info<T: AsRef<str>>(message: T) {
 }
 
 /// Warning message, not used yet - remove underscore when in use.
-pub fn _warn<T: AsRef<str>>(message: T) {
+pub fn warn<T: AsRef<str>>(message: T) {
     prettycli::warn(message.as_ref());
 }
 

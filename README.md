@@ -66,14 +66,11 @@ workspace, put all contracts in the same Odra.toml folder.
 
 * [Odra](https://github.com/odradev/odra)
 * [Cargo Odra](https://github.com/odradev/cargo-odra)
-* [Odra Template](https://github.com/odradev/odra-template)
 * [Odra Casper](https://github.com/odradev/odra-casper)
-* [Original Proposal for Odra Framework](https://github.com/odradev/odra-proposal)
 
 ## Contact
 Write **contact@odra.dev**
 
----
 <div align="center">
 by <a href="https://odra.dev">odra.dev<a>
 </dev>
