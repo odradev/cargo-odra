@@ -3,9 +3,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use cargo_generate::{GenerateArgs, TemplatePath, Vcs};
 use cargo_toml::{Dependency, DependencyDetail};
-use chrono::Utc;
+
 use ureq::serde_json;
 
 use crate::{
@@ -17,6 +16,7 @@ use crate::{
     errors::Error,
     odra_toml::OdraToml,
     paths,
+    template::TemplateGenerator,
 };
 
 /// Struct representing the whole project.
@@ -50,63 +50,14 @@ impl Project {
 
         let odra_location = Self::odra_location(init_action.source);
 
-        let template_path = match odra_location.clone() {
-            OdraLocation::Local(local_path) => TemplatePath {
-                auto_path: Some(local_path.as_os_str().to_str().unwrap().to_string()),
-                subfolder: Some(format!("templates/{}", init_action.template)),
-                test: false,
-                git: None,
-                branch: None,
-                tag: None,
-                path: None,
-                favorite: None,
-            },
-            OdraLocation::Remote(repo, branch) => TemplatePath {
-                auto_path: Some(repo),
-                subfolder: Some(format!("templates/{}", init_action.template)),
-                test: false,
-                git: None,
-                branch,
-                tag: None,
-                path: None,
-                favorite: None,
-            },
-            OdraLocation::CratesIO(version) => TemplatePath {
-                auto_path: Some(ODRA_TEMPLATE_GH_REPO.to_string()),
-                subfolder: Some(format!("templates/{}", init_action.template)),
-                test: false,
-                git: None,
-                branch: Some(format!("release/{}", version)),
-                tag: None,
-                path: None,
-                favorite: None,
-            },
-        };
+        let template_path =
+            TemplateGenerator::odra_template_path(&init_action.template, &odra_location);
 
-        cargo_generate::generate(GenerateArgs {
+        TemplateGenerator::generate_from_template(
+            &init_action.project_name,
             template_path,
-            list_favorites: false,
-            name: Some(paths::to_snake_case(&init_action.project_name)),
-            force: true,
-            verbose: false,
-            template_values_file: None,
-            silent: false,
-            config: None,
-            vcs: Some(Vcs::Git),
-            lib: false,
-            bin: false,
-            ssh_identity: None,
-            define: vec![format!("date={}", Utc::now().format("%Y-%m-%d"))],
-            init: init_action.init,
-            destination: None,
-            force_git_init: false,
-            allow_commands: false,
-            overwrite: false,
-            other_args: None,
-        })
-        .unwrap_or_else(|e| {
-            Error::FailedToGenerateProjectFromTemplate(e.to_string()).print_and_die();
-        });
+            init_action.init,
+        );
 
         let cargo_toml_path = match init_action.init {
             true => {

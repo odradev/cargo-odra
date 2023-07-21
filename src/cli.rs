@@ -5,7 +5,12 @@ use std::env;
 use clap::{CommandFactory, Parser, Subcommand};
 
 use crate::{
-    actions::{clean::clean_action, init::InitAction, update::update_action},
+    actions::{
+        clean::clean_action,
+        client::client_action,
+        init::InitAction,
+        update::update_action,
+    },
     consts,
     errors::Error,
     project::Project,
@@ -58,6 +63,7 @@ pub enum OdraSubcommand {
         #[arg(value_enum)]
         shell: clap_complete_command::Shell,
     },
+    Client(ClientCommand),
 }
 
 #[derive(clap::Args)]
@@ -128,6 +134,9 @@ pub struct UpdateCommand {
     pub backend: Option<String>,
 }
 
+#[derive(clap::Args, Debug)]
+pub struct ClientCommand {}
+
 /// Cargo odra main parser function.
 pub fn make_action() {
     let Cargo::Odra(args) = Cargo::parse();
@@ -177,6 +186,10 @@ pub fn make_action() {
         }
         OdraSubcommand::Completions { shell } => {
             shell.generate(&mut Cargo::command(), &mut std::io::stdout());
+        }
+        OdraSubcommand::Client(_) => {
+            let project = Project::detect(current_dir);
+            client_action(&project);
         }
     }
 }

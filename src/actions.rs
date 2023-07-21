@@ -6,3 +6,4 @@ pub mod generate;
 pub mod init;
 pub mod test;
 pub mod update;
+pub mod client;
