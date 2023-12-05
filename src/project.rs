@@ -328,7 +328,7 @@ impl Project {
                     false => PathBuf::from("..").join(path),
                 };
                 let path = path
-                    .join("core")
+                    .join("odra")
                     .into_os_string()
                     .to_str()
                     .unwrap()
