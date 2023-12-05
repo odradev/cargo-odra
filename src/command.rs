@@ -13,12 +13,7 @@ use Error::InvalidInternalCommand;
 
 use crate::{
     cli::Cargo,
-    consts::{
-        ODRA_BACKEND_ENV_KEY,
-        ODRA_CASPER_BACKEND,
-        ODRA_MODULE_ENV_KEY,
-        ODRA_WASM_PATH_ENV_KEY,
-    },
+    consts::{ODRA_BACKEND_ENV_KEY, ODRA_MODULE_ENV_KEY},
     errors::Error,
     log,
     paths,
@@ -123,27 +118,12 @@ pub fn cargo_build_wasm_files(current_dir: PathBuf, contract_name: &str) {
             "--target",
             "wasm32-unknown-unknown",
             "--bin",
-            "contract",
+            "build_contract",
             "--release",
             // "--target-dir",
             // "../target",
         ],
     );
-}
-
-/// Build wasm sources.
-pub fn cargo_build_wasm_sources(current_dir: PathBuf, contract_names: &[String]) {
-    let mut args = vec![
-        "--bin",
-        "contracts_build",
-        "--release",
-        "--no-default-features",
-        "--target-dir",
-        "../target",
-        "--",
-    ];
-    contract_names.iter().for_each(|name| args.push(name));
-    cargo(current_dir, "run", args);
 }
 
 /// Update a cargo module.
