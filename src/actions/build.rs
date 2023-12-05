@@ -63,11 +63,11 @@ impl BuildAction<'_> {
     pub fn build(&self) {
         self.check_target_requirements();
         self.validate_contract_name_argument();
-        self.prepare_builder();
-        self.build_wasm_sources();
-        self.format_builder_files();
+        // self.prepare_builder();
+        // self.build_wasm_sources();
+        // self.format_builder_files();
         self.build_wasm_files();
-        self.copy_wasm_files();
+        // self.copy_wasm_files();
         self.optimize_wasm_files();
     }
 
@@ -170,7 +170,11 @@ impl BuildAction<'_> {
     fn build_wasm_files(&self) {
         log::info("Generating wasm files...");
         for contract in self.contracts() {
-            command::cargo_build_wasm_files(self.builder_paths.root(), &contract.name);
+            command::cargo_build_wasm_files(self.project.project_root(), &contract.name);
+            let source = paths::wasm_path_in_target("contract", self.project.project_root());
+            let target = paths::wasm_path_in_wasm_dir(&contract.name, self.project.project_root());
+            log::info(format!("Saving {}", target.display()));
+            command::cp(source, target);
         }
     }
 

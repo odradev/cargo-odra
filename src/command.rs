@@ -11,7 +11,18 @@ use std::{
 use clap::Parser;
 use Error::InvalidInternalCommand;
 
-use crate::{cli::Cargo, consts::ODRA_WASM_PATH_ENV_KEY, errors::Error, log, paths};
+use crate::{
+    cli::Cargo,
+    consts::{
+        ODRA_BACKEND_ENV_KEY,
+        ODRA_CASPER_BACKEND,
+        ODRA_MODULE_ENV_KEY,
+        ODRA_WASM_PATH_ENV_KEY,
+    },
+    errors::Error,
+    log,
+    paths,
+};
 
 /// Returns output of a command as a String.
 pub fn command_output(command: &str) -> String {
@@ -104,6 +115,7 @@ fn cargo(current_dir: PathBuf, command: &str, tail_args: Vec<&str>) {
 
 /// Build wasm files.
 pub fn cargo_build_wasm_files(current_dir: PathBuf, contract_name: &str) {
+    env::set_var(ODRA_MODULE_ENV_KEY, contract_name);
     cargo(
         current_dir,
         "build",
@@ -111,11 +123,10 @@ pub fn cargo_build_wasm_files(current_dir: PathBuf, contract_name: &str) {
             "--target",
             "wasm32-unknown-unknown",
             "--bin",
-            contract_name,
+            "contract",
             "--release",
-            "--no-default-features",
-            "--target-dir",
-            "../target",
+            // "--target-dir",
+            // "../target",
         ],
     );
 }
@@ -146,24 +157,20 @@ pub fn cargo_fmt(current_dir: PathBuf) {
 }
 
 /// Runs cargo test.
-pub fn cargo_test_mock_vm(current_dir: PathBuf, args: Vec<&str>) {
+pub fn cargo_test_mock_vm(current_dir: PathBuf, mut args: Vec<&str>) {
     log::info("Running cargo test...");
-    cargo(current_dir, "test", args);
+    let mut tail_args = vec!["--lib"];
+    tail_args.append(&mut args);
+    cargo(current_dir, "test", tail_args);
 }
 
 /// Runs cargo test with backend features.
-pub fn cargo_test_backend(project_root: PathBuf, backend_name: &str, tail_args: Vec<&str>) {
-    env::set_var(
-        ODRA_WASM_PATH_ENV_KEY,
-        project_root.join("wasm").to_str().unwrap(),
-    );
+pub fn cargo_test_backend(project_root: PathBuf, backend_name: &str, mut args: Vec<&str>) {
+    env::set_var(ODRA_BACKEND_ENV_KEY, backend_name);
     log::info("Running cargo test...");
-    let mut args = vec!["--no-default-features", "--features", backend_name];
-    for arg in tail_args {
-        args.push(arg);
-    }
-
-    cargo(project_root, "test", args)
+    let mut tail_args = vec!["--lib"];
+    tail_args.append(&mut args);
+    cargo(project_root, "test", tail_args)
 }
 
 /// Runs cargo clean.

@@ -3,6 +3,12 @@
 /// Casper backend name.
 pub const ODRA_CASPER_BACKEND: &str = "casper";
 
+/// Odra backend env key
+pub const ODRA_BACKEND_ENV_KEY: &str = "ODRA_BACKEND";
+
+/// Odra module env key
+pub const ODRA_MODULE_ENV_KEY: &str = "ODRA_MODULE";
+
 /// Template repository path.
 pub const ODRA_TEMPLATE_GH_REPO: &str = "https://github.com/odradev/odra.git";
 
