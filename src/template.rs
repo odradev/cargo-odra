@@ -3,11 +3,8 @@ use ureq::get;
 use crate::{
     command::read_file_content,
     consts::{
-        GEN_CONTRACT_MOD,
-        MATCH_CONTRACT_NAME,
         MODULE_REGISTER,
         MODULE_TEMPLATE,
-        WASM_SINGLE_SOURCE_BUILDER,
     },
     errors::Error,
     project::OdraLocation,
@@ -67,39 +64,6 @@ impl TemplateGenerator {
                     })
             }
         }
-    }
-
-    /// Returns content of the new contracts_builder.rs file.
-    pub fn wasm_source_builder(
-        &self,
-        contracts_names: Vec<(String, String)>,
-        backend_name: &str,
-    ) -> Result<String, Error> {
-        let contract_matcher = contracts_names
-            .iter()
-            .map(|(_, contract_name)| {
-                self.fetch_template(MATCH_CONTRACT_NAME)
-                    .map(|t| t.replace("#contract_name", contract_name))
-            })
-            .collect::<Result<Vec<_>, Error>>()?
-            .join("\n");
-
-        let gen_contract_mod = contracts_names
-            .iter()
-            .map(|(fqn, contract_name)| {
-                self.fetch_template(GEN_CONTRACT_MOD).map(|t| {
-                    t.replace("#fqn", fqn)
-                        .replace("#contract_name", contract_name)
-                        .replace("#backend_name", backend_name)
-                })
-            })
-            .collect::<Result<Vec<_>, Error>>()?
-            .join("\n");
-
-        Ok(self
-            .fetch_template(WASM_SINGLE_SOURCE_BUILDER)?
-            .replace("#code_gen_modules", &gen_contract_mod)
-            .replace("#contract_matcher", &contract_matcher))
     }
 
     /// Returns content of the new module file.

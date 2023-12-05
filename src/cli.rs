@@ -82,10 +82,6 @@ pub struct InitCommand {
 #[derive(clap::Args)]
 /// `cargo odra build`
 pub struct BuildCommand {
-    /// Name of the backend that will be used for the build process (e.g. casper).
-    #[clap(value_parser, long, short, value_parser = [consts::ODRA_CASPER_BACKEND])]
-    pub backend: String,
-
     /// Contracts names separated by a space that matches the names in Odra.toml.
     #[clap(value_parser, long, short)]
     pub contracts_names: Option<String>,
@@ -135,7 +131,7 @@ pub fn make_action() {
         .unwrap_or_else(|_| Error::CouldNotDetermineCurrentDirectory.print_and_die());
     match args.subcommand {
         OdraSubcommand::Build(build) => {
-            Project::detect(current_dir).build(build.backend, build.contracts_names);
+            Project::detect(current_dir).build(build.contracts_names);
         }
         OdraSubcommand::Test(test) => {
             Project::detect(current_dir).test(test);

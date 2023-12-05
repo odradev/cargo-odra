@@ -186,8 +186,8 @@ impl Project {
     }
 
     /// Builds the project
-    pub fn build(&self, backend: String, contracts_names: Option<String>) {
-        BuildAction::new(self, backend, contracts_names).build();
+    pub fn build(&self, contracts_names: Option<String>) {
+        BuildAction::new(self, contracts_names).build();
     }
 
     /// Runs test in the Project.
@@ -252,11 +252,6 @@ impl Project {
     /// Root directory of the Project.
     pub fn project_root(&self) -> PathBuf {
         self.project_root.clone()
-    }
-
-    /// Check if the project is a workspace.
-    pub fn is_workspace(&self) -> bool {
-        self.members.len() > 1 || self.members[0].root != self.project_root()
     }
 
     /// Returns project's OdraToml.

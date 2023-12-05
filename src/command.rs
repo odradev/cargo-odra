@@ -56,11 +56,6 @@ pub fn cp(source: PathBuf, target: PathBuf) {
     );
 }
 
-/// Creates a directory.
-pub fn mkdir(path: PathBuf) {
-    fs::create_dir_all(path).unwrap();
-}
-
 /// Remove a directory.
 pub fn rm_dir(path: PathBuf) {
     log::info(format!("Removing {}...", path.display()));
@@ -68,6 +63,11 @@ pub fn rm_dir(path: PathBuf) {
     if result.is_err() {
         Error::RemoveDirNotPossible(path).print_and_die();
     };
+}
+
+/// Creates a directory.
+pub fn mkdir(path: PathBuf) {
+    fs::create_dir_all(path).unwrap();
 }
 
 /// Runs wasm-strip.
@@ -120,8 +120,6 @@ pub fn cargo_build_wasm_files(current_dir: PathBuf, contract_name: &str) {
             "--bin",
             "build_contract",
             "--release",
-            // "--target-dir",
-            // "../target",
         ],
     );
 }
@@ -129,11 +127,6 @@ pub fn cargo_build_wasm_files(current_dir: PathBuf, contract_name: &str) {
 /// Update a cargo module.
 pub fn cargo_update(current_dir: PathBuf) {
     cargo(current_dir, "update", vec![]);
-}
-
-/// Runs cargo fmt.
-pub fn cargo_fmt(current_dir: PathBuf) {
-    cargo(current_dir, "fmt", vec![]);
 }
 
 /// Runs cargo test.

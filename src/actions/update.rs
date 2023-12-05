@@ -2,34 +2,12 @@
 
 use std::path::PathBuf;
 
-use crate::{cli::UpdateCommand, command, log, paths};
+use crate::{cli::UpdateCommand, command, log};
 
 /// Runs `cargo update` on project and backends in .builder* folders.
 /// If backend is specified update will be made only in its folder.
-pub fn update_action(update_command: UpdateCommand, project_root: PathBuf) {
-    if let Some(backend) = update_command.backend {
-        let builder_paths = paths::BuilderPaths::new(backend, project_root);
-        update_builder(builder_paths.root());
-    } else {
-        update_all_builders();
-        update_project();
-    }
-}
-
-/// Update a builder crate.
-fn update_builder(builder: PathBuf) {
-    log::info(format!(
-        "Running cargo update for {} builder...",
-        builder.to_str().unwrap()
-    ));
-    command::cargo_update(builder);
-}
-
-/// Update all builders.
-fn update_all_builders() {
-    for builder_dir in glob::glob(".builder_*").unwrap().flatten() {
-        update_builder(builder_dir);
-    }
+pub fn update_action(_update_command: UpdateCommand, _project_root: PathBuf) {
+    update_project();
 }
 
 /// Update root project.

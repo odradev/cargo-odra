@@ -70,7 +70,7 @@ impl TestAction<'_> {
 
     /// Build *.wasm files before testing.
     fn build_wasm_files(&self) {
-        BuildAction::new(self.project, String::from(self.backend_name()), None).build();
+        BuildAction::new(self.project, None).build();
         log::info("Building finished.")
     }
 }
