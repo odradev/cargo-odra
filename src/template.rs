@@ -2,10 +2,7 @@ use ureq::get;
 
 use crate::{
     command::read_file_content,
-    consts::{
-        MODULE_REGISTER,
-        MODULE_TEMPLATE,
-    },
+    consts::{MODULE_REGISTER, MODULE_TEMPLATE},
     errors::Error,
     project::OdraLocation,
 };

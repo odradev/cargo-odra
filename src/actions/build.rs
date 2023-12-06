@@ -72,15 +72,9 @@ impl BuildAction<'_> {
         log::info("Generating wasm files...");
         command::mkdir(paths::wasm_dir(self.project.project_root()));
         for contract in self.contracts() {
-            command::cargo_build_wasm_files(
-                self.project.project_root(),
-                &paths::to_snake_titlecase(&contract.name),
-            );
+            command::cargo_build_wasm_files(self.project.project_root(), &contract.name);
             let source = paths::wasm_path_in_target("build_contract", self.project.project_root());
-            let target = paths::wasm_path_in_wasm_dir(
-                &paths::to_snake_titlecase(&contract.name),
-                self.project.project_root(),
-            );
+            let target = paths::wasm_path_in_wasm_dir(&contract.name, self.project.project_root());
             log::info(format!("Saving {}", target.display()));
             command::cp(source, target);
         }
@@ -90,10 +84,7 @@ impl BuildAction<'_> {
     fn optimize_wasm_files(&self) {
         log::info("Optimizing wasm files...");
         for contract in self.contracts() {
-            command::wasm_strip(
-                &paths::to_snake_titlecase(contract.name),
-                self.project.project_root(),
-            );
+            command::wasm_strip(&contract.name, self.project.project_root());
         }
     }
 

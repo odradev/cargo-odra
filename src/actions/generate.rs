@@ -19,7 +19,6 @@ use crate::{
 pub struct GenerateAction<'a> {
     project: &'a Project,
     contract_name: String,
-    contract_module_ident: String,
     module_root: PathBuf,
     module_name: String,
     template_generator: TemplateGenerator,
@@ -31,8 +30,7 @@ impl<'a> GenerateAction<'a> {
     pub fn new(project: &'a Project, contract_name: String, module_name: Option<String>) -> Self {
         GenerateAction {
             project,
-            contract_name: paths::to_snake_case(&contract_name),
-            contract_module_ident: contract_name.to_case(Case::UpperCamel),
+            contract_name,
             module_root: project.module_root(module_name.clone()),
             module_name: project.module_name(module_name),
             template_generator: TemplateGenerator::new(
@@ -58,8 +56,13 @@ impl GenerateAction<'_> {
     }
 
     /// Returns the module identifier. It is the struct name.
-    fn module_ident(&self) -> &str {
-        &self.contract_module_ident
+    fn module_ident(&self) -> String {
+        let contract_name = self.contract_name();
+        contract_name.to_case(Case::UpperCamel)
+    }
+
+    fn contract_snake_case(&self) -> String {
+        paths::to_snake_case(self.contract_name())
     }
 
     /// Returns the module Ref identifier.
@@ -71,7 +74,7 @@ impl GenerateAction<'_> {
     fn module_file_path(&self) -> PathBuf {
         self.module_root
             .join("src")
-            .join(self.contract_name())
+            .join(self.contract_snake_case())
             .with_extension("rs")
     }
 
@@ -80,7 +83,7 @@ impl GenerateAction<'_> {
         // Rename module name.
         let contract_body = self
             .template_generator
-            .module_template(self.module_ident())
+            .module_template(&self.module_ident())
             .unwrap_or_else(|err| err.print_and_die());
 
         // Make sure the file do not exists.
@@ -98,7 +101,7 @@ impl GenerateAction<'_> {
         // Prepare code to add.
         let register_module_code = self
             .template_generator
-            .register_module_snippet(self.contract_name(), self.module_ident())
+            .register_module_snippet(&self.contract_snake_case(), &self.module_ident())
             .unwrap_or_else(|err| err.print_and_die());
 
         // Read the file.

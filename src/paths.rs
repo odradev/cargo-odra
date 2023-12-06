@@ -33,12 +33,3 @@ pub fn to_snake_case<T: AsRef<str>>(text: T) -> String {
         .without_boundaries(&[Boundary::UpperDigit, Boundary::LowerDigit])
         .to_case(Case::Snake)
 }
-
-pub fn to_snake_titlecase<T: AsRef<str>>(text: T) -> String {
-    let mut text = to_snake_case(text);
-    if let Some(r) = text.get_mut(0..1) {
-        r.make_ascii_uppercase();
-    }
-
-    text
-}
