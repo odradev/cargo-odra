@@ -1,4 +1,4 @@
-DEVELOPMENT_ODRA_BRANCH := "release/0.5.0"
+DEVELOPMENT_ODRA_BRANCH := "release/0.7.1"
 
 default:
     just --list

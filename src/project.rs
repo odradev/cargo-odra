@@ -83,8 +83,6 @@ impl Project {
             },
         };
 
-        dbg!(template_path.clone());
-
         cargo_generate::generate(GenerateArgs {
             template_path,
             list_favorites: false,
