@@ -2,6 +2,12 @@
 
 Changelog for `cargo-odra`.
 
+## [0.0.10] - 2023-12-13
+
+### Fixed
+- Fixed error that caused the template for odra 0.8.0 being downloaded for earlier
+versions of odra.
+
 ## [0.0.9] - 2023-07-19
 
 ### Added
