@@ -83,6 +83,8 @@ impl Project {
             },
         };
 
+        dbg!(template_path.clone());
+
         cargo_generate::generate(GenerateArgs {
             template_path,
             list_favorites: false,
@@ -399,11 +401,10 @@ impl Project {
     }
 
     fn odra_location(source: Option<String>) -> OdraLocation {
-        // repo
         let source = if let Some(source) = source {
             source
         } else {
-            return OdraLocation::Remote(ODRA_TEMPLATE_GH_REPO.to_string(), None);
+            Self::odra_latest_version()
         };
 
         // location on disk
