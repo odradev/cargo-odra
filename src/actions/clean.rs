@@ -6,14 +6,8 @@ use crate::command;
 
 /// Removes wasm folder, .builder* folders and runs `cargo clean`.
 pub fn clean_action(project_root: PathBuf) {
+    // TODO: Clean wasm folders of modules
     for folder in glob::glob(project_root.join("wasm/*").as_os_str().to_str().unwrap())
-        .unwrap()
-        .flatten()
-    {
-        command::rm_dir(folder);
-    }
-
-    for folder in glob::glob(project_root.join(".builder*").as_os_str().to_str().unwrap())
         .unwrap()
         .flatten()
     {

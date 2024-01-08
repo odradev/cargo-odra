@@ -20,6 +20,16 @@ test-project-generation-on-future-odra:
     cargo odra new --name testproject --source {{DEVELOPMENT_ODRA_BRANCH}}
     just test-testproject
 
+test-workspace-generation-on-stable-odra:
+    rm -rf testworkspace
+    cargo odra new --name testproject --template workspace
+    just test-testproject
+
+test-workspace-generation-on-future-odra:
+    rm -rf testworkspace
+    cargo odra new --name testproject --template workspace --source {{DEVELOPMENT_ODRA_BRANCH}}
+    just test-testproject
+
 test-testproject:
     cd testproject && rustup target add wasm32-unknown-unknown
     cd testproject && rustup component add rustfmt --toolchain nightly-2023-03-01-x86_64-unknown-linux-gnu

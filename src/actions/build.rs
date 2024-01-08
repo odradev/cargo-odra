@@ -72,11 +72,31 @@ impl BuildAction<'_> {
         log::info("Generating wasm files...");
         command::mkdir(paths::wasm_dir(self.project.project_root()));
         for contract in self.contracts() {
-            command::cargo_build_wasm_files(self.project.project_root(), &contract.name);
-            let source = paths::wasm_path_in_target("build_contract", self.project.project_root());
+            let build_contract = format!("{}_build_contract", &contract.module_name());
+            command::cargo_build_wasm_files(
+                self.project.project_root(),
+                &contract.name,
+                &contract.module_name(),
+            );
+            let source = paths::wasm_path_in_target(&build_contract, self.project.project_root());
             let target = paths::wasm_path_in_wasm_dir(&contract.name, self.project.project_root());
             log::info(format!("Saving {}", target.display()));
-            command::cp(source, target);
+            command::cp(source.clone(), target);
+            // if a contract is in a module, copy the file also to the module wasm folder
+            if self.project.odra_toml().has_module(&contract.module_name())
+                && contract.module_name() != self.project.name
+            {
+                let module_wasm_dir = self
+                    .project
+                    .project_root()
+                    .join(contract.module_name())
+                    .join("wasm");
+                command::mkdir(module_wasm_dir.clone());
+                let mut module_wasm_path = module_wasm_dir.clone().join(&contract.name);
+                module_wasm_path.set_extension("wasm");
+                log::info(format!("Copying to {}", module_wasm_path.display()));
+                command::cp(source, module_wasm_path);
+            }
         }
     }
 
@@ -84,6 +104,7 @@ impl BuildAction<'_> {
     fn optimize_wasm_files(&self) {
         log::info("Optimizing wasm files...");
         for contract in self.contracts() {
+            // TODO: Optimize wasm files in modules
             command::wasm_strip(&contract.name, self.project.project_root());
         }
     }

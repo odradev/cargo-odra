@@ -15,6 +15,7 @@ use crate::{
     command::replace_in_file,
     consts::{ODRA_GITHUB_API_DATA, ODRA_TEMPLATE_GH_REPO},
     errors::Error,
+    log,
     odra_toml::OdraToml,
     paths,
 };
@@ -47,6 +48,7 @@ impl Project {
         if init_action.init {
             Self::assert_dir_is_empty(init_action.current_dir.clone());
         }
+        log::info("Generating a new project...");
 
         let odra_location = Self::odra_location(init_action.source);
 
@@ -153,6 +155,7 @@ impl Project {
             )
             .as_str(),
         );
+        log::info("Done!");
     }
 
     /// Detects an existing project.

@@ -4,15 +4,28 @@ use std::path::{Path, PathBuf};
 
 use serde_derive::{Deserialize, Serialize};
 
-use crate::{command, errors::Error};
+use crate::{
+    command,
+    errors::{Error, Error::MalformedFqn},
+};
 
 /// Struct describing contract.
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Contract {
     /// Name of the contract
     pub name: String,
-    /// Fully Qualified Name of the contract struct
     pub fqn: String,
+}
+
+impl Contract {
+    /// Extracts first part from fqn
+    pub fn module_name(&self) -> String {
+        self.fqn
+            .split_terminator("::")
+            .next()
+            .unwrap_or_else(|| MalformedFqn.print_and_die())
+            .to_string()
+    }
 }
 
 /// Odra configuration.
