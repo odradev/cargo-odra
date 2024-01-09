@@ -104,8 +104,13 @@ impl BuildAction<'_> {
     fn optimize_wasm_files(&self) {
         log::info("Optimizing wasm files...");
         for contract in self.contracts() {
-            // TODO: Optimize wasm files in modules
             command::wasm_strip(&contract.name, self.project.project_root());
+            if contract.module_name() != self.project.name {
+                command::wasm_strip(
+                    &contract.name,
+                    self.project.project_root().join(contract.module_name()),
+                );
+            }
         }
     }
 

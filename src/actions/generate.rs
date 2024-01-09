@@ -19,6 +19,7 @@ use crate::{
 pub struct GenerateAction<'a> {
     project: &'a Project,
     contract_name: String,
+    contract_module_ident: String,
     module_root: PathBuf,
     module_name: String,
     template_generator: TemplateGenerator,
@@ -30,7 +31,8 @@ impl<'a> GenerateAction<'a> {
     pub fn new(project: &'a Project, contract_name: String, module_name: Option<String>) -> Self {
         GenerateAction {
             project,
-            contract_name,
+            contract_name: contract_name.clone(),
+            contract_module_ident: contract_name.to_case(Case::UpperCamel),
             module_root: project.module_root(module_name.clone()),
             module_name: project.module_name(module_name),
             template_generator: TemplateGenerator::new(
@@ -116,7 +118,7 @@ impl GenerateAction<'_> {
 
         // Check if he file might have the module registered in another form.
         if lib_rs.contains(self.contract_name())
-            || (lib_rs.contains(self.module_ident()) && lib_rs.contains(&self.module_ref_ident()))
+            || (lib_rs.contains(&self.module_ident()) && lib_rs.contains(&self.module_ref_ident()))
         {
             log::warn(format!(
                 "src/lib.rs probably already has {} enabled. Skipping.",

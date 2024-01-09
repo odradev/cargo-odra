@@ -165,7 +165,7 @@ pub fn make_action() {
         }
         OdraSubcommand::Clean(_) => {
             let project = Project::detect(current_dir);
-            clean_action(project.project_root());
+            clean_action(&project);
         }
         OdraSubcommand::Update(update) => {
             let project = Project::detect(current_dir);
