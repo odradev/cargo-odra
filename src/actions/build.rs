@@ -37,7 +37,7 @@ impl BuildAction<'_> {
             false => odra_toml
                 .contracts
                 .into_iter()
-                .filter(|c| names.contains(&c.name))
+                .filter(|c| names.contains(&c.struct_name()))
                 .collect(),
         }
     }
@@ -60,7 +60,7 @@ impl BuildAction<'_> {
                 .odra_toml()
                 .contracts
                 .iter()
-                .any(|c| c.name == *contract_name)
+                .any(|c| c.struct_name() == *contract_name)
             {
                 Error::ContractNotFound(contract_name.clone()).print_and_die();
             }
@@ -71,15 +71,17 @@ impl BuildAction<'_> {
     fn build_wasm_files(&self) {
         log::info("Generating wasm files...");
         command::mkdir(paths::wasm_dir(self.project.project_root()));
+
         for contract in self.contracts() {
             let build_contract = format!("{}_build_contract", &contract.module_name());
             command::cargo_build_wasm_files(
                 self.project.project_root(),
-                &contract.name,
+                &contract.struct_name(),
                 &contract.module_name(),
             );
             let source = paths::wasm_path_in_target(&build_contract, self.project.project_root());
-            let target = paths::wasm_path_in_wasm_dir(&contract.name, self.project.project_root());
+            let target =
+                paths::wasm_path_in_wasm_dir(&contract.struct_name(), self.project.project_root());
             log::info(format!("Saving {}", target.display()));
             command::cp(source.clone(), target);
             // if a contract is in a module, copy the file also to the module wasm folder
@@ -92,7 +94,7 @@ impl BuildAction<'_> {
                     .join(contract.module_name())
                     .join("wasm");
                 command::mkdir(module_wasm_dir.clone());
-                let mut module_wasm_path = module_wasm_dir.clone().join(&contract.name);
+                let mut module_wasm_path = module_wasm_dir.clone().join(&contract.struct_name());
                 module_wasm_path.set_extension("wasm");
                 log::info(format!("Copying to {}", module_wasm_path.display()));
                 command::cp(source, module_wasm_path);
@@ -104,10 +106,10 @@ impl BuildAction<'_> {
     fn optimize_wasm_files(&self) {
         log::info("Optimizing wasm files...");
         for contract in self.contracts() {
-            command::wasm_strip(&contract.name, self.project.project_root());
+            command::wasm_strip(&contract.struct_name(), self.project.project_root());
             if contract.module_name() != self.project.name {
                 command::wasm_strip(
-                    &contract.name,
+                    &contract.struct_name(),
                     self.project.project_root().join(contract.module_name()),
                 );
             }

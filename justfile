@@ -28,7 +28,7 @@ test-workspace-generation-on-stable-odra:
 test-workspace-generation-on-future-odra:
     rm -rf testproject
     cargo odra new --name testproject --template workspace --source {{DEVELOPMENT_ODRA_BRANCH}}
-    just test-testproject
+    just test-workspace-project
 
 test-testproject:
     cd testproject && rustup target add wasm32-unknown-unknown

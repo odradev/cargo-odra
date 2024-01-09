@@ -137,21 +137,20 @@ impl GenerateAction<'_> {
     /// Add contract definition to Odra.toml.
     fn update_odra_toml(&self) {
         let mut odra_toml = self.project.odra_toml();
-        let contract_name = self.contract_name();
+        let contract_name = self.module_ident();
 
         // Check if Odra.toml has already a contract.
-        let exists = odra_toml.has_contract(contract_name);
+        let exists = odra_toml.has_contract(contract_name.as_str());
         if exists {
-            Error::ContractAlreadyInOdraToml(String::from(contract_name)).print_and_die();
+            Error::ContractAlreadyInOdraToml(contract_name).print_and_die();
         }
 
         // Add contract to Odra.toml.
         odra_toml.contracts.push(Contract {
-            name: self.contract_name().to_string(),
             fqn: format!(
                 "{}::{}::{}",
                 self.module_name,
-                self.contract_name(),
+                self.module_ident(),
                 self.module_ident()
             ),
         });
