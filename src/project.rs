@@ -237,6 +237,11 @@ impl Project {
         }
     }
 
+    /// Checks if the project is a workspace.
+    pub fn is_workspace(&self) -> bool {
+        !self.members.is_empty()
+    }
+
     /// Searches for main Projects' Cargo.toml.
     pub fn find_cargo_toml(path: PathBuf) -> Option<PathBuf> {
         match Self::find_file_upwards("Odra.toml", path) {
@@ -310,12 +315,8 @@ impl Project {
                 .filter(|member| odra_toml.has_module(member))
                 .map(|member| (member.clone(), member.clone()))
                 .collect(),
-            None => vec![(Self::detect_project_name(cargo_toml_path), "".to_string())],
+            None => vec![],
         }
-    }
-
-    fn detect_project_name(cargo_toml_path: &PathBuf) -> String {
-        load_cargo_toml(cargo_toml_path).package.unwrap().name
     }
 
     fn odra_project_dependency(odra_location: OdraLocation, init: bool) -> Dependency {

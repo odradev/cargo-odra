@@ -84,10 +84,8 @@ impl BuildAction<'_> {
                 paths::wasm_path_in_wasm_dir(&contract.struct_name(), self.project.project_root());
             log::info(format!("Saving {}", target.display()));
             command::cp(source.clone(), target);
-            // if a contract is in a module, copy the file also to the module wasm folder
-            if self.project.odra_toml().has_module(&contract.module_name())
-                && contract.module_name() != self.project.name
-            {
+            // if it's a workspace, copy the file also to the module wasm folder
+            if self.project.is_workspace() {
                 let module_wasm_dir = self
                     .project
                     .project_root()
@@ -107,7 +105,7 @@ impl BuildAction<'_> {
         log::info("Optimizing wasm files...");
         for contract in self.contracts() {
             command::wasm_strip(&contract.struct_name(), self.project.project_root());
-            if contract.module_name() != self.project.name {
+            if self.project.is_workspace() {
                 command::wasm_strip(
                     &contract.struct_name(),
                     self.project.project_root().join(contract.module_name()),
