@@ -5,7 +5,14 @@ use std::env;
 use clap::{CommandFactory, Parser, Subcommand};
 
 use crate::{
-    actions::{clean::clean_action, init::InitAction, update::update_action},
+    actions::{
+        build::BuildAction,
+        clean::clean_action,
+        generate::GenerateAction,
+        init::InitAction,
+        test::TestAction,
+        update::update_action,
+    },
     consts,
     errors::Error,
     project::Project,
@@ -131,37 +138,23 @@ pub fn make_action() {
         .unwrap_or_else(|_| Error::CouldNotDetermineCurrentDirectory.print_and_die());
     match args.subcommand {
         OdraSubcommand::Build(build) => {
-            Project::detect(current_dir).build(build.contracts_names);
+            let project = Project::detect(current_dir);
+            BuildAction::new(&project, build.contracts_names).build();
         }
         OdraSubcommand::Test(test) => {
-            Project::detect(current_dir).test(test);
+            let project = Project::detect(current_dir);
+            TestAction::new(&project, test.backend, test.args, test.skip_build).test();
         }
         OdraSubcommand::Generate(generate) => {
-            Project::detect(current_dir).generate(generate);
+            let project = Project::detect(current_dir);
+            GenerateAction::new(&project, generate.contract_name, generate.module)
+                .generate_contract();
         }
         OdraSubcommand::New(init) => {
-            Project::init(InitAction {
-                project_name: init.name,
-                generate: true,
-                init: false,
-                repo_uri: init.repo_uri,
-                source: init.source,
-                workspace: false,
-                template: init.template,
-                current_dir,
-            });
+            InitAction::generate_project(init, current_dir, false);
         }
         OdraSubcommand::Init(init) => {
-            Project::init(InitAction {
-                project_name: init.name,
-                generate: true,
-                init: true,
-                repo_uri: init.repo_uri,
-                source: init.source,
-                workspace: false,
-                template: init.template,
-                current_dir,
-            });
+            InitAction::generate_project(init, current_dir, true);
         }
         OdraSubcommand::Clean(_) => {
             let project = Project::detect(current_dir);
