@@ -105,14 +105,35 @@ impl InitAction {
         };
 
         replace_in_file(
-            cargo_toml_path,
+            cargo_toml_path.clone(),
             "#odra_dependency",
             format!(
                 "odra = {{ {} }}",
-                toml::to_string(&Self::odra_project_dependency(odra_location, init))
-                    .unwrap()
-                    .trim_end()
-                    .replace('\n', ", ")
+                toml::to_string(&Self::odra_project_dependency(
+                    odra_location.clone(),
+                    "odra",
+                    init
+                ))
+                .unwrap()
+                .trim_end()
+                .replace('\n', ", ")
+            )
+            .as_str(),
+        );
+
+        replace_in_file(
+            cargo_toml_path,
+            "#odra_test_dependency",
+            format!(
+                "odra-test = {{ {} }}",
+                toml::to_string(&Self::odra_project_dependency(
+                    odra_location,
+                    "odra-test",
+                    init
+                ))
+                .unwrap()
+                .trim_end()
+                .replace('\n', ", ")
             )
             .as_str(),
         );
@@ -163,7 +184,11 @@ impl InitAction {
         response["tag_name"].as_str().unwrap().to_string()
     }
 
-    fn odra_project_dependency(odra_location: OdraLocation, init: bool) -> Dependency {
+    fn odra_project_dependency(
+        odra_location: OdraLocation,
+        crate_name: &str,
+        init: bool,
+    ) -> Dependency {
         let (version, path, git, branch) = match odra_location {
             OdraLocation::Local(path) => {
                 let path = match init {
@@ -171,7 +196,7 @@ impl InitAction {
                     false => PathBuf::from("..").join(path),
                 };
                 let path = path
-                    .join("odra")
+                    .join(crate_name)
                     .into_os_string()
                     .to_str()
                     .unwrap()
