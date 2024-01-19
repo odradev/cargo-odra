@@ -1,7 +1,7 @@
 //! Module for managing and building backends.
 
 use super::utils;
-use crate::{command, log, paths, project::Project};
+use crate::{command, errors::Error, log, paths, project::Project};
 
 /// BuildAction configuration.
 pub struct BuildAction<'a> {

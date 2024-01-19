@@ -24,7 +24,7 @@ pub fn contracts(project: &Project, names_string: String) -> Result<Vec<Contract
 
 /// Check if contract name argument is valid if set.
 pub fn validate_contract_name_argument(project: &Project, names_string: String) {
-    let names = parse_contracts_names(names_string);
+    let names = parse_contracts_names(names_string).unwrap_or_default();
     names.iter().for_each(|contract_name| {
         if !project
             .odra_toml()
