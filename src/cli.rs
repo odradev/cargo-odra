@@ -10,6 +10,7 @@ use crate::{
         clean::clean_action,
         generate::GenerateAction,
         init::InitAction,
+        schema::SchemaAction,
         test::TestAction,
         update::update_action,
     },
@@ -51,6 +52,8 @@ pub enum OdraSubcommand {
     Init(InitCommand),
     /// Builds the project, including backend and producing wasm files.
     Build(BuildCommand),
+    /// Generates schema for a given contract.
+    Schema(SchemaCommand),
     /// Runs test. Without the backend parameter, the tests will be run against Mock VM.
     Test(TestCommand),
     /// Generates boilerplate code for contracts.
@@ -89,6 +92,14 @@ pub struct InitCommand {
 #[derive(clap::Args)]
 /// `cargo odra build`
 pub struct BuildCommand {
+    /// Contracts names separated by a space that matches the names in Odra.toml.
+    #[clap(value_parser, long, short)]
+    pub contracts_names: Option<String>,
+}
+
+#[derive(clap::Args)]
+/// `cargo odra schema`
+pub struct SchemaCommand {
     /// Contracts names separated by a space that matches the names in Odra.toml.
     #[clap(value_parser, long, short)]
     pub contracts_names: Option<String>,
@@ -166,6 +177,10 @@ pub fn make_action() {
         }
         OdraSubcommand::Completions { shell } => {
             shell.generate(&mut Cargo::command(), &mut std::io::stdout());
+        }
+        OdraSubcommand::Schema(schema) => {
+            let project = Project::detect(current_dir);
+            SchemaAction::new(&project, schema.contracts_names).build();
         }
     }
 }
