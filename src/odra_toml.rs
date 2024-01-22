@@ -17,7 +17,7 @@ pub struct Contract {
 
 impl Contract {
     /// Extracts first part from fqn
-    pub fn module_name(&self) -> String {
+    pub fn crate_name(&self) -> String {
         self.fqn
             .split_terminator("::")
             .next()
