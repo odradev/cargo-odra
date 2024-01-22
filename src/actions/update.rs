@@ -4,8 +4,7 @@ use std::path::PathBuf;
 
 use crate::{cli::UpdateCommand, command, log};
 
-/// Runs `cargo update` on project and backends in .builder* folders.
-/// If backend is specified update will be made only in its folder.
+/// Runs `cargo update` on the project.
 pub fn update_action(_update_command: UpdateCommand, _project_root: PathBuf) {
     update_project();
 }
