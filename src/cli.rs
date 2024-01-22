@@ -5,7 +5,15 @@ use std::env;
 use clap::{CommandFactory, Parser, Subcommand};
 
 use crate::{
-    actions::{clean::clean_action, init::InitAction, update::update_action},
+    actions::{
+        build::BuildAction,
+        clean::clean_action,
+        generate::GenerateAction,
+        init::InitAction,
+        schema::SchemaAction,
+        test::TestAction,
+        update::update_action,
+    },
     consts,
     errors::Error,
     project::Project,
@@ -44,6 +52,8 @@ pub enum OdraSubcommand {
     Init(InitCommand),
     /// Builds the project, including backend and producing wasm files.
     Build(BuildCommand),
+    /// Generates schema for a given contract.
+    Schema(SchemaCommand),
     /// Runs test. Without the backend parameter, the tests will be run against Mock VM.
     Test(TestCommand),
     /// Generates boilerplate code for contracts.
@@ -82,10 +92,14 @@ pub struct InitCommand {
 #[derive(clap::Args)]
 /// `cargo odra build`
 pub struct BuildCommand {
-    /// Name of the backend that will be used for the build process (e.g. casper).
-    #[clap(value_parser, long, short, value_parser = [consts::ODRA_CASPER_BACKEND])]
-    pub backend: String,
+    /// Contracts names separated by a space that matches the names in Odra.toml.
+    #[clap(value_parser, long, short)]
+    pub contracts_names: Option<String>,
+}
 
+#[derive(clap::Args)]
+/// `cargo odra schema`
+pub struct SchemaCommand {
     /// Contracts names separated by a space that matches the names in Odra.toml.
     #[clap(value_parser, long, short)]
     pub contracts_names: Option<String>,
@@ -135,41 +149,27 @@ pub fn make_action() {
         .unwrap_or_else(|_| Error::CouldNotDetermineCurrentDirectory.print_and_die());
     match args.subcommand {
         OdraSubcommand::Build(build) => {
-            Project::detect(current_dir).build(build.backend, build.contracts_names);
+            let project = Project::detect(current_dir);
+            BuildAction::new(&project, build.contracts_names).build();
         }
         OdraSubcommand::Test(test) => {
-            Project::detect(current_dir).test(test);
+            let project = Project::detect(current_dir);
+            TestAction::new(&project, test.backend, test.args, test.skip_build).test();
         }
         OdraSubcommand::Generate(generate) => {
-            Project::detect(current_dir).generate(generate);
+            let project = Project::detect(current_dir);
+            GenerateAction::new(&project, generate.contract_name, generate.module)
+                .generate_contract();
         }
         OdraSubcommand::New(init) => {
-            Project::init(InitAction {
-                project_name: init.name,
-                generate: true,
-                init: false,
-                repo_uri: init.repo_uri,
-                source: init.source,
-                workspace: false,
-                template: init.template,
-                current_dir,
-            });
+            InitAction::generate_project(init, current_dir, false);
         }
         OdraSubcommand::Init(init) => {
-            Project::init(InitAction {
-                project_name: init.name,
-                generate: true,
-                init: true,
-                repo_uri: init.repo_uri,
-                source: init.source,
-                workspace: false,
-                template: init.template,
-                current_dir,
-            });
+            InitAction::generate_project(init, current_dir, true);
         }
         OdraSubcommand::Clean(_) => {
             let project = Project::detect(current_dir);
-            clean_action(project.project_root());
+            clean_action(&project);
         }
         OdraSubcommand::Update(update) => {
             let project = Project::detect(current_dir);
@@ -177,6 +177,10 @@ pub fn make_action() {
         }
         OdraSubcommand::Completions { shell } => {
             shell.generate(&mut Cargo::command(), &mut std::io::stdout());
+        }
+        OdraSubcommand::Schema(schema) => {
+            let project = Project::detect(current_dir);
+            SchemaAction::new(&project, schema.contracts_names).build();
         }
     }
 }

@@ -11,7 +11,13 @@ use std::{
 use clap::Parser;
 use Error::InvalidInternalCommand;
 
-use crate::{cli::Cargo, consts::ODRA_WASM_PATH_ENV_KEY, errors::Error, log, paths};
+use crate::{
+    cli::Cargo,
+    consts::{ODRA_BACKEND_ENV_KEY, ODRA_MODULE_ENV_KEY},
+    errors::Error,
+    log,
+    paths,
+};
 
 /// Returns output of a command as a String.
 pub fn command_output(command: &str) -> String {
@@ -50,11 +56,6 @@ pub fn cp(source: PathBuf, target: PathBuf) {
     );
 }
 
-/// Creates a directory.
-pub fn mkdir(path: PathBuf) {
-    fs::create_dir_all(path).unwrap();
-}
-
 /// Remove a directory.
 pub fn rm_dir(path: PathBuf) {
     log::info(format!("Removing {}...", path.display()));
@@ -62,6 +63,11 @@ pub fn rm_dir(path: PathBuf) {
     if result.is_err() {
         Error::RemoveDirNotPossible(path).print_and_die();
     };
+}
+
+/// Creates a directory.
+pub fn mkdir(path: PathBuf) {
+    fs::create_dir_all(path).unwrap();
 }
 
 /// Runs wasm-strip.
@@ -103,7 +109,9 @@ fn cargo(current_dir: PathBuf, command: &str, tail_args: Vec<&str>) {
 }
 
 /// Build wasm files.
-pub fn cargo_build_wasm_files(current_dir: PathBuf, contract_name: &str) {
+pub fn cargo_build_wasm_files(current_dir: PathBuf, contract_name: &str, module_name: &str) {
+    env::set_var(ODRA_MODULE_ENV_KEY, contract_name);
+    let build_contract = format!("{}_build_contract", module_name);
     cargo(
         current_dir,
         "build",
@@ -111,28 +119,17 @@ pub fn cargo_build_wasm_files(current_dir: PathBuf, contract_name: &str) {
             "--target",
             "wasm32-unknown-unknown",
             "--bin",
-            contract_name,
+            &build_contract,
             "--release",
-            "--no-default-features",
-            "--target-dir",
-            "../target",
         ],
     );
 }
 
-/// Build wasm sources.
-pub fn cargo_build_wasm_sources(current_dir: PathBuf, contract_names: &[String]) {
-    let mut args = vec![
-        "--bin",
-        "contracts_build",
-        "--release",
-        "--no-default-features",
-        "--target-dir",
-        "../target",
-        "--",
-    ];
-    contract_names.iter().for_each(|name| args.push(name));
-    cargo(current_dir, "run", args);
+/// Build schema files.
+pub fn cargo_generate_schema_files(current_dir: PathBuf, contract_name: &str, module_name: &str) {
+    env::set_var(ODRA_MODULE_ENV_KEY, contract_name);
+    let gen_schema = format!("{}_build_schema", module_name);
+    cargo(current_dir, "run", vec!["--bin", &gen_schema, "--release"]);
 }
 
 /// Update a cargo module.
@@ -140,30 +137,21 @@ pub fn cargo_update(current_dir: PathBuf) {
     cargo(current_dir, "update", vec![]);
 }
 
-/// Runs cargo fmt.
-pub fn cargo_fmt(current_dir: PathBuf) {
-    cargo(current_dir, "fmt", vec![]);
-}
-
 /// Runs cargo test.
-pub fn cargo_test_mock_vm(current_dir: PathBuf, args: Vec<&str>) {
+pub fn cargo_test_mock_vm(current_dir: PathBuf, mut args: Vec<&str>) {
     log::info("Running cargo test...");
-    cargo(current_dir, "test", args);
+    let mut tail_args = vec!["--lib"];
+    tail_args.append(&mut args);
+    cargo(current_dir, "test", tail_args);
 }
 
 /// Runs cargo test with backend features.
-pub fn cargo_test_backend(project_root: PathBuf, backend_name: &str, tail_args: Vec<&str>) {
-    env::set_var(
-        ODRA_WASM_PATH_ENV_KEY,
-        project_root.join("wasm").to_str().unwrap(),
-    );
+pub fn cargo_test_backend(project_root: PathBuf, backend_name: &str, mut args: Vec<&str>) {
+    env::set_var(ODRA_BACKEND_ENV_KEY, backend_name);
     log::info("Running cargo test...");
-    let mut args = vec!["--no-default-features", "--features", backend_name];
-    for arg in tail_args {
-        args.push(arg);
-    }
-
-    cargo(project_root, "test", args)
+    let mut tail_args = vec!["--lib"];
+    tail_args.append(&mut args);
+    cargo(project_root, "test", tail_args)
 }
 
 /// Runs cargo clean.

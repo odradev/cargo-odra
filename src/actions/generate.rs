@@ -31,7 +31,7 @@ impl<'a> GenerateAction<'a> {
     pub fn new(project: &'a Project, contract_name: String, module_name: Option<String>) -> Self {
         GenerateAction {
             project,
-            contract_name: paths::to_snake_case(&contract_name),
+            contract_name: contract_name.clone(),
             contract_module_ident: contract_name.to_case(Case::UpperCamel),
             module_root: project.module_root(module_name.clone()),
             module_name: project.module_name(module_name),
@@ -58,8 +58,13 @@ impl GenerateAction<'_> {
     }
 
     /// Returns the module identifier. It is the struct name.
-    fn module_ident(&self) -> &str {
-        &self.contract_module_ident
+    fn module_ident(&self) -> String {
+        let contract_name = self.contract_name();
+        contract_name.to_case(Case::UpperCamel)
+    }
+
+    fn contract_snake_case(&self) -> String {
+        paths::to_snake_case(self.contract_name())
     }
 
     /// Returns the module Ref identifier.
@@ -71,7 +76,7 @@ impl GenerateAction<'_> {
     fn module_file_path(&self) -> PathBuf {
         self.module_root
             .join("src")
-            .join(self.contract_name())
+            .join(self.contract_snake_case())
             .with_extension("rs")
     }
 
@@ -80,7 +85,7 @@ impl GenerateAction<'_> {
         // Rename module name.
         let contract_body = self
             .template_generator
-            .module_template(self.module_ident())
+            .module_template(&self.module_ident())
             .unwrap_or_else(|err| err.print_and_die());
 
         // Make sure the file do not exists.
@@ -98,7 +103,7 @@ impl GenerateAction<'_> {
         // Prepare code to add.
         let register_module_code = self
             .template_generator
-            .register_module_snippet(self.contract_name(), self.module_ident())
+            .register_module_snippet(&self.contract_snake_case(), &self.module_ident())
             .unwrap_or_else(|err| err.print_and_die());
 
         // Read the file.
@@ -113,7 +118,7 @@ impl GenerateAction<'_> {
 
         // Check if he file might have the module registered in another form.
         if lib_rs.contains(self.contract_name())
-            || (lib_rs.contains(self.module_ident()) && lib_rs.contains(&self.module_ref_ident()))
+            || (lib_rs.contains(&self.module_ident()) && lib_rs.contains(&self.module_ref_ident()))
         {
             log::warn(format!(
                 "src/lib.rs probably already has {} enabled. Skipping.",
@@ -132,21 +137,20 @@ impl GenerateAction<'_> {
     /// Add contract definition to Odra.toml.
     fn update_odra_toml(&self) {
         let mut odra_toml = self.project.odra_toml();
-        let contract_name = self.contract_name();
+        let contract_name = self.module_ident();
 
         // Check if Odra.toml has already a contract.
-        let exists = odra_toml.has_contract(contract_name);
+        let exists = odra_toml.has_contract(contract_name.as_str());
         if exists {
-            Error::ContractAlreadyInOdraToml(String::from(contract_name)).print_and_die();
+            Error::ContractAlreadyInOdraToml(contract_name).print_and_die();
         }
 
         // Add contract to Odra.toml.
         odra_toml.contracts.push(Contract {
-            name: self.contract_name().to_string(),
             fqn: format!(
                 "{}::{}::{}",
                 self.module_name,
-                self.contract_name(),
+                self.module_ident(),
                 self.module_ident()
             ),
         });

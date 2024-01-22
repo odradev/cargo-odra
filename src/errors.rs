@@ -43,9 +43,6 @@ pub enum Error {
     #[error("Odra.toml not found at location {0}")]
     OdraTomlNotFound(PathBuf),
 
-    #[error("Not implemented: {0}")]
-    NotImplemented(String),
-
     #[error("Failed to fetch template: {0}")]
     FailedToFetchTemplate(String),
 
@@ -93,7 +90,6 @@ impl Error {
             Error::RemoveDirNotPossible(_) => 10,
             Error::ModuleNotFound(_) => 11,
             Error::OdraTomlNotFound(_) => 12,
-            Error::NotImplemented(_) => 13,
             Error::FailedToFetchTemplate(_) => 14,
             Error::FailedToParseTemplate(_) => 15,
             Error::CouldNotDetermineCurrentDirectory => 16,

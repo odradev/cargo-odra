@@ -1,271 +1,92 @@
-//! Module for managing and building backends.
+//! Module for managing and building wasm files.
 
-use std::path::Path;
-
-use cargo_toml::{Dependency, DependencyDetail, DepsSet};
-
-use crate::{
-    cargo_toml::odra_dependency,
-    command,
-    consts::ODRA_TEMPLATE_GH_RAW_REPO,
-    errors::Error,
-    log,
-    odra_toml::Contract,
-    paths::{self, BuilderPaths},
-    project::Project,
-    template::TemplateGenerator,
-};
+use super::utils;
+use crate::{command, errors::Error, log, paths, project::Project};
 
 /// BuildAction configuration.
 pub struct BuildAction<'a> {
-    backend: String,
     contracts_names: Option<String>,
-    builder_paths: BuilderPaths,
     project: &'a Project,
-    template_generator: TemplateGenerator,
 }
 
 /// BuildAction implementation.
 impl<'a> BuildAction<'a> {
     /// Crate a new BuildAction for a given backend.
-    pub fn new(project: &'a Project, backend: String, contracts_names: Option<String>) -> Self {
+    pub fn new(project: &'a Project, contracts_names: Option<String>) -> Self {
         BuildAction {
-            backend: backend.clone(),
             contracts_names,
-            builder_paths: BuilderPaths::new(backend, project.project_root.clone()),
             project,
-            template_generator: TemplateGenerator::new(
-                ODRA_TEMPLATE_GH_RAW_REPO.to_string(),
-                project.project_odra_location(),
-            ),
         }
     }
 }
 
 impl BuildAction<'_> {
-    /// Returns the name of the backend.
-    /// It is also the name of the Odra's feature.
-    pub fn backend_name(&self) -> String {
-        self.backend.clone()
-    }
-
-    /// Returns a set of dependencies used by backend.
-    pub fn builder_dependencies(&self) -> DepsSet {
-        let mut dependencies = DepsSet::new();
-        dependencies.insert(String::from("odra"), self.odra_dependency());
-        self.project.members.iter().for_each(|member| {
-            dependencies.insert(member.name.clone(), self.project_dependency(&member.root));
-        });
-        dependencies
-    }
-
     /// Main function that runs the whole workflow for a backend.
     pub fn build(&self) {
-        self.check_target_requirements();
-        self.validate_contract_name_argument();
-        self.prepare_builder();
-        self.build_wasm_sources();
-        self.format_builder_files();
+        utils::check_target_requirements();
+        utils::validate_contract_name_argument(self.project, self.contracts_names());
         self.build_wasm_files();
-        self.copy_wasm_files();
         self.optimize_wasm_files();
     }
 
-    /// Returns list of contract to process.
-    fn contracts(&self) -> Vec<Contract> {
-        let names = self.parse_contracts_names();
-        let odra_toml = self.project.odra_toml();
-        match names.is_empty() {
-            true => odra_toml.contracts,
-            false => odra_toml
-                .contracts
-                .into_iter()
-                .filter(|c| names.contains(&c.name))
-                .collect(),
-        }
-    }
-
-    /// Check if wasm32-unknown-unknown target is installed.
-    fn check_target_requirements(&self) {
-        if !command::command_output("rustup target list --installed")
-            .contains("wasm32-unknown-unknown")
-        {
-            Error::WasmTargetNotInstalled.print_and_die();
-        }
-    }
-
-    /// Check if contract name argument is valid if set.
-    fn validate_contract_name_argument(&self) {
-        let names = self.parse_contracts_names();
-        names.iter().for_each(|contract_name| {
-            if !self
-                .project
-                .odra_toml()
-                .contracts
-                .iter()
-                .any(|c| c.name == *contract_name)
-            {
-                Error::ContractNotFound(contract_name.clone()).print_and_die();
-            }
-        });
-    }
-
-    /// Prepare builder directories and all files.
-    fn prepare_builder(&self) {
-        log::info(format!(
-            "Preparing {} builder in {} directory...",
-            self.backend_name(),
-            self.builder_paths.root().display()
-        ));
-
-        command::mkdir(self.builder_paths.src());
-
-        // Build Cargo.toml
-        crate::cargo_toml::builder_cargo_toml(
-            &self.builder_paths,
-            self.builder_dependencies(),
-            self.contracts(),
-        );
-
-        // Build files.
-        self.create_build_file()
-            .unwrap_or_else(|err| err.print_and_die());
-    }
-
-    /// Prepare contracts_build.rs files.
-    fn create_build_file(&self) -> Result<(), Error> {
-        let path = self.builder_paths.wasm_build();
-        if path.exists() {
-            return Ok(());
-        }
-
-        let contracts_names: Vec<_> = self
-            .project
-            .odra_toml()
-            .contracts
-            .iter()
-            .map(|contract| (contract.fqn.to_owned(), contract.name.to_owned()))
-            .collect();
-
-        let content = self
-            .template_generator
-            .wasm_source_builder(contracts_names, &self.backend_name())?;
-
-        command::write_to_file(path, &content);
-        Ok(())
-    }
-
-    /// Prepare _wasm.rs file.
-    fn build_wasm_sources(&self) {
-        log::info("Generating _wasm.rs files...");
-        let names = self
-            .contracts()
-            .iter()
-            .map(|c| c.name.to_owned())
-            .collect::<Vec<_>>();
-        command::cargo_build_wasm_sources(self.builder_paths.root(), &names);
-    }
-
-    /// Build _wasm.rs files into .wasm files.
+    /// Build .wasm files.
     fn build_wasm_files(&self) {
         log::info("Generating wasm files...");
-        for contract in self.contracts() {
-            command::cargo_build_wasm_files(self.builder_paths.root(), &contract.name);
-        }
-    }
-
-    /// Copy *.wasm files into wasm directory.
-    fn copy_wasm_files(&self) {
-        log::info("Copying wasm files...");
         command::mkdir(paths::wasm_dir(self.project.project_root()));
-        for contract in self.contracts() {
-            let source = paths::wasm_path_in_target(&contract.name, self.project.project_root());
-            let target = paths::wasm_path_in_wasm_dir(&contract.name, self.project.project_root());
+
+        let contracts =
+            utils::contracts(self.project, self.contracts_names()).unwrap_or_else(|_| {
+                Error::FailedToParseArgument("contracts_names".to_string()).print_and_die()
+            });
+
+        for contract in contracts {
+            let build_contract = format!("{}_build_contract", &contract.crate_name());
+            command::cargo_build_wasm_files(
+                self.project.project_root(),
+                &contract.struct_name(),
+                &contract.crate_name(),
+            );
+            let source = paths::wasm_path_in_target(&build_contract, self.project.project_root());
+            let target =
+                paths::wasm_path_in_wasm_dir(&contract.struct_name(), self.project.project_root());
             log::info(format!("Saving {}", target.display()));
-            command::cp(source, target);
+            command::cp(source.clone(), target);
+            // if it's a workspace, copy the file also to the module wasm folder
+            if self.project.is_workspace() {
+                let module_wasm_dir = self
+                    .project
+                    .project_root()
+                    .join(contract.crate_name())
+                    .join("wasm");
+                command::mkdir(module_wasm_dir.clone());
+                let mut module_wasm_path = module_wasm_dir.clone().join(&contract.struct_name());
+                module_wasm_path.set_extension("wasm");
+                log::info(format!("Copying to {}", module_wasm_path.display()));
+                command::cp(source, module_wasm_path);
+            }
         }
     }
 
     /// Run wasm-strip on *.wasm files in wasm directory.
     fn optimize_wasm_files(&self) {
         log::info("Optimizing wasm files...");
-        for contract in self.contracts() {
-            command::wasm_strip(&contract.name, self.project.project_root());
-        }
-    }
+        let contracts =
+            utils::contracts(self.project, self.contracts_names()).unwrap_or_else(|_| {
+                Error::FailedToParseArgument("contracts_names".to_string()).print_and_die()
+            });
 
-    /// Format Rust files in builder directory.
-    fn format_builder_files(&self) {
-        command::cargo_fmt(self.builder_paths.root());
-    }
-
-    /// Returns Odra dependency tailored for use by builder.
-    fn odra_dependency(&self) -> Dependency {
-        let first_member = self.project.members.first().unwrap();
-        match odra_dependency(&first_member.cargo_toml) {
-            Dependency::Simple(simple) => Dependency::Detailed(DependencyDetail {
-                version: Some(simple),
-                ..Default::default()
-            }),
-            Dependency::Detailed(mut odra_details) => {
-                odra_details.features = vec![self.backend_name()];
-                odra_details.default_features = false;
-                if odra_details.path.is_some() {
-                    if self.project.is_workspace() {
-                        odra_details.path = Some(odra_details.path.unwrap());
-                    } else {
-                        odra_details.path = Some(format!("../{}", odra_details.path.unwrap()));
-                    }
-                }
-                Dependency::Detailed(odra_details)
-            }
-            Dependency::Inherited(_) => {
-                Error::NotImplemented("Inherited dependencies are not supported yet.".to_string())
-                    .print_and_die();
+        for contract in contracts {
+            command::wasm_strip(&contract.struct_name(), self.project.project_root());
+            if self.project.is_workspace() {
+                command::wasm_strip(
+                    &contract.struct_name(),
+                    self.project.project_root().join(contract.crate_name()),
+                );
             }
         }
     }
 
-    /// Returns project dependency with specific backend feature enabled.
-    fn project_dependency(&self, location: &Path) -> Dependency {
-        Dependency::Detailed(DependencyDetail {
-            path: Some(
-                location
-                    .to_path_buf()
-                    .into_os_string()
-                    .to_str()
-                    .unwrap()
-                    .to_string(),
-            ),
-            features: vec![self.backend_name()],
-            default_features: false,
-            ..Default::default()
-        })
+    fn contracts_names(&self) -> String {
+        self.contracts_names.clone().unwrap_or_default()
     }
-
-    fn parse_contracts_names(&self) -> Vec<String> {
-        match &self.contracts_names {
-            Some(string) => remove_extra_spaces(string)
-                .map(|string| {
-                    string
-                        .split(' ')
-                        .map(ToString::to_string)
-                        .collect::<Vec<_>>()
-                })
-                .unwrap_or_else(|_| {
-                    Error::FailedToParseArgument("contracts_names".to_string()).print_and_die()
-                }),
-            None => vec![],
-        }
-    }
-}
-
-fn remove_extra_spaces(input: &str) -> Result<String, &'static str> {
-    // Ensure there are no other separators
-    if input.chars().any(|c| c.is_whitespace() && c != ' ') {
-        return Err("Input contains non-space whitespace characters");
-    }
-
-    let trimmed = input.split_whitespace().collect::<Vec<&str>>().join(" ");
-    Ok(trimmed)
 }
