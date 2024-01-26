@@ -12,7 +12,8 @@ written using Odra framework.
 ## Prerequisites
 
 - Rust toolchain installed (see [rustup.rs](https://rustup.rs/))
-- wasmstrip tool installed (see [wabt](https://github.com/WebAssembly/wabt))
+- wasm-strip tool installed (see [wabt](https://github.com/WebAssembly/wabt))
+- wasm-opt tool installed (see [binaryen](https://github.com/WebAssembly/binaryen))
 
 ## Install
 

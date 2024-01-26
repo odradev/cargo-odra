@@ -70,7 +70,7 @@ pub fn mkdir(path: PathBuf) {
     fs::create_dir_all(path).unwrap();
 }
 
-/// Runs wasm-strip.
+/// Runs wasm-strip and wasm-opt on a given contract's wasm file.
 pub fn process_wasm(contract_name: &str, project_root: PathBuf) {
     let command = Command::new("wasm-opt")
         .current_dir(project_root.clone())
