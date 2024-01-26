@@ -32,7 +32,7 @@ impl BuildAction<'_> {
     /// Build .wasm files.
     fn build_wasm_files(&self) {
         log::info("Generating wasm files...");
-        command::mkdir(paths::wasm_dir(self.project.project_root()));
+        command::mkdir(paths::wasm_dir(&self.project.project_root()));
 
         let contracts =
             utils::contracts(self.project, self.contracts_names()).unwrap_or_else(|_| {
@@ -48,7 +48,7 @@ impl BuildAction<'_> {
             );
             let source = paths::wasm_path_in_target(&build_contract, self.project.project_root());
             let target =
-                paths::wasm_path_in_wasm_dir(&contract.struct_name(), self.project.project_root());
+                paths::wasm_path_in_wasm_dir(&contract.struct_name(), &self.project.project_root());
             log::info(format!("Saving {}", target.display()));
             command::cp(source.clone(), target);
             // if it's a workspace, copy the file also to the module wasm folder
@@ -76,9 +76,9 @@ impl BuildAction<'_> {
             });
 
         for contract in contracts {
-            command::wasm_strip(&contract.struct_name(), self.project.project_root());
+            command::process_wasm(&contract.struct_name(), self.project.project_root());
             if self.project.is_workspace() {
-                command::wasm_strip(
+                command::process_wasm(
                     &contract.struct_name(),
                     self.project.project_root().join(contract.crate_name()),
                 );

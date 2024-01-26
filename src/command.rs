@@ -71,17 +71,27 @@ pub fn mkdir(path: PathBuf) {
 }
 
 /// Runs wasm-strip.
-pub fn wasm_strip(contract_name: &str, project_root: PathBuf) {
-    let command = Command::new("wasm-strip")
+pub fn process_wasm(contract_name: &str, project_root: PathBuf) {
+    let command = Command::new("wasm-opt")
         .current_dir(project_root.clone())
-        .arg(paths::wasm_path_in_wasm_dir(contract_name, project_root))
+        .arg("--signext-lowering")
+        .arg(paths::wasm_path_in_wasm_dir(contract_name, &project_root))
+        .arg("-o")
+        .arg(paths::wasm_path_in_wasm_dir(contract_name, &project_root))
         .status();
 
-    if command.is_ok() && command.unwrap().success() {
-        return;
+    if command.is_err() || !command.unwrap().success() {
+        Error::WasmoptError.print_and_die();
     }
 
-    Error::WasmstripNotInstalled.print_and_die();
+    let command = Command::new("wasm-strip")
+        .current_dir(project_root.clone())
+        .arg(paths::wasm_path_in_wasm_dir(contract_name, &project_root))
+        .status();
+
+    if command.is_err() || !command.unwrap().success() {
+        Error::WasmstripError.print_and_die();
+    }
 }
 
 /// Runs cargo with given args.

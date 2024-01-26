@@ -17,12 +17,12 @@ pub fn wasm_path_in_target(contract_name: &str, project_root: PathBuf) -> PathBu
 }
 
 /// Returns *.wasm file path in wasm directory.
-pub fn wasm_path_in_wasm_dir(contract_name: &str, project_root: PathBuf) -> PathBuf {
+pub fn wasm_path_in_wasm_dir(contract_name: &str, project_root: &PathBuf) -> PathBuf {
     wasm_dir(project_root).join(wasm_file_name(contract_name))
 }
 
 /// Returns wasm directory path.
-pub fn wasm_dir(project_root: PathBuf) -> PathBuf {
+pub fn wasm_dir(project_root: &PathBuf) -> PathBuf {
     project_root.join("wasm")
 }
 
