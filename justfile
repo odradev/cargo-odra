@@ -1,4 +1,6 @@
 DEVELOPMENT_ODRA_BRANCH := "release/0.8.0"
+BINARYEN_VERSION := "version_116"
+BINARYEN_CHECKSUM := "c55b74f3109cdae97490faf089b0286d3bba926bb6ea5ed00c8c784fc53718fd"
 
 default:
     just --list
@@ -9,9 +11,10 @@ install:
 prepare:
     rustup target add wasm32-unknown-unknown
     sudo apt install wabt
-    wget https://github.com/WebAssembly/binaryen/releases/download/version_116/binaryen-version_116-x86_64-linux.tar.gz
-    tar -xzf binaryen-version_116-x86_64-linux.tar.gz
-    sudo cp binaryen-version_116/bin/wasm-opt /usr/local/bin/wasm-opt
+    wget https://github.com/WebAssembly/binaryen/releases/download/{{BINARYEN_VERSION}}/binaryen-{{BINARYEN_VERSION}}-x86_64-linux.tar.gz || { echo "Download failed"; exit 1; }
+    sha256sum binaryen-{{BINARYEN_VERSION}}-x86_64-linux.tar.gz | grep {{BINARYEN_CHECKSUM}} || { echo "Checksum verification failed"; exit 1; }
+    tar -xzf binaryen-{{BINARYEN_VERSION}}-x86_64-linux.tar.gz || { echo "Extraction failed"; exit 1; }
+    sudo cp binaryen-{{BINARYEN_VERSION}}/bin/wasm-opt /usr/local/bin/wasm-opt
 
 test-project-generation-on-stable-odra:
     rm -rf testproject
