@@ -9,6 +9,9 @@ install:
 prepare:
     rustup target add wasm32-unknown-unknown
     sudo apt install wabt
+    wget https://github.com/WebAssembly/binaryen/releases/download/version_116/binaryen-version_116-x86_64-linux.tar.gz
+    tar -xzf binaryen-version_116-x86_64-linux.tar.gz
+    sudo cp binaryen-version_116/bin/wasm-opt /usr/local/bin/wasm-opt
 
 test-project-generation-on-stable-odra:
     rm -rf testproject

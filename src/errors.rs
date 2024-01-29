@@ -23,7 +23,10 @@ pub enum Error {
     NotAnOdraProject,
 
     #[error("There was an error while running wasm-strip - is it installed?")]
-    WasmstripNotInstalled,
+    WasmstripDidNotFinish,
+
+    #[error("There was an error while running wasm-opt - is it installed?")]
+    WasmoptDidNotFinish,
 
     #[error("Current directory is not empty.")]
     CurrentDirIsNotEmpty,
@@ -83,7 +86,7 @@ impl Error {
             Error::FailedToReadCargo(_) => 3,
             Error::WasmTargetNotInstalled => 4,
             Error::NotAnOdraProject => 5,
-            Error::WasmstripNotInstalled => 6,
+            Error::WasmstripDidNotFinish => 6,
             Error::CurrentDirIsNotEmpty => 7,
             Error::FileAlreadyExists(_) => 8,
             Error::ContractAlreadyInOdraToml(_) => 9,
@@ -100,6 +103,7 @@ impl Error {
             Error::MalformedFqn => 21,
             Error::LibRsNotFound => 22,
             Error::ModuleAlreadyInLibRs(_) => 23,
+            Error::WasmoptDidNotFinish => 24,
         }
     }
 
