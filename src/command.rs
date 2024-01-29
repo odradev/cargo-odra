@@ -81,7 +81,7 @@ pub fn process_wasm(contract_name: &str, project_root: PathBuf) {
         .status();
 
     if command.is_err() || !command.unwrap().success() {
-        Error::WasmoptError.print_and_die();
+        Error::WasmoptDidNotFinish.print_and_die();
     }
 
     let command = Command::new("wasm-strip")
@@ -90,7 +90,7 @@ pub fn process_wasm(contract_name: &str, project_root: PathBuf) {
         .status();
 
     if command.is_err() || !command.unwrap().success() {
-        Error::WasmstripError.print_and_die();
+        Error::WasmstripDidNotFinish.print_and_die();
     }
 }
 
