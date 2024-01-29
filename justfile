@@ -8,7 +8,7 @@ install:
 
 prepare:
     rustup target add wasm32-unknown-unknown
-    sudo apt install wabt
+    sudo apt install wabt binaryen
 
 test-project-generation-on-stable-odra:
     rm -rf testproject
