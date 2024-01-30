@@ -25,19 +25,29 @@ pub fn wasm_path_in_target(contract_name: &str, project_root: PathBuf) -> PathBu
 }
 
 fn get_build_target_dir() -> PathBuf {
-    let cmd = "cargo config get build.target-dir -Z unstable-options";
-    let output = Command::new("sh").arg("-c").arg(cmd).output();
+    let args: Vec<String> = "config get build.target-dir -Z unstable-options"
+        .to_string()
+        .split(' ')
+        .map(|s| s.to_string())
+        .collect();
+    let output = Command::new("cargo").args(args).output();
 
     if output.is_err() {
         return PathBuf::from("target");
     }
 
     // convert output to string
-    let target_dir = String::from_utf8(output.unwrap().stdout).unwrap();
+    let output_string = String::from_utf8(output.unwrap().stdout);
+
+    if output_string.is_err() {
+        return PathBuf::from("target");
+    }
+
+    let output_string = output_string.unwrap();
 
     // output is in format build.target-dir = "../target"
     // convert it to PathBuf
-    let target_dir = target_dir.split('=').collect::<Vec<&str>>();
+    let target_dir = output_string.split('=').collect::<Vec<&str>>();
     let target_dir = target_dir.get(1);
 
     if target_dir.is_none() {
