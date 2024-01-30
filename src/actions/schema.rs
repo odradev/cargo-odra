@@ -38,7 +38,7 @@ impl SchemaAction<'_> {
             command::cargo_generate_schema_files(
                 self.project.project_root(),
                 &contract.struct_name(),
-                &contract.crate_name(),
+                &contract.module_name(),
             );
         }
     }
