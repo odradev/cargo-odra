@@ -1,4 +1,4 @@
-use crate::{command, errors::Error, odra_toml::Contract, project::Project};
+use crate::{command, errors::Error, odra_toml::Contract, paths::to_camel_case, project::Project};
 
 /// Check if wasm32-unknown-unknown target is installed.
 pub fn check_target_requirements() {
@@ -54,6 +54,7 @@ fn parse_contracts_names(names_string: String) -> Result<Vec<String>, &'static s
             string
                 .split(' ')
                 .map(ToString::to_string)
+                .map(to_camel_case)
                 .collect::<Vec<_>>()
         }),
     }
