@@ -52,7 +52,6 @@ $ cargo odra test -b casper
 * `test` - runs tests,
 * `generate` - generates sample contract,
 * `clean` - removes temporary files (builders and wasm files),
-* `update` - runs cargo update on project and backends.
 * `completions` - generates autocomplete script for given shell
 
 To see exact syntax of each command, type `cargo odra command --help`.
@@ -63,11 +62,16 @@ To see exact syntax of each command, type `cargo odra command --help`.
 file into root of your workspace. If you have multiple odra crates in your
 workspace, put all contracts in the same Odra.toml folder.
 
+You can use a template to create a project with workspace:
+
+```bash
+$ cargo odra new --name myproject --template workspace && cd myproject
+```
+
 ## Links
 
-* [Odra](https://github.com/odradev/odra)
-* [Cargo Odra](https://github.com/odradev/cargo-odra)
-* [Odra Casper](https://github.com/odradev/odra-casper)
+* [Odra framework repository](https://github.com/odradev/odra)
+* [Odra docs](https://odra.dev/docs)
 
 ## Contact
 Write **contact@odra.dev**

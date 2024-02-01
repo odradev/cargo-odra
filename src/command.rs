@@ -142,11 +142,6 @@ pub fn cargo_generate_schema_files(current_dir: PathBuf, contract_name: &str, mo
     cargo(current_dir, "run", vec!["--bin", &gen_schema, "--release"]);
 }
 
-/// Update a cargo module.
-pub fn cargo_update(current_dir: PathBuf) {
-    cargo(current_dir, "update", vec![]);
-}
-
 /// Runs cargo test.
 pub fn cargo_test_mock_vm(current_dir: PathBuf, mut args: Vec<&str>) {
     log::info("Running cargo test...");
