@@ -2,14 +2,13 @@
 
 use std::path::PathBuf;
 
-use convert_case::{Case, Casing};
-
 use crate::{
     command,
     consts::ODRA_TEMPLATE_GH_RAW_REPO,
     errors::Error,
     log,
     odra_toml::Contract,
+    paths::{to_camel_case, to_snake_case},
     project::Project,
     template::TemplateGenerator,
 };
@@ -35,7 +34,7 @@ impl<'a> GenerateAction<'a> {
         GenerateAction {
             project,
             contract_name: contract_name.clone(),
-            contract_module_ident: contract_name.to_case(Case::Snake),
+            contract_module_ident: to_snake_case(contract_name),
             module_root: project.module_root(module_name.clone()),
             module_name,
             template_generator: TemplateGenerator::new(
@@ -63,12 +62,12 @@ impl GenerateAction<'_> {
     /// Returns the contract identifier. It is the struct name.
     fn contract_struct_name(&self) -> String {
         let contract_name = self.contract_name();
-        contract_name.to_case(Case::UpperCamel)
+        to_camel_case(contract_name)
     }
 
     /// Returns the module name.
     fn module_name(&self) -> String {
-        self.contract_name.to_case(Case::Snake)
+        to_snake_case(self.contract_name())
     }
 
     /// Returns the module Ref identifier.
