@@ -9,7 +9,7 @@ use ureq::serde_json;
 
 use crate::{
     cli::InitCommand,
-    command::replace_in_file,
+    command::{rename_file, replace_in_file},
     consts::{ODRA_GITHUB_API_DATA, ODRA_TEMPLATE_GH_REPO},
     errors::Error,
     log,
@@ -93,13 +93,13 @@ impl InitAction {
         let cargo_toml_path = match init {
             true => {
                 let mut path = current_dir;
-                path.push("Cargo.toml");
+                path.push("_Cargo.toml");
                 path
             }
             false => {
                 let mut path = current_dir;
                 path.push(paths::to_snake_case(&init_command.name));
-                path.push("Cargo.toml");
+                path.push("_Cargo.toml");
                 path
             }
         };
@@ -122,7 +122,7 @@ impl InitAction {
         );
 
         replace_in_file(
-            cargo_toml_path,
+            cargo_toml_path.clone(),
             "#odra_test_dependency",
             format!(
                 "odra-test = {{ {} }}",
@@ -138,6 +138,7 @@ impl InitAction {
             .as_str(),
         );
 
+        rename_file(cargo_toml_path, "Cargo.toml");
         log::info("Done!");
     }
     fn assert_dir_is_empty(dir: PathBuf) {

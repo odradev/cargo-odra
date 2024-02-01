@@ -189,6 +189,14 @@ pub fn replace_in_file(path: PathBuf, from: &str, to: &str) {
     write_to_file(path, new_content.as_str());
 }
 
+/// Renames a file.
+pub fn rename_file(path: PathBuf, new_name: &str) {
+    let mut new_path = path.clone();
+    new_path.pop();
+    new_path.push(new_name);
+    fs::rename(path, new_path).unwrap();
+}
+
 /// Loads a file to a string.
 pub fn read_file_content(path: PathBuf) -> io::Result<String> {
     fs::read_to_string(path)
