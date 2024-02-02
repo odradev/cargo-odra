@@ -76,3 +76,11 @@ pub fn to_snake_case<T: AsRef<str>>(text: T) -> String {
         .without_boundaries(&[Boundary::UpperDigit, Boundary::LowerDigit])
         .to_case(Case::Snake)
 }
+
+/// Convert text to a camel case.
+pub fn to_camel_case<T: AsRef<str>>(text: T) -> String {
+    text.as_ref()
+        .with_boundaries(&Boundary::defaults())
+        .without_boundaries(&[Boundary::UpperDigit, Boundary::LowerDigit])
+        .to_case(Case::UpperCamel)
+}

@@ -75,6 +75,9 @@ pub enum Error {
 
     #[error("Module {0} already in src/lib.rs")]
     ModuleAlreadyInLibRs(String),
+
+    #[error("Project is a workspace, module name is required")]
+    ModuleNotProvided,
 }
 
 impl Error {
@@ -104,6 +107,7 @@ impl Error {
             Error::LibRsNotFound => 22,
             Error::ModuleAlreadyInLibRs(_) => 23,
             Error::WasmoptDidNotFinish => 24,
+            Error::ModuleNotProvided => 25,
         }
     }
 

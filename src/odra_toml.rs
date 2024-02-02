@@ -7,6 +7,7 @@ use serde_derive::{Deserialize, Serialize};
 use crate::{
     command,
     errors::{Error, Error::MalformedFqn},
+    project::Project,
 };
 
 /// Struct describing contract.
@@ -17,12 +18,20 @@ pub struct Contract {
 
 impl Contract {
     /// Extracts first part from fqn
-    pub fn crate_name(&self) -> String {
+    pub fn module_name(&self) -> String {
         self.fqn
             .split_terminator("::")
             .next()
             .unwrap_or_else(|| MalformedFqn.print_and_die())
             .to_string()
+    }
+
+    pub fn crate_name(&self, project: &Project) -> String {
+        if project.is_workspace() {
+            self.module_name()
+        } else {
+            project.project_crate_name()
+        }
     }
 
     pub fn struct_name(&self) -> String {

@@ -142,11 +142,6 @@ pub fn cargo_generate_schema_files(current_dir: PathBuf, contract_name: &str, mo
     cargo(current_dir, "run", vec!["--bin", &gen_schema, "--release"]);
 }
 
-/// Update a cargo module.
-pub fn cargo_update(current_dir: PathBuf) {
-    cargo(current_dir, "update", vec![]);
-}
-
 /// Runs cargo test.
 pub fn cargo_test_mock_vm(current_dir: PathBuf, mut args: Vec<&str>) {
     log::info("Running cargo test...");
@@ -192,6 +187,14 @@ pub fn replace_in_file(path: PathBuf, from: &str, to: &str) {
     let content = read_file_content(path.clone()).unwrap();
     let new_content = content.replace(from, to);
     write_to_file(path, new_content.as_str());
+}
+
+/// Renames a file.
+pub fn rename_file(path: PathBuf, new_name: &str) {
+    let mut new_path = path.clone();
+    new_path.pop();
+    new_path.push(new_name);
+    fs::rename(path, new_path).unwrap();
 }
 
 /// Loads a file to a string.

@@ -70,20 +70,26 @@ impl Project {
         }
     }
 
-    /// Name of the module.
-    /// If there is no module name, the project name is returned.
-    pub fn module_name(&self, module_name: Option<String>) -> String {
+    pub fn project_crate_name(&self) -> String {
+        self.name.clone().replace('-', "_")
+    }
+
+    /// Name of the crate.
+    /// If there is no subcrate, the project name is returned.
+    pub fn crate_name(&self, module_name: Option<String>) -> String {
         match module_name {
-            None => self.name.clone(),
-            Some(module_name) => self
-                .members
-                .iter()
-                .find(|member| member.name == module_name)
-                .unwrap_or_else(|| {
-                    Error::ModuleNotFound(module_name).print_and_die();
-                })
-                .name
-                .clone(),
+            None => self.project_crate_name(),
+            Some(module_name) => {
+                let found_member = self
+                    .members
+                    .iter()
+                    .find(|member| member.name == module_name);
+
+                match found_member {
+                    None => self.project_crate_name(),
+                    Some(member) => member.name.clone().replace('-', "_"),
+                }
+            }
         }
     }
 

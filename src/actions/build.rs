@@ -40,11 +40,11 @@ impl BuildAction<'_> {
             });
 
         for contract in contracts {
-            let build_contract = format!("{}_build_contract", &contract.crate_name());
+            let build_contract = format!("{}_build_contract", &contract.crate_name(self.project));
             command::cargo_build_wasm_files(
                 self.project.project_root(),
                 &contract.struct_name(),
-                &contract.crate_name(),
+                &contract.crate_name(self.project),
             );
             let source = paths::wasm_path_in_target(&build_contract, self.project.project_root());
             let target =
@@ -56,7 +56,7 @@ impl BuildAction<'_> {
                 let module_wasm_dir = self
                     .project
                     .project_root()
-                    .join(contract.crate_name())
+                    .join(contract.module_name())
                     .join("wasm");
                 command::mkdir(module_wasm_dir.clone());
                 let mut module_wasm_path = module_wasm_dir.clone().join(&contract.struct_name());
@@ -80,7 +80,7 @@ impl BuildAction<'_> {
             if self.project.is_workspace() {
                 command::process_wasm(
                     &contract.struct_name(),
-                    self.project.project_root().join(contract.crate_name()),
+                    self.project.project_root().join(contract.module_name()),
                 );
             }
         }
