@@ -53,7 +53,7 @@ pub enum OdraSubcommand {
     Build(BuildCommand),
     /// Generates schema for a given contract.
     Schema(SchemaCommand),
-    /// Runs test. Without the backend parameter, the tests will be run against Mock VM.
+    /// Runs test. Without the backend parameter, the tests will be run against OdraVM.
     Test(TestCommand),
     /// Generates boilerplate code for contracts.
     Generate(GenerateCommand),

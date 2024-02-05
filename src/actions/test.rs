@@ -33,7 +33,7 @@ impl TestAction<'_> {
     /// Runs a test suite.
     pub fn test(&self) {
         if self.backend.is_none() {
-            self.test_mock_vm();
+            self.test_odra_vm();
         } else {
             if !self.skip_build {
                 self.build_wasm_files();
@@ -42,10 +42,10 @@ impl TestAction<'_> {
         }
     }
 
-    /// Test code against MockVM.
-    fn test_mock_vm(&self) {
-        log::info("Testing against MockVM ...");
-        command::cargo_test_mock_vm(self.project.project_root(), self.get_passthrough_args());
+    /// Test code against OdraVM.
+    fn test_odra_vm(&self) {
+        log::info("Testing against OdraVM ...");
+        command::cargo_test_odra_vm(self.project.project_root(), self.get_passthrough_args());
     }
 
     /// Test specific backend.
