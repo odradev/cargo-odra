@@ -80,8 +80,10 @@ pub struct InitCommand {
     /// It can be a version, a branch, commit hash or a location on the filesystem.
     #[clap(value_parser, long, short)]
     pub source: Option<String>,
-    /// Template to use. Default is "full", which contains a sample contract and a test.
-    /// To see all available templates, run `cargo odra new --list`.
+    /// Template to use. Default is "full" - which contains a sample contract and a test.
+    /// Other templates are:
+    /// "blank" - which only sets up Cargo.toml and directory structure and
+    /// "workspace" - which sets up a workspace with a sub crate.
     #[clap(value_parser, long, short, default_value = consts::ODRA_TEMPLATE_DEFAULT_TEMPLATE)]
     pub template: String,
 }
