@@ -162,10 +162,7 @@ impl InitAction {
             // version
             let version_regex = regex::Regex::new(r"^\d+\.\d+\.\d+$").unwrap();
             if version_regex.is_match(&source) {
-                OdraLocation::Remote(
-                    ODRA_TEMPLATE_GH_REPO.to_string(),
-                    Some(format!("release/{}", source)),
-                )
+                OdraLocation::CratesIO(source)
             } else {
                 // branch
                 OdraLocation::Remote(ODRA_TEMPLATE_GH_REPO.to_string(), Some(source))
