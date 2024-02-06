@@ -143,7 +143,7 @@ pub fn cargo_generate_schema_files(current_dir: PathBuf, contract_name: &str, mo
 }
 
 /// Runs cargo test.
-pub fn cargo_test_mock_vm(current_dir: PathBuf, mut args: Vec<&str>) {
+pub fn cargo_test_odra_vm(current_dir: PathBuf, mut args: Vec<&str>) {
     log::info("Running cargo test...");
     let mut tail_args = vec!["--lib"];
     tail_args.append(&mut args);

@@ -32,7 +32,7 @@ $ cargo odra new --name myproject && cd myproject
 ```
 
 A sample contract - Flipper - will be created for you, with some sample tests.
-To run them against MockVM, simply type:
+To run them against OdraVM, simply type:
 
 ```bash
 $ cargo odra test
