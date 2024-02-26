@@ -1,6 +1,6 @@
 //! Module responsible for initializing an Odra project.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use cargo_generate::{GenerateArgs, TemplatePath, Vcs};
 use cargo_toml::{Dependency, DependencyDetail};
@@ -133,12 +133,12 @@ impl InitAction {
     fn replace_package_placeholder(
         init: bool,
         odra_location: &OdraLocation,
-        cargo_toml_path: &PathBuf,
+        cargo_toml_path: &Path,
         placeholder: &str,
         crate_name: &str,
     ) {
         replace_in_file(
-            cargo_toml_path.clone(),
+            cargo_toml_path.to_path_buf(),
             placeholder,
             format!(
                 "{} = {{ {} }}",
