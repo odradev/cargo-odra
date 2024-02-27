@@ -1,6 +1,6 @@
 //! Module responsible for initializing an Odra project.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use cargo_generate::{GenerateArgs, TemplatePath, Vcs};
 use cargo_toml::{Dependency, DependencyDetail};
@@ -104,42 +104,56 @@ impl InitAction {
             }
         };
 
-        replace_in_file(
-            cargo_toml_path.clone(),
+        Self::replace_package_placeholder(
+            init,
+            &odra_location,
+            &cargo_toml_path,
             "#odra_dependency",
-            format!(
-                "odra = {{ {} }}",
-                toml::to_string(&Self::odra_project_dependency(
-                    odra_location.clone(),
-                    "odra",
-                    init
-                ))
-                .unwrap()
-                .trim_end()
-                .replace('\n', ", ")
-            )
-            .as_str(),
+            "odra",
         );
-
-        replace_in_file(
-            cargo_toml_path.clone(),
+        Self::replace_package_placeholder(
+            init,
+            &odra_location,
+            &cargo_toml_path,
             "#odra_test_dependency",
-            format!(
-                "odra-test = {{ {} }}",
-                toml::to_string(&Self::odra_project_dependency(
-                    odra_location,
-                    "odra-test",
-                    init
-                ))
-                .unwrap()
-                .trim_end()
-                .replace('\n', ", ")
-            )
-            .as_str(),
+            "odra-test",
+        );
+        Self::replace_package_placeholder(
+            init,
+            &odra_location,
+            &cargo_toml_path,
+            "#odra_build_dependency",
+            "odra-build",
         );
 
         rename_file(cargo_toml_path, "Cargo.toml");
         log::info("Done!");
+    }
+
+    fn replace_package_placeholder(
+        init: bool,
+        odra_location: &OdraLocation,
+        cargo_toml_path: &Path,
+        placeholder: &str,
+        crate_name: &str,
+    ) {
+        replace_in_file(
+            cargo_toml_path.to_path_buf(),
+            placeholder,
+            format!(
+                "{} = {{ {} }}",
+                crate_name,
+                toml::to_string(&Self::odra_project_dependency(
+                    odra_location.clone(),
+                    crate_name,
+                    init
+                ))
+                .unwrap()
+                .trim_end()
+                .replace('\n', ", ")
+            )
+            .as_str(),
+        );
     }
     fn assert_dir_is_empty(dir: PathBuf) {
         if dir.read_dir().unwrap().next().is_some() {
