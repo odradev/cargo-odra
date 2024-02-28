@@ -2,58 +2,96 @@
 
 Changelog for `cargo-odra`.
 
+## [0.1.1] - 2024-02-28
+
+### Added
+
+- Support for defining `odra-build` dependency in `Cargo.toml` file of
+  generated Odra projects.
+
+## [0.1.0] - 2024-02-06
+
+### Added
+
+- `wasm-opt` to the build process. It is used to optimize the wasm file.
+- Support for `.cargo/config.toml` target directory override.
+
+### Fixed
+
+- Inconsistent casing for `-c` argument
+- Invalid fqn generation in some cases
+- Schema generation for contracts
+
+### Removed
+
+- `cargo odra update` command. It is no longer needed, as it was the same
+  as `cargo update`.
+
 ## [0.0.10] - 2023-12-13
 
 ### Fixed
+
 - Fixed error that caused the template for odra 0.8.0 being downloaded for earlier
-versions of odra.
+  versions of odra.
 
 ## [0.0.9] - 2023-07-19
 
 ### Added
+
 - `generate` command validates if the module is already added to `lib.rs`.
 
 ## [0.0.8] - 2023-06-26
 
 ### Added
+
 - Autocompletion.
 
 ### Changed
+
 - Simplified wasm build process.
 - Better dependencies management for the `builder`.
 
 ## [0.0.7] - 2023-05-22
 
 ### Added
-- Support for Odra from crates.io. 
+
+- Support for Odra from crates.io.
 
 ## [0.0.6] - 2023-05-22
+
 ### Added
+
 - `--contract-name` filter for `build` command.
 - `--source` for `new` and `init` commands replacing `--branch`
 - Support for workspaces.
 
 ## [0.0.5] - 2022-12-14
+
 ### Added
-- `test` command can skip build using `--skip-build` flag. 
+
+- `test` command can skip build using `--skip-build` flag.
 
 ## [0.0.4] - 2022-11-10
+
 ### Removed
+
 - `backend` command is no logner needed.
 - `gherkin` tests.
 
 ### Changed
+
 - `generate` command doesn't override files anymore. It fails instead.
 - `generate` uses hardcoded code instead of `flipper.rs` from Github.
 - `Odra.toml` is now simpler. It doesn't have `name` anymore. `name` from
-`Cargo.toml` is used. A contract definition no longer needs `path` field.
-List of contract is no longer.
+  `Cargo.toml` is used. A contract definition no longer needs `path` field.
+  List of contract is no longer.
 - Codebase is now lib based. It has `lib.rs` and the main bin is in `bin/cargo_odra.rs`.
 - Error to use `thiserror`.
 - Most of the file system functions is now in `commands.rs`.
 - `just` replaced `make`.
 
 ### Added
+
 - `paths.rs` for all paths releated operations.
 - `template.rs` for code generation releated operations.
 - `cli.rs` for `clap` code.
@@ -61,31 +99,40 @@ List of contract is no longer.
 - `init` and `new` can specify `git-branch` parameter.
 
 ## [0.0.3] - 2022-09-04
+
 ### Added
+
 - new options - `--verbose` and `--quiet`, which will be passed to cargo commands.
 
 ### Changed
+
 - Error handling, now each error has its own exit code.
 
 ## [0.0.2] - 2022-08-12
+
 ### Added
+
 - `update` command.
 - `backend list` command.
 - Building a backend will now check if wasm target is installed.
 
 ### Changed
+
 - `backend add` command now does not require `name` parameter - `package`
-will be used as name by default.
-- `test` command now passes arguments supplied after `--` to cargo test 
-without the need to type `-a`.
+  will be used as name by default.
+- `test` command now passes arguments supplied after `--` to cargo test
+  without the need to type `-a`.
 
 ### Fixed
+
 - `Unsupported dependency for backend` message that showed up on some
-configurations - thanks to **jrojek** from Odra.dev Discord for pointing
-this out.
+  configurations - thanks to **jrojek** from Odra.dev Discord for pointing
+  this out.
 
 ## [0.0.1] - 2022-08-09
+
 ### Added
+
 - `init` and `new` commands.
 - `backend` command to manage backends with subcommands `add` and `remove`.
 - `test` command with possibility to run tests against OdraVM and dedicated backend VM.
