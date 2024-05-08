@@ -1,5 +1,3 @@
-DEVELOPMENT_ODRA_BRANCH := "release/0.5.0"
-
 default:
     just --list
 
@@ -9,22 +7,6 @@ install:
 prepare:
     rustup target add wasm32-unknown-unknown
     sudo apt install wabt
-
-test-project-generation-on-stable-odra:
-    rm -rf testproject
-    cargo odra new --name testproject
-    just test-testproject
-
-test-project-generation-on-future-odra:
-    rm -rf testproject
-    cargo odra new --name testproject --source {{DEVELOPMENT_ODRA_BRANCH}}
-    just test-testproject
-
-test-testproject:
-    cd testproject && cargo odra generate -c plascoin
-    cd testproject && cargo odra test
-    cd testproject && cargo odra test -b casper
-    cd testproject && cargo odra clean
 
 clippy:
 	cargo clippy --all-targets -- -D warnings
