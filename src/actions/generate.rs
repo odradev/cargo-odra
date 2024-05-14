@@ -20,13 +20,19 @@ pub struct GenerateAction<'a> {
     contract_module_ident: String,
     module_root: PathBuf,
     module_name: Option<String>,
+    template_name: Option<String>,
     template_generator: TemplateGenerator,
 }
 
 /// GenerateAction implementation.
 impl<'a> GenerateAction<'a> {
     /// Crate a new GenerateAction for a given contract.
-    pub fn new(project: &'a Project, contract_name: String, module_name: Option<String>) -> Self {
+    pub fn new(
+        project: &'a Project,
+        contract_name: String,
+        module_name: Option<String>,
+        template_name: Option<String>,
+    ) -> Self {
         if project.is_workspace() && module_name.is_none() {
             Error::CrateNotProvided.print_and_die();
         }
@@ -37,6 +43,7 @@ impl<'a> GenerateAction<'a> {
             contract_module_ident: to_snake_case(contract_name),
             module_root: project.module_root(module_name.clone()),
             module_name,
+            template_name,
             template_generator: TemplateGenerator::new(
                 ODRA_TEMPLATE_GH_RAW_REPO.to_string(),
                 project.project_odra_location(),
@@ -49,7 +56,7 @@ impl GenerateAction<'_> {
     /// Main function that runs the generation action.
     pub fn generate_contract(&self) {
         log::info(format!("Adding new contract: {} ...", self.contract_name()));
-        self.add_contract_file_to_src();
+        self.add_contract_file_to_src(self.template_name.clone());
         self.update_lib_rs();
         self.update_odra_toml();
     }
@@ -84,11 +91,11 @@ impl GenerateAction<'_> {
     }
 
     /// Crates a new module file in src directory.
-    fn add_contract_file_to_src(&self) {
+    fn add_contract_file_to_src(&self, template_name: Option<String>) {
         // Rename module name.
         let contract_body = self
             .template_generator
-            .module_template(&self.contract_struct_name())
+            .module_template(&self.contract_struct_name(), template_name)
             .unwrap_or_else(|err| err.print_and_die());
 
         // Make sure the file do not exist.

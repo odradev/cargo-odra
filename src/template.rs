@@ -64,9 +64,14 @@ impl TemplateGenerator {
     }
 
     /// Returns content of the new module file.
-    pub fn module_template(&self, module_name: &str) -> Result<String, Error> {
+    pub fn module_template(
+        &self,
+        module_name: &str,
+        template_name: Option<String>,
+    ) -> Result<String, Error> {
+        let template_name = template_name.unwrap_or_else(|| MODULE_TEMPLATE.to_string());
         Ok(self
-            .fetch_template(MODULE_TEMPLATE)?
+            .fetch_template(&template_name)?
             .replace("#module_name", module_name))
     }
 

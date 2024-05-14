@@ -127,6 +127,9 @@ pub struct GenerateCommand {
     /// Name of the module in which the contract will be created.
     #[clap(value_parser, long, short)]
     pub module: Option<String>,
+    /// Name of the template to use.
+    #[clap(value_parser, long, short)]
+    pub template: Option<String>,
 }
 
 #[derive(clap::Args, Debug)]
@@ -157,8 +160,13 @@ pub fn make_action() {
         }
         OdraSubcommand::Generate(generate) => {
             let project = Project::detect(current_dir);
-            GenerateAction::new(&project, generate.contract_name, generate.module)
-                .generate_contract();
+            GenerateAction::new(
+                &project,
+                generate.contract_name,
+                generate.module,
+                generate.template,
+            )
+            .generate_contract();
         }
         OdraSubcommand::New(init) => {
             InitAction::generate_project(init, current_dir, false);
