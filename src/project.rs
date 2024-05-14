@@ -128,11 +128,9 @@ impl Project {
             .iter()
             .map(|member| {
                 let root = cargo_toml_path.parent().unwrap().join(member.clone().1);
-                let cargo_toml = root.join("Cargo.toml");
                 Member {
                     name: member.clone().0,
                     root,
-                    cargo_toml,
                 }
             })
             .collect()
@@ -156,13 +154,14 @@ impl Project {
         }
     }
 
+    /// Detects members of workspace which have Odra contracts.
     fn detect_members(cargo_toml_path: &PathBuf, odra_toml_path: &Path) -> Vec<(String, String)> {
         let odra_toml = OdraToml::load(odra_toml_path);
         match load_cargo_toml(cargo_toml_path).workspace {
             Some(workspace) => workspace
                 .members
                 .iter()
-                .filter(|member| odra_toml.has_module(member))
+                .filter(|crate_name| odra_toml.crate_has_contracts(crate_name))
                 .map(|member| (member.clone(), member.clone()))
                 .collect(),
             None => vec![],
@@ -229,6 +228,4 @@ pub struct Member {
     pub name: String,
     /// Root directory of the member.
     pub root: PathBuf,
-    /// Path to the Cargo.toml file.
-    pub cargo_toml: PathBuf,
 }

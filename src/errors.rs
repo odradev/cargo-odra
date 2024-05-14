@@ -76,8 +76,11 @@ pub enum Error {
     #[error("Module {0} already in src/lib.rs")]
     ModuleAlreadyInLibRs(String),
 
-    #[error("Project is a workspace, module name is required")]
-    ModuleNotProvided,
+    #[error("Project is a workspace, crate name is required")]
+    CrateNotProvided,
+
+    #[error("Crate for contract {0} not found in workspace members")]
+    CrateOfContractNotFound(String),
 }
 
 impl Error {
@@ -107,7 +110,8 @@ impl Error {
             Error::LibRsNotFound => 22,
             Error::ModuleAlreadyInLibRs(_) => 23,
             Error::WasmoptDidNotFinish => 24,
-            Error::ModuleNotProvided => 25,
+            Error::CrateNotProvided => 25,
+            Error::CrateOfContractNotFound(_) => 26,
         }
     }
 

@@ -26,7 +26,6 @@ pub fn wasm_path_in_target(contract_name: &str, project_root: PathBuf) -> PathBu
 
 fn get_build_target_dir() -> PathBuf {
     let args: Vec<String> = "config get build.target-dir -Z unstable-options"
-        .to_string()
         .split(' ')
         .map(|s| s.to_string())
         .collect();
