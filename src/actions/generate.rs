@@ -28,7 +28,7 @@ impl<'a> GenerateAction<'a> {
     /// Crate a new GenerateAction for a given contract.
     pub fn new(project: &'a Project, contract_name: String, module_name: Option<String>) -> Self {
         if project.is_workspace() && module_name.is_none() {
-            Error::ModuleNotProvided.print_and_die();
+            Error::CrateNotProvided.print_and_die();
         }
 
         GenerateAction {

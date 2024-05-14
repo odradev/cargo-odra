@@ -10,6 +10,9 @@ install:
 
 prepare:
     rustup target add wasm32-unknown-unknown
+    rustup toolchain install nightly
+    rustup component add --toolchain nightly-x86_64-unknown-linux-gnu clippy
+    rustup component add --toolchain nightly-x86_64-unknown-linux-gnu rustfmt
     sudo apt install wabt
     wget https://github.com/WebAssembly/binaryen/releases/download/{{BINARYEN_VERSION}}/binaryen-{{BINARYEN_VERSION}}-x86_64-linux.tar.gz || { echo "Download failed"; exit 1; }
     sha256sum binaryen-{{BINARYEN_VERSION}}-x86_64-linux.tar.gz | grep {{BINARYEN_CHECKSUM}} || { echo "Checksum verification failed"; exit 1; }
@@ -51,13 +54,13 @@ test-workspace-project:
     cd testproject && cargo odra clean
 
 clippy:
-	cargo clippy --all-targets -- -D warnings
+	cargo +nightly clippy --all-targets -- -D warnings
 
 check-lint: clippy
-	cargo fmt -- --check
+	cargo +nightly fmt -- --check
 
 lint: clippy
-	cargo fmt
+	cargo +nightly fmt
 
 clean:
 	cargo clean

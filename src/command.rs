@@ -173,11 +173,7 @@ pub fn write_to_file(path: PathBuf, content: &str) {
 
 /// Appends a content to a file at the given path.
 pub fn append_file(path: PathBuf, content: &str) {
-    let mut file = OpenOptions::new()
-        .write(true)
-        .append(true)
-        .open(path)
-        .unwrap();
+    let mut file = OpenOptions::new().append(true).open(path).unwrap();
 
     file.write_all(content.as_bytes()).unwrap();
 }

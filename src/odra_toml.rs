@@ -17,18 +17,34 @@ pub struct Contract {
 }
 
 impl Contract {
-    /// Extracts first part from fqn
     pub fn module_name(&self) -> String {
         self.fqn
             .split_terminator("::")
             .next()
             .unwrap_or_else(|| MalformedFqn.print_and_die())
+            .replace("-", "_")
             .to_string()
+    }
+
+    pub fn module_crate_name(&self, project: &Project) -> String {
+        if project.is_workspace() {
+            project
+                .members
+                .iter()
+                .find(|m| m.name.replace("-", "_") == self.module_name())
+                .unwrap_or_else(|| {
+                    Error::CrateOfContractNotFound(self.module_name()).print_and_die()
+                })
+                .name
+                .clone()
+        } else {
+            project.project_crate_name()
+        }
     }
 
     pub fn crate_name(&self, project: &Project) -> String {
         if project.is_workspace() {
-            self.module_name()
+            self.module_crate_name(project)
         } else {
             project.project_crate_name()
         }
@@ -78,14 +94,14 @@ impl OdraToml {
             .any(|c| c.struct_name() == contract_name)
     }
 
-    /// Check if any contract in Odra.toml is a part of a module with given name
-    pub fn has_module(&self, module_name: &str) -> bool {
+    /// Check if any contract in Odra.toml is a part of a crate with given name
+    pub fn crate_has_contracts(&self, crate_name: &str) -> bool {
         self.contracts.iter().any(|c| {
             c.fqn
                 .split_terminator("::")
                 .next()
                 .unwrap_or_else(|| Error::MalformedFqn.print_and_die())
-                == module_name
+                == crate_name.replace("-", "_")
         })
     }
 }
