@@ -111,6 +111,7 @@ impl InitAction {
             "#odra_dependency",
             "odra",
         );
+
         Self::replace_package_placeholder(
             init,
             &odra_location,
@@ -118,12 +119,21 @@ impl InitAction {
             "#odra_test_dependency",
             "odra-test",
         );
+
         Self::replace_package_placeholder(
             init,
             &odra_location,
             &cargo_toml_path,
             "#odra_build_dependency",
             "odra-build",
+        );
+
+        Self::replace_package_placeholder(
+            init,
+            &odra_location,
+            &cargo_toml_path,
+            "#odra_modules_dependency",
+            "odra-modules",
         );
 
         rename_file(cargo_toml_path, "Cargo.toml");
