@@ -40,6 +40,7 @@ impl InitAction {
                 git: None,
                 branch: None,
                 tag: None,
+                revision: None,
                 path: None,
                 favorite: None,
             },
@@ -50,6 +51,7 @@ impl InitAction {
                 git: None,
                 branch,
                 tag: None,
+                revision: None,
                 path: None,
                 favorite: None,
             },
@@ -60,17 +62,20 @@ impl InitAction {
                 git: None,
                 branch: Some(format!("release/{}", version)),
                 tag: None,
+                revision: None,
                 path: None,
                 favorite: None,
             },
         };
+
+        dbg!("generating");
 
         cargo_generate::generate(GenerateArgs {
             template_path,
             list_favorites: false,
             name: Some(paths::to_snake_case(&init_command.name)),
             force: true,
-            verbose: false,
+            verbose: true,
             template_values_file: None,
             silent: false,
             config: None,
@@ -84,12 +89,14 @@ impl InitAction {
             force_git_init: false,
             allow_commands: false,
             overwrite: false,
+            skip_submodules: true,
             other_args: None,
         })
         .unwrap_or_else(|e| {
             Error::FailedToGenerateProjectFromTemplate(e.to_string()).print_and_die();
         });
 
+        dbg!("generating 2");
         let cargo_toml_path = match init {
             true => {
                 let mut path = current_dir;
@@ -104,6 +111,7 @@ impl InitAction {
             }
         };
 
+        dbg!("generating 3");
         Self::replace_package_placeholder(
             init,
             &odra_location,

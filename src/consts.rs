@@ -21,7 +21,7 @@ pub const ODRA_GITHUB_API_DATA: &str = "https://api.github.com/repos/odradev/odr
 pub const ODRA_TEMPLATE_DEFAULT_TEMPLATE: &str = "full";
 
 /// Module template.
-pub const MODULE_TEMPLATE: &str = "module";
+pub const MODULE_TEMPLATE: &str = "flipper";
 
 /// Module register snippet.
 pub const MODULE_REGISTER: &str = "module_register";
