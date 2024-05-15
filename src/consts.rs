@@ -25,3 +25,5 @@ pub const MODULE_TEMPLATE: &str = "flipper";
 
 /// Module register snippet.
 pub const MODULE_REGISTER: &str = "module_register";
+
+pub const TEMPLATES_JSON_PATH: &str = "templates/templates.json";

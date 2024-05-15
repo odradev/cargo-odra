@@ -10,11 +10,12 @@ use ureq::serde_json;
 use crate::{
     cli::InitCommand,
     command::{rename_file, replace_in_file},
-    consts::{ODRA_GITHUB_API_DATA, ODRA_TEMPLATE_GH_REPO},
+    consts::{ODRA_GITHUB_API_DATA, ODRA_TEMPLATE_GH_RAW_REPO, ODRA_TEMPLATE_GH_REPO},
     errors::Error,
     log,
     paths,
     project::OdraLocation,
+    template::TemplateGenerator,
 };
 
 /// InitAction configuration.
@@ -32,10 +33,15 @@ impl InitAction {
 
         let odra_location = Self::odra_location(init_command.source);
 
+        let template_repository_path =
+            TemplateGenerator::new(ODRA_TEMPLATE_GH_RAW_REPO.to_string(), odra_location.clone())
+                .find_template(&init_command.template)
+                .path;
+
         let template_path = match odra_location.clone() {
             OdraLocation::Local(local_path) => TemplatePath {
                 auto_path: Some(local_path.as_os_str().to_str().unwrap().to_string()),
-                subfolder: Some(format!("templates/{}", init_command.template)),
+                subfolder: Some(template_repository_path),
                 test: false,
                 git: None,
                 branch: None,
@@ -46,7 +52,7 @@ impl InitAction {
             },
             OdraLocation::Remote(repo, branch) => TemplatePath {
                 auto_path: Some(repo),
-                subfolder: Some(format!("templates/{}", init_command.template)),
+                subfolder: Some(template_repository_path),
                 test: false,
                 git: None,
                 branch,
@@ -57,7 +63,7 @@ impl InitAction {
             },
             OdraLocation::CratesIO(version) => TemplatePath {
                 auto_path: Some(ODRA_TEMPLATE_GH_REPO.to_string()),
-                subfolder: Some(format!("templates/{}", init_command.template)),
+                subfolder: Some(template_repository_path),
                 test: false,
                 git: None,
                 branch: Some(format!("release/{}", version)),

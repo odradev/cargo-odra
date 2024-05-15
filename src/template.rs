@@ -3,7 +3,7 @@ use ureq::{get, serde_json};
 
 use crate::{
     command::read_file_content,
-    consts::{MODULE_REGISTER, MODULE_TEMPLATE},
+    consts::{MODULE_REGISTER, MODULE_TEMPLATE, TEMPLATES_JSON_PATH},
     errors::Error,
     project::OdraLocation,
 };
@@ -47,7 +47,7 @@ impl TemplateGenerator {
     fn fetch_templates(&self) -> Vec<Template> {
         match self.odra_location.clone() {
             OdraLocation::Local(path) => {
-                let path = path.join("templates/templates.json");
+                let path = path.join(TEMPLATES_JSON_PATH);
                 let path_string = path.to_str().unwrap().to_string();
                 serde_json::from_str(&read_file_content(path).unwrap_or_else(|_| {
                     Error::FailedToFetchTemplatesFile(path_string.clone()).print_and_die()
@@ -56,7 +56,7 @@ impl TemplateGenerator {
             }
             OdraLocation::Remote(_, branch) => {
                 let branch = branch.unwrap_or_else(|| "releases/latest".to_string());
-                let template_path = self.template_path("templates.json", branch);
+                let template_path = self.template_path(TEMPLATES_JSON_PATH, branch);
                 let templates_json = get(&template_path)
                     .call()
                     .unwrap_or_else(|_| {
@@ -72,7 +72,7 @@ impl TemplateGenerator {
             }
             OdraLocation::CratesIO(version) => {
                 let branch = format!("release/{}", version);
-                let template_path = self.template_path("templates.json", branch);
+                let template_path = self.template_path(TEMPLATES_JSON_PATH, branch);
                 let templates_json = get(&template_path)
                     .call()
                     .unwrap_or_else(|_| {
@@ -89,35 +89,38 @@ impl TemplateGenerator {
         }
     }
 
-    fn find_template(&self, template_name: &str) -> Template {
+    pub fn find_template(&self, template_name: &str) -> Template {
         self.fetch_templates()
             .into_iter()
             .find(|template| template.name == template_name)
             .unwrap_or_else(|| Error::TemplateNotFound(template_name.to_owned()).print_and_die())
     }
 
-    fn fetch_template(&self, template_name: &str) -> Result<String, Error> {
+    pub fn fetch_template(&self, template_name: &str) -> String {
         let template = self.find_template(template_name);
 
         if template.template_type == TemplateType::Project {
-            return Err(Error::IncorrectTemplateType);
+            Error::IncorrectTemplateType.print_and_die()
         }
 
         match self.odra_location.clone() {
             OdraLocation::Local(path) => {
                 let path = path.join(template.path);
-                read_file_content(path)
-                    .map_err(|_| Error::FailedToFetchTemplate(template_name.to_owned()))
+                read_file_content(path).unwrap_or_else(|_| {
+                    Error::FailedToFetchTemplate(template_name.to_owned()).print_and_die()
+                })
             }
             OdraLocation::Remote(_, branch) => {
                 let branch = branch.unwrap_or_else(|| "releases/latest".to_string());
                 let template_path = self.template_path(&template.path, branch);
                 get(&template_path)
                     .call()
-                    .map_err(|_| Error::FailedToFetchTemplate(template_path.clone()))
-                    .and_then(|res| {
-                        res.into_string()
-                            .map_err(|_| Error::FailedToParseTemplate(template_path.clone()))
+                    .unwrap_or_else(|_| {
+                        Error::FailedToFetchTemplate(template_path.clone()).print_and_die()
+                    })
+                    .into_string()
+                    .unwrap_or_else(|_| {
+                        Error::FailedToParseTemplate(template_path.clone()).print_and_die()
                     })
             }
             OdraLocation::CratesIO(version) => {
@@ -125,10 +128,12 @@ impl TemplateGenerator {
                 let template_path = self.template_path(&template.path, branch);
                 get(&template_path)
                     .call()
-                    .map_err(|_| Error::FailedToFetchTemplate(template_path.clone()))
-                    .and_then(|res| {
-                        res.into_string()
-                            .map_err(|_| Error::FailedToParseTemplate(template_path.clone()))
+                    .unwrap_or_else(|_| {
+                        Error::FailedToFetchTemplate(template_path.clone()).print_and_die()
+                    })
+                    .into_string()
+                    .unwrap_or_else(|_| {
+                        Error::FailedToParseTemplate(template_path.clone()).print_and_die()
                     })
             }
         }
@@ -142,7 +147,7 @@ impl TemplateGenerator {
     ) -> Result<String, Error> {
         let template_name = template_name.unwrap_or_else(|| MODULE_TEMPLATE.to_string());
         Ok(self
-            .fetch_template(&template_name)?
+            .fetch_template(&template_name)
             .replace("#module_name", module_name))
     }
 
@@ -153,7 +158,7 @@ impl TemplateGenerator {
         module_name: &str,
     ) -> Result<String, Error> {
         Ok(self
-            .fetch_template(MODULE_REGISTER)?
+            .fetch_template(MODULE_REGISTER)
             .replace("#contract_name", contract_name)
             .replace("#module_name", module_name))
     }
