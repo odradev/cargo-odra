@@ -120,6 +120,7 @@ impl InitAction {
             &cargo_toml_path,
             "#odra_dependency",
             "odra",
+            "odra",
         );
 
         Self::replace_package_placeholder(
@@ -127,6 +128,7 @@ impl InitAction {
             &odra_location,
             &cargo_toml_path,
             "#odra_test_dependency",
+            "odra-test",
             "odra-test",
         );
 
@@ -136,6 +138,7 @@ impl InitAction {
             &cargo_toml_path,
             "#odra_build_dependency",
             "odra-build",
+            "odra-build",
         );
 
         Self::replace_package_placeholder(
@@ -143,6 +146,7 @@ impl InitAction {
             &odra_location,
             &cargo_toml_path,
             "#odra_modules_dependency",
+            "odra-modules",
             "modules",
         );
 
@@ -156,6 +160,7 @@ impl InitAction {
         cargo_toml_path: &Path,
         placeholder: &str,
         crate_name: &str,
+        crate_path: &str,
     ) {
         replace_in_file(
             cargo_toml_path.to_path_buf(),
@@ -165,7 +170,7 @@ impl InitAction {
                 crate_name,
                 toml::to_string(&Self::odra_project_dependency(
                     odra_location.clone(),
-                    crate_name,
+                    crate_path,
                     init
                 ))
                 .unwrap()
@@ -183,7 +188,7 @@ impl InitAction {
 
     fn odra_project_dependency(
         odra_location: OdraLocation,
-        crate_name: &str,
+        crate_path: &str,
         init: bool,
     ) -> Dependency {
         let (version, path, git, branch) = match odra_location {
@@ -193,7 +198,7 @@ impl InitAction {
                     false => PathBuf::from("..").join(path),
                 };
                 let path = path
-                    .join(crate_name)
+                    .join(crate_path)
                     .into_os_string()
                     .to_str()
                     .unwrap()
