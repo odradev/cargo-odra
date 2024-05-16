@@ -20,14 +20,14 @@ impl ListTemplatesAction {
             .iter()
             .filter(|template| template.template_type == TemplateType::Contract)
             .for_each(|template| {
-                println!("{:<15}{}", template.name, template.description);
+                println!("  {:<15}{}", template.name, template.description);
             });
         println!("\nAvailable project templates:");
         templates
             .iter()
             .filter(|template| template.template_type == TemplateType::Project)
             .for_each(|template| {
-                println!("{:<15}{}", template.name, template.description);
+                println!("  {:<15}{}", template.name, template.description);
             });
     }
 }

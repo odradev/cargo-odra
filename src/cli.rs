@@ -133,6 +133,10 @@ pub struct GenerateCommand {
     /// To see all available templates, run `cargo odra list-templates`.
     #[clap(value_parser, long, short, default_value = consts::MODULE_TEMPLATE)]
     pub template: Option<String>,
+    /// Odra source to use. By default, it uses version from Cargo.toml,
+    /// but can be overriden if needed.
+    #[clap(value_parser, long, short)]
+    pub source: Option<String>,
 }
 
 #[derive(clap::Args, Debug)]
@@ -175,6 +179,7 @@ pub fn make_action() {
                 generate.contract_name,
                 generate.module,
                 generate.template,
+                generate.source,
             )
             .generate_contract();
         }

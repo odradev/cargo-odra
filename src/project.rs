@@ -81,7 +81,7 @@ impl Project {
     }
 
     /// Name of the crate.
-    /// If there is no subcrate, the project name is returned.
+    /// If there is no sub-crate, the project name is returned.
     pub fn crate_name(&self, module_name: Option<String>) -> String {
         match module_name {
             None => self.project_crate_name(),

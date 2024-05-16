@@ -57,15 +57,7 @@ impl TemplateGenerator {
             OdraLocation::Remote(_, branch) => {
                 let branch = branch.unwrap_or_else(|| "releases/latest".to_string());
                 let template_path = self.template_path(TEMPLATES_JSON_PATH, branch);
-                let templates_json = get(&template_path)
-                    .call()
-                    .unwrap_or_else(|_| {
-                        Error::FailedToFetchTemplatesFile(template_path.clone()).print_and_die()
-                    })
-                    .into_string()
-                    .unwrap_or_else(|_| {
-                        Error::FailedToFetchTemplatesFile(template_path.clone()).print_and_die()
-                    });
+                let templates_json = Self::download_template(&template_path);
                 serde_json::from_str(&templates_json).unwrap_or_else(|_| {
                     Error::FailedToParseTemplatesFile(template_path).print_and_die()
                 })
@@ -73,15 +65,7 @@ impl TemplateGenerator {
             OdraLocation::CratesIO(version) => {
                 let branch = format!("release/{}", version);
                 let template_path = self.template_path(TEMPLATES_JSON_PATH, branch);
-                let templates_json = get(&template_path)
-                    .call()
-                    .unwrap_or_else(|_| {
-                        Error::FailedToFetchTemplatesFile(template_path.clone()).print_and_die()
-                    })
-                    .into_string()
-                    .unwrap_or_else(|_| {
-                        Error::FailedToFetchTemplatesFile(template_path.clone()).print_and_die()
-                    });
+                let templates_json = Self::download_template(&template_path);
                 serde_json::from_str(&templates_json).unwrap_or_else(|_| {
                     Error::FailedToParseTemplatesFile(template_path).print_and_die()
                 })
@@ -113,30 +97,26 @@ impl TemplateGenerator {
             OdraLocation::Remote(_, branch) => {
                 let branch = branch.unwrap_or_else(|| "releases/latest".to_string());
                 let template_path = self.template_path(&template.path, branch);
-                get(&template_path)
-                    .call()
-                    .unwrap_or_else(|_| {
-                        Error::FailedToFetchTemplate(template_path.clone()).print_and_die()
-                    })
-                    .into_string()
-                    .unwrap_or_else(|_| {
-                        Error::FailedToParseTemplate(template_path.clone()).print_and_die()
-                    })
+                Self::download_template(&template_path)
             }
             OdraLocation::CratesIO(version) => {
                 let branch = format!("release/{}", version);
                 let template_path = self.template_path(&template.path, branch);
-                get(&template_path)
-                    .call()
-                    .unwrap_or_else(|_| {
-                        Error::FailedToFetchTemplate(template_path.clone()).print_and_die()
-                    })
-                    .into_string()
-                    .unwrap_or_else(|_| {
-                        Error::FailedToParseTemplate(template_path.clone()).print_and_die()
-                    })
+                Self::download_template(&template_path)
             }
         }
+    }
+
+    fn download_template(template_path: &String) -> String {
+        get(&template_path.clone())
+            .call()
+            .unwrap_or_else(|_| {
+                Error::FailedToFetchTemplate(template_path.to_string()).print_and_die()
+            })
+            .into_string()
+            .unwrap_or_else(|_| {
+                Error::FailedToParseTemplate(template_path.to_string()).print_and_die()
+            })
     }
 
     /// Returns content of the new module file.

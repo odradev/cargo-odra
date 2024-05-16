@@ -7,6 +7,7 @@ Changelog for `cargo-odra`.
 ### Added
 
 - Support for defining template of a contract to grab when using `generate` command.
+- Ability to list all available templates using `list-templates` command.
 
 ### Fixed
 

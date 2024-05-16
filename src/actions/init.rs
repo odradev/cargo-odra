@@ -143,7 +143,7 @@ impl InitAction {
             &odra_location,
             &cargo_toml_path,
             "#odra_modules_dependency",
-            "odra-modules",
+            "modules",
         );
 
         rename_file(cargo_toml_path, "Cargo.toml");

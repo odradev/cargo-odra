@@ -9,7 +9,7 @@ use crate::{
     log,
     odra_toml::Contract,
     paths::{to_camel_case, to_snake_case},
-    project::Project,
+    project::{OdraLocation, Project},
     template::TemplateGenerator,
 };
 
@@ -32,10 +32,17 @@ impl<'a> GenerateAction<'a> {
         contract_name: String,
         module_name: Option<String>,
         template_name: Option<String>,
+        source: Option<String>,
     ) -> Self {
         if project.is_workspace() && module_name.is_none() {
             Error::CrateNotProvided.print_and_die();
         }
+
+        let odra_location = match source {
+            None => project.project_odra_location(),
+
+            Some(_) => OdraLocation::from_source(source),
+        };
 
         GenerateAction {
             project,
@@ -46,7 +53,7 @@ impl<'a> GenerateAction<'a> {
             template_name,
             template_generator: TemplateGenerator::new(
                 ODRA_TEMPLATE_GH_RAW_REPO.to_string(),
-                project.project_odra_location(),
+                odra_location,
             ),
         }
     }
