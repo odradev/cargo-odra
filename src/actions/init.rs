@@ -5,16 +5,17 @@ use std::path::{Path, PathBuf};
 use cargo_generate::{GenerateArgs, TemplatePath, Vcs};
 use cargo_toml::{Dependency, DependencyDetail};
 use chrono::Utc;
-use ureq::serde_json;
 
 use crate::{
     cli::InitCommand,
     command::{rename_file, replace_in_file},
-    consts::{ODRA_GITHUB_API_DATA, ODRA_TEMPLATE_GH_REPO},
+    consts::{ODRA_TEMPLATE_GH_RAW_REPO, ODRA_TEMPLATE_GH_REPO},
     errors::Error,
     log,
     paths,
     project::OdraLocation,
+    template::TemplateGenerator,
+    utils::odra_latest_version,
 };
 
 /// InitAction configuration.
@@ -30,36 +31,44 @@ impl InitAction {
 
         log::info("Generating a new project...");
 
-        let odra_location = Self::odra_location(init_command.source);
+        let odra_location = OdraLocation::from_source(init_command.source);
+
+        let template_repository_path =
+            TemplateGenerator::new(ODRA_TEMPLATE_GH_RAW_REPO.to_string(), odra_location.clone())
+                .find_template(&init_command.template)
+                .path;
 
         let template_path = match odra_location.clone() {
             OdraLocation::Local(local_path) => TemplatePath {
                 auto_path: Some(local_path.as_os_str().to_str().unwrap().to_string()),
-                subfolder: Some(format!("templates/{}", init_command.template)),
+                subfolder: Some(template_repository_path),
                 test: false,
                 git: None,
                 branch: None,
                 tag: None,
+                revision: None,
                 path: None,
                 favorite: None,
             },
             OdraLocation::Remote(repo, branch) => TemplatePath {
                 auto_path: Some(repo),
-                subfolder: Some(format!("templates/{}", init_command.template)),
+                subfolder: Some(template_repository_path),
                 test: false,
                 git: None,
                 branch,
                 tag: None,
+                revision: None,
                 path: None,
                 favorite: None,
             },
             OdraLocation::CratesIO(version) => TemplatePath {
                 auto_path: Some(ODRA_TEMPLATE_GH_REPO.to_string()),
-                subfolder: Some(format!("templates/{}", init_command.template)),
+                subfolder: Some(template_repository_path),
                 test: false,
                 git: None,
                 branch: Some(format!("release/{}", version)),
                 tag: None,
+                revision: None,
                 path: None,
                 favorite: None,
             },
@@ -84,6 +93,7 @@ impl InitAction {
             force_git_init: false,
             allow_commands: false,
             overwrite: false,
+            skip_submodules: true,
             other_args: None,
         })
         .unwrap_or_else(|e| {
@@ -111,6 +121,7 @@ impl InitAction {
             "#odra_dependency",
             "odra",
         );
+
         Self::replace_package_placeholder(
             init,
             &odra_location,
@@ -118,12 +129,21 @@ impl InitAction {
             "#odra_test_dependency",
             "odra-test",
         );
+
         Self::replace_package_placeholder(
             init,
             &odra_location,
             &cargo_toml_path,
             "#odra_build_dependency",
             "odra-build",
+        );
+
+        Self::replace_package_placeholder(
+            init,
+            &odra_location,
+            &cargo_toml_path,
+            "#odra_modules_dependency",
+            "modules",
         );
 
         rename_file(cargo_toml_path, "Cargo.toml");
@@ -161,41 +181,6 @@ impl InitAction {
         }
     }
 
-    fn odra_location(source: Option<String>) -> OdraLocation {
-        let source = if let Some(source) = source {
-            source
-        } else {
-            Self::odra_latest_version()
-        };
-
-        // location on disk
-        let local = PathBuf::from(&source);
-        if local.exists() {
-            OdraLocation::Local(local)
-        } else {
-            // version
-            let version_regex = regex::Regex::new(r"^\d+\.\d+\.\d+$").unwrap();
-            if version_regex.is_match(&source) {
-                OdraLocation::CratesIO(source)
-            } else {
-                // branch
-                OdraLocation::Remote(ODRA_TEMPLATE_GH_REPO.to_string(), Some(source))
-            }
-        }
-    }
-    fn odra_latest_version() -> String {
-        let response: serde_json::Value = ureq::get(ODRA_GITHUB_API_DATA)
-            .call()
-            .unwrap_or_else(|_| {
-                Error::FailedToFetchTemplate(ODRA_GITHUB_API_DATA.to_string()).print_and_die()
-            })
-            .into_json()
-            .unwrap_or_else(|_| {
-                Error::FailedToParseTemplate(ODRA_GITHUB_API_DATA.to_string()).print_and_die()
-            });
-        response["tag_name"].as_str().unwrap().to_string()
-    }
-
     fn odra_project_dependency(
         odra_location: OdraLocation,
         crate_name: &str,
@@ -216,7 +201,7 @@ impl InitAction {
                 (None, Some(path), None, None)
             }
             OdraLocation::Remote(repo, branch) => match branch {
-                None => (Some(Self::odra_latest_version()), None, None, None),
+                None => (Some(odra_latest_version()), None, None, None),
                 Some(branch) => (None, None, Some(repo), Some(branch)),
             },
             OdraLocation::CratesIO(version) => (Some(version), None, None, None),

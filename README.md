@@ -1,9 +1,10 @@
 # cargo-odra
 
 A cargo utility that helps to create, manage and test your smart contracts
-written using Odra framework.   
+written using Odra framework.
 
 ## Table of Contents
+
 * [Usage](#usage)
 * [Commands](#backends)
 * [Links](#links)
@@ -51,10 +52,11 @@ $ cargo odra test -b casper
 * `build` - builds the contracts, generates wasm files,
 * `test` - runs tests,
 * `generate` - generates sample contract,
+* `list-templates` - lists available templates,
 * `clean` - removes temporary files (builders and wasm files),
 * `completions` - generates autocomplete script for given shell
 
-To see exact syntax of each command, type `cargo odra command --help`.
+To see exact syntax of each command, type `cargo odra command_name --help`.
 
 ## Workspaces
 
@@ -74,6 +76,7 @@ $ cargo odra new --name myproject --template workspace && cd myproject
 * [Odra docs](https://odra.dev/docs)
 
 ## Contact
+
 Write **contact@odra.dev**
 
 <div align="center">

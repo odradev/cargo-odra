@@ -1,4 +1,13 @@
-use crate::{command, errors::Error, odra_toml::Contract, paths::to_camel_case, project::Project};
+use ureq::serde_json;
+
+use crate::{
+    command,
+    consts::ODRA_GITHUB_API_DATA,
+    errors::Error,
+    odra_toml::Contract,
+    paths::to_camel_case,
+    project::Project,
+};
 
 /// Check if wasm32-unknown-unknown target is installed.
 pub fn check_target_requirements() {
@@ -58,4 +67,17 @@ fn parse_contracts_names(names_string: String) -> Result<Vec<String>, &'static s
                 .collect::<Vec<_>>()
         }),
     }
+}
+
+pub fn odra_latest_version() -> String {
+    let response: serde_json::Value = ureq::get(ODRA_GITHUB_API_DATA)
+        .call()
+        .unwrap_or_else(|_| {
+            Error::FailedToFetchTemplate(ODRA_GITHUB_API_DATA.to_string()).print_and_die()
+        })
+        .into_json()
+        .unwrap_or_else(|_| {
+            Error::FailedToParseTemplate(ODRA_GITHUB_API_DATA.to_string()).print_and_die()
+        });
+    response["tag_name"].as_str().unwrap().to_string()
 }

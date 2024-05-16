@@ -3,9 +3,15 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use cargo_toml::{Dependency, DependencyDetail};
+use cargo_toml::{Dependency, DependencyDetail, Manifest};
 
-use crate::{cargo_toml::load_cargo_toml, errors::Error, odra_toml::OdraToml};
+use crate::{
+    cargo_toml::load_cargo_toml,
+    consts::ODRA_TEMPLATE_GH_REPO,
+    errors::Error,
+    odra_toml::OdraToml,
+    utils::odra_latest_version,
+};
 
 /// Struct representing the whole project.
 #[derive(Debug, Clone)]
@@ -28,7 +34,7 @@ impl Project {
         let odra_toml_path = Self::find_odra_toml(path.clone()).unwrap_or_else(|| {
             Error::NotAnOdraProject.print_and_die();
         });
-        let cargo_toml_path = Self::find_cargo_toml(path).unwrap_or_else(|| {
+        let cargo_toml_path = Self::find_odra_cargo_toml(path).unwrap_or_else(|| {
             Error::NotAnOdraProject.print_and_die();
         });
         let root = odra_toml_path.parent().unwrap().to_path_buf();
@@ -75,7 +81,7 @@ impl Project {
     }
 
     /// Name of the crate.
-    /// If there is no subcrate, the project name is returned.
+    /// If there is no sub-crate, the project name is returned.
     pub fn crate_name(&self, module_name: Option<String>) -> String {
         match module_name {
             None => self.project_crate_name(),
@@ -99,7 +105,8 @@ impl Project {
     }
 
     /// Searches for main Projects' Cargo.toml.
-    pub fn find_cargo_toml(path: PathBuf) -> Option<PathBuf> {
+    /// Ensures that the project is an Odra project.
+    pub fn find_odra_cargo_toml(path: PathBuf) -> Option<PathBuf> {
         match Self::find_file_upwards("Odra.toml", path) {
             None => None,
             Some(odra_toml_path) => {
@@ -136,7 +143,7 @@ impl Project {
             .collect()
     }
 
-    fn find_odra_toml(path: PathBuf) -> Option<PathBuf> {
+    pub fn find_odra_toml(path: PathBuf) -> Option<PathBuf> {
         Self::find_file_upwards("Odra.toml", path)
     }
 
@@ -169,7 +176,20 @@ impl Project {
     }
 
     pub fn project_odra_location(&self) -> OdraLocation {
-        let cargo_toml = load_cargo_toml(&self.cargo_toml_location);
+        OdraLocation::from_project(load_cargo_toml(&self.cargo_toml_location))
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum OdraLocation {
+    Local(PathBuf),
+    /// git repo, branch
+    Remote(String, Option<String>),
+    CratesIO(String),
+}
+
+impl OdraLocation {
+    pub fn from_project(cargo_toml: Manifest) -> OdraLocation {
         let dependencies = match cargo_toml.workspace {
             None => cargo_toml.dependencies,
             Some(workspace) => workspace.dependencies,
@@ -212,14 +232,29 @@ impl Project {
             }
         }
     }
-}
 
-#[derive(Debug, Clone)]
-pub enum OdraLocation {
-    Local(PathBuf),
-    /// git repo, branch
-    Remote(String, Option<String>),
-    CratesIO(String),
+    pub fn from_source(source: Option<String>) -> OdraLocation {
+        let source = if let Some(source) = source {
+            source
+        } else {
+            odra_latest_version()
+        };
+
+        // location on disk
+        let local = PathBuf::from(&source);
+        if local.exists() {
+            OdraLocation::Local(local)
+        } else {
+            // version
+            let version_regex = regex::Regex::new(r"^\d+\.\d+\.\d+$").unwrap();
+            if version_regex.is_match(&source) {
+                OdraLocation::CratesIO(source)
+            } else {
+                // branch
+                OdraLocation::Remote(ODRA_TEMPLATE_GH_REPO.to_string(), Some(source))
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone)]

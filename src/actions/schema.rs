@@ -1,7 +1,6 @@
 //! Module for generating contracts schema.
 
-use super::utils;
-use crate::{command, errors::Error, log, project::Project};
+use crate::{command, errors::Error, log, project::Project, utils};
 
 /// SchemaAction configuration.
 pub struct SchemaAction<'a> {

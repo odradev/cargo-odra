@@ -2,6 +2,18 @@
 
 Changelog for `cargo-odra`.
 
+## [0.1.2] - 2024-XX-XX
+
+### Added
+
+- Support for defining template of a contract to grab when using `generate` command.
+- Ability to list all available templates using `list-templates` command.
+
+### Fixed
+
+- Fixed error that caused contracts to fail to be built when coming from crates with
+  hyphens in their name.
+
 ## [0.1.1] - 2024-02-28
 
 ### Added

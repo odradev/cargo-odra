@@ -81,6 +81,18 @@ pub enum Error {
 
     #[error("Crate for contract {0} not found in workspace members")]
     CrateOfContractNotFound(String),
+
+    #[error("Failed to fetch templates file from {0}")]
+    FailedToFetchTemplatesFile(String),
+
+    #[error("Failed to parse templates file from {0}")]
+    FailedToParseTemplatesFile(String),
+
+    #[error("Template {0} not found in templates.json")]
+    TemplateNotFound(String),
+
+    #[error("Incorrect template type.")]
+    IncorrectTemplateType,
 }
 
 impl Error {
@@ -112,6 +124,10 @@ impl Error {
             Error::WasmoptDidNotFinish => 24,
             Error::CrateNotProvided => 25,
             Error::CrateOfContractNotFound(_) => 26,
+            Error::FailedToFetchTemplatesFile(_) => 27,
+            Error::FailedToParseTemplatesFile(_) => 28,
+            Error::TemplateNotFound(_) => 29,
+            Error::IncorrectTemplateType => 30,
         }
     }
 

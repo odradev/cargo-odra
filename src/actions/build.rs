@@ -1,7 +1,6 @@
 //! Module for managing and building wasm files.
 
-use super::utils;
-use crate::{command, errors::Error, log, paths, project::Project};
+use crate::{command, errors::Error, log, paths, project::Project, utils};
 
 /// BuildAction configuration.
 pub struct BuildAction<'a> {
