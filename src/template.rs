@@ -44,7 +44,7 @@ impl TemplateGenerator {
     }
 
     /// Fetches templates.json
-    fn fetch_templates(&self) -> Vec<Template> {
+    pub fn fetch_templates(&self) -> Vec<Template> {
         match self.odra_location.clone() {
             OdraLocation::Local(path) => {
                 let path = path.join(TEMPLATES_JSON_PATH);

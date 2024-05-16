@@ -6,4 +6,5 @@ pub mod generate;
 pub mod init;
 pub mod schema;
 pub mod test;
-mod utils;
+
+pub mod list_templates;
