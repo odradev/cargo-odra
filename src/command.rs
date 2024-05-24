@@ -124,6 +124,7 @@ pub fn cargo_build_wasm_files(
     contract_name: &str,
     module_name: &str,
     is_workspace: bool,
+    crate_name: String,
 ) {
     env::set_var(ODRA_MODULE_ENV_KEY, contract_name);
     let build_contract = format!("{}_build_contract", module_name);
@@ -136,7 +137,7 @@ pub fn cargo_build_wasm_files(
     ];
     if is_workspace {
         params.push("--package");
-        params.push(module_name);
+        params.push(crate_name.as_str());
     }
     cargo(current_dir, "build", params);
 }
