@@ -48,6 +48,7 @@ impl BuildAction<'_> {
                 self.project.project_root(),
                 &contract.struct_name(),
                 &module_name,
+                self.project.is_workspace(),
             );
             let source = paths::wasm_path_in_target(&build_contract, self.project.project_root());
             let target =

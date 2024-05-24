@@ -119,20 +119,26 @@ fn cargo(current_dir: PathBuf, command: &str, tail_args: Vec<&str>) {
 }
 
 /// Build wasm files.
-pub fn cargo_build_wasm_files(current_dir: PathBuf, contract_name: &str, module_name: &str) {
+pub fn cargo_build_wasm_files(
+    current_dir: PathBuf,
+    contract_name: &str,
+    module_name: &str,
+    is_workspace: bool,
+) {
     env::set_var(ODRA_MODULE_ENV_KEY, contract_name);
     let build_contract = format!("{}_build_contract", module_name);
-    cargo(
-        current_dir,
-        "build",
-        vec![
-            "--target",
-            "wasm32-unknown-unknown",
-            "--bin",
-            &build_contract,
-            "--release",
-        ],
-    );
+    let mut params = vec![
+        "--target",
+        "wasm32-unknown-unknown",
+        "--bin",
+        &build_contract,
+        "--release",
+    ];
+    if is_workspace {
+        params.push("--package");
+        params.push(module_name);
+    }
+    cargo(current_dir, "build", params);
 }
 
 /// Build schema files.
