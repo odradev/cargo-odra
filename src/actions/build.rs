@@ -48,7 +48,10 @@ impl BuildAction<'_> {
                 self.project.project_root(),
                 &contract.struct_name(),
                 &module_name,
+                self.project.is_workspace(),
+                contract.module_crate_name(self.project),
             );
+
             let source = paths::wasm_path_in_target(&build_contract, self.project.project_root());
             let target =
                 paths::wasm_path_in_wasm_dir(&contract.struct_name(), &self.project.project_root());
@@ -62,7 +65,7 @@ impl BuildAction<'_> {
                     .join(contract.module_crate_name(self.project))
                     .join("wasm");
                 command::mkdir(module_wasm_dir.clone());
-                let mut module_wasm_path = module_wasm_dir.clone().join(&contract.struct_name());
+                let mut module_wasm_path = module_wasm_dir.clone().join(contract.struct_name());
                 module_wasm_path.set_extension("wasm");
                 log::info(format!("Copying to {}", module_wasm_path.display()));
                 command::cp(source, module_wasm_path);
