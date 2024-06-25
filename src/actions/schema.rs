@@ -23,6 +23,7 @@ impl SchemaAction<'_> {
     pub fn build(&self) {
         utils::check_target_requirements();
         utils::validate_contract_name_argument(self.project, self.contracts_names());
+        utils::validate_contract_names(self.project);
         self.generate_schema_files();
     }
 
