@@ -63,6 +63,7 @@ impl Contract {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct OdraToml {
     /// Contracts in the project.
+    #[serde(default)]
     pub contracts: Vec<Contract>,
     #[serde(skip)]
     pub location: PathBuf,
