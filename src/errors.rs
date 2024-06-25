@@ -58,6 +58,9 @@ pub enum Error {
     #[error("Contract {0} not found in Odra.toml")]
     ContractNotFound(String),
 
+    #[error("Contract {0} defined multiple times in Odra.toml, please make sure every contract has a unique name.")]
+    ContractDuplicate(String),
+
     #[error("Odra is not a dependency of this project.")]
     OdraNotADependency,
 
@@ -128,6 +131,7 @@ impl Error {
             Error::FailedToParseTemplatesFile(_) => 28,
             Error::TemplateNotFound(_) => 29,
             Error::IncorrectTemplateType => 30,
+            Error::ContractDuplicate(_) => 31,
         }
     }
 

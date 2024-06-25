@@ -46,6 +46,22 @@ pub fn validate_contract_name_argument(project: &Project, names_string: String) 
     });
 }
 
+/// Validate if contract names are unique.
+pub fn validate_contract_names(project: &Project) {
+    project.odra_toml().contracts.iter().for_each(|contract| {
+        if project
+            .odra_toml()
+            .contracts
+            .iter()
+            .filter(|c| c.struct_name() == contract.struct_name())
+            .count()
+            > 1
+        {
+            Error::ContractDuplicate(contract.struct_name()).print_and_die();
+        }
+    });
+}
+
 fn remove_extra_spaces(input: &str) -> Result<String, &'static str> {
     // Ensure there are no other separators
     if input.chars().any(|c| c.is_whitespace() && c != ' ') {

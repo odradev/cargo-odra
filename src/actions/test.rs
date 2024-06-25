@@ -9,6 +9,7 @@ pub struct TestAction<'a> {
     backend: Option<String>,
     passthrough_args: Vec<String>,
     skip_build: bool,
+    test: Option<String>,
 }
 
 /// TestAction implementation.
@@ -17,6 +18,7 @@ impl<'a> TestAction<'a> {
     pub fn new(
         project: &Project,
         backend: Option<String>,
+        test: Option<String>,
         passthrough_args: Vec<String>,
         skip_build: bool,
     ) -> TestAction {
@@ -25,6 +27,7 @@ impl<'a> TestAction<'a> {
             passthrough_args,
             skip_build,
             project,
+            test,
         }
     }
 }
@@ -45,7 +48,7 @@ impl TestAction<'_> {
     /// Test code against OdraVM.
     fn test_odra_vm(&self) {
         log::info("Testing against OdraVM ...");
-        command::cargo_test_odra_vm(self.project.project_root(), self.get_passthrough_args());
+        command::cargo_test_odra_vm(self.project.project_root(), self.args());
     }
 
     /// Test specific backend.
@@ -54,7 +57,7 @@ impl TestAction<'_> {
         command::cargo_test_backend(
             self.project.project_root(),
             self.backend_name(),
-            self.get_passthrough_args(),
+            self.args(),
         );
     }
 
@@ -66,6 +69,20 @@ impl TestAction<'_> {
     /// Returns passthrough args to be appended at the end of `cargo test` command.
     fn get_passthrough_args(&self) -> Vec<&str> {
         self.passthrough_args.iter().map(AsRef::as_ref).collect()
+    }
+
+    /// Returns arguments to be passed to `cargo test` command.
+    ///
+    /// This includes the test name and passthrough arguments.
+    fn args(&self) -> Vec<&str> {
+        [
+            self.test
+                .as_ref()
+                .map(|t| vec![t.as_str()])
+                .unwrap_or_default(),
+            self.get_passthrough_args(),
+        ]
+        .concat()
     }
 
     /// Build *.wasm files before testing.
