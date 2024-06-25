@@ -11,8 +11,7 @@ use crate::{
     command::{rename_file, replace_in_file},
     consts::{ODRA_TEMPLATE_GH_RAW_REPO, ODRA_TEMPLATE_GH_REPO},
     errors::Error,
-    log,
-    paths,
+    log, paths,
     project::OdraLocation,
     template::TemplateGenerator,
     utils::odra_latest_version,
@@ -20,7 +19,7 @@ use crate::{
 
 /// InitAction configuration.
 #[derive(Clone)]
-pub struct InitAction {}
+pub struct InitAction;
 
 /// InitAction implementation.
 impl InitAction {
@@ -74,7 +73,7 @@ impl InitAction {
             },
         };
 
-        cargo_generate::generate(GenerateArgs {
+        let project_path = cargo_generate::generate(GenerateArgs {
             template_path,
             list_favorites: false,
             name: Some(paths::to_snake_case(&init_command.name)),
@@ -100,19 +99,14 @@ impl InitAction {
             Error::FailedToGenerateProjectFromTemplate(e.to_string()).print_and_die();
         });
 
-        let cargo_toml_path = match init {
-            true => {
-                let mut path = current_dir;
-                path.push("_Cargo.toml");
-                path
-            }
-            false => {
-                let mut path = current_dir;
-                path.push(paths::to_snake_case(&init_command.name));
-                path.push("_Cargo.toml");
-                path
-            }
-        };
+        let project_name = init_command.name.to_lowercase();
+        rename_file(project_path, &project_name);
+
+        let mut cargo_toml_path = current_dir;
+        if !init {
+            cargo_toml_path.push(project_name);
+        }
+        cargo_toml_path.push("_Cargo.toml");
 
         Self::replace_package_placeholder(
             init,
