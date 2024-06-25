@@ -118,6 +118,9 @@ pub struct TestCommand {
     /// Skip building wasm files.
     #[clap(value_parser, long, short, default_value = "false")]
     pub skip_build: bool,
+    /// Run only tests containing the given name.
+    #[clap(value_parser, long, short)]
+    pub test: Option<String>,
 }
 
 #[derive(clap::Args, Debug)]
@@ -170,7 +173,14 @@ pub fn make_action() {
         }
         OdraSubcommand::Test(test) => {
             let project = Project::detect(current_dir);
-            TestAction::new(&project, test.backend, test.args, test.skip_build).test();
+            TestAction::new(
+                &project,
+                test.backend,
+                test.test,
+                test.args,
+                test.skip_build,
+            )
+            .test();
         }
         OdraSubcommand::Generate(generate) => {
             let project = Project::detect(current_dir);
