@@ -152,7 +152,7 @@ pub fn cargo_generate_schema_files(current_dir: PathBuf, contract_name: &str, mo
 /// Runs cargo test.
 pub fn cargo_test_odra_vm(current_dir: PathBuf, mut args: Vec<&str>) {
     log::info("Running cargo test...");
-    let mut tail_args = vec!["--lib"];
+    let mut tail_args = vec![];
     tail_args.append(&mut args);
     cargo(current_dir, "test", tail_args);
 }
@@ -161,7 +161,7 @@ pub fn cargo_test_odra_vm(current_dir: PathBuf, mut args: Vec<&str>) {
 pub fn cargo_test_backend(project_root: PathBuf, backend_name: &str, mut args: Vec<&str>) {
     env::set_var(ODRA_BACKEND_ENV_KEY, backend_name);
     log::info("Running cargo test...");
-    let mut tail_args = vec!["--lib"];
+    let mut tail_args = vec![];
     tail_args.append(&mut args);
     cargo(project_root, "test", tail_args)
 }
