@@ -38,6 +38,9 @@ impl TestAction<'_> {
         if self.backend.is_none() {
             self.test_odra_vm();
         } else {
+            if self.project.odra_toml().contracts.is_empty() {
+                log::warn("No contracts found in Odra.toml file.");
+            }
             if !self.skip_build {
                 self.build_wasm_files();
             }
