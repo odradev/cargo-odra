@@ -12,6 +12,7 @@ use clap::Parser;
 use Error::InvalidInternalCommand;
 
 use crate::{
+    actions::test::TestFilters,
     cli::Cargo,
     consts::{ODRA_BACKEND_ENV_KEY, ODRA_MODULE_ENV_KEY},
     errors::Error,
@@ -150,18 +151,27 @@ pub fn cargo_generate_schema_files(current_dir: PathBuf, contract_name: &str, mo
 }
 
 /// Runs cargo test.
-pub fn cargo_test_odra_vm(current_dir: PathBuf, mut args: Vec<&str>) {
+pub fn cargo_test_odra_vm<'a>(
+    current_dir: PathBuf,
+    filters: &'a TestFilters,
+    mut args: Vec<&'a str>,
+) {
     log::info("Running cargo test...");
-    let mut tail_args = vec![];
+    let mut tail_args = filters.as_args();
     tail_args.append(&mut args);
     cargo(current_dir, "test", tail_args);
 }
 
 /// Runs cargo test with backend features.
-pub fn cargo_test_backend(project_root: PathBuf, backend_name: &str, mut args: Vec<&str>) {
+pub fn cargo_test_backend<'a>(
+    project_root: PathBuf,
+    backend_name: &str,
+    filters: &'a TestFilters,
+    mut args: Vec<&'a str>,
+) {
     env::set_var(ODRA_BACKEND_ENV_KEY, backend_name);
     log::info("Running cargo test...");
-    let mut tail_args = vec![];
+    let mut tail_args = filters.as_args();
     tail_args.append(&mut args);
     cargo(project_root, "test", tail_args)
 }
