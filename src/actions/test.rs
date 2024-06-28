@@ -101,8 +101,7 @@ impl TestFilters {
             _ => self
                 .targets
                 .iter()
-                .map(|t| vec!["--test", t.as_str()])
-                .flatten()
+                .flat_map(|t| vec!["--test", t.as_str()])
                 .collect(),
         };
 
