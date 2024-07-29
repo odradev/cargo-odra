@@ -118,9 +118,12 @@ pub struct TestCommand {
     /// Skip building wasm files.
     #[clap(value_parser, long, short, default_value = "false")]
     pub skip_build: bool,
-    /// Run only tests containing the given name.
+    /// Test only the specified test target.
     #[clap(value_parser, long, short)]
-    pub test: Option<String>,
+    pub test: Vec<String>,
+    /// Run only tests containing the given name.
+    #[clap(value_parser)]
+    pub filter: Option<String>,
 }
 
 #[derive(clap::Args, Debug)]
@@ -176,9 +179,10 @@ pub fn make_action() {
             TestAction::new(
                 &project,
                 test.backend,
-                test.test,
                 test.args,
                 test.skip_build,
+                test.test,
+                test.filter,
             )
             .test();
         }

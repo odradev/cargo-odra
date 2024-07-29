@@ -22,7 +22,7 @@ impl Contract {
             .split_terminator("::")
             .next()
             .unwrap_or_else(|| MalformedFqn.print_and_die())
-            .replace("-", "_")
+            .replace('-', "_")
             .to_string()
     }
 
@@ -31,7 +31,7 @@ impl Contract {
             project
                 .members
                 .iter()
-                .find(|m| m.name.replace("-", "_") == self.module_name())
+                .find(|m| m.name.replace('-', "_") == self.module_name())
                 .unwrap_or_else(|| {
                     Error::CrateOfContractNotFound(self.module_name()).print_and_die()
                 })
@@ -102,7 +102,7 @@ impl OdraToml {
                 .split_terminator("::")
                 .next()
                 .unwrap_or_else(|| Error::MalformedFqn.print_and_die())
-                == crate_name.replace("-", "_")
+                == crate_name.replace('-', "_")
         })
     }
 }

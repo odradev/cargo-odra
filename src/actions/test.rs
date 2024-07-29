@@ -1,5 +1,4 @@
 //! Module responsible for running contracts tests.
-
 use super::build::BuildAction;
 use crate::{command, log, project::Project};
 
@@ -9,7 +8,7 @@ pub struct TestAction<'a> {
     backend: Option<String>,
     passthrough_args: Vec<String>,
     skip_build: bool,
-    test: Option<String>,
+    filters: TestFilters,
 }
 
 /// TestAction implementation.
@@ -18,16 +17,18 @@ impl<'a> TestAction<'a> {
     pub fn new(
         project: &Project,
         backend: Option<String>,
-        test: Option<String>,
         passthrough_args: Vec<String>,
         skip_build: bool,
+        tests: Vec<String>,
+        filter: Option<String>,
     ) -> TestAction {
+        let filters = TestFilters::new(tests, filter);
         TestAction {
             backend,
             passthrough_args,
             skip_build,
             project,
-            test,
+            filters,
         }
     }
 }
@@ -51,7 +52,12 @@ impl TestAction<'_> {
     /// Test code against OdraVM.
     fn test_odra_vm(&self) {
         log::info("Testing against OdraVM ...");
-        command::cargo_test_odra_vm(self.project.project_root(), self.args());
+
+        command::cargo_test_odra_vm(
+            self.project.project_root(),
+            &self.filters,
+            self.get_passthrough_args(),
+        );
     }
 
     /// Test specific backend.
@@ -60,7 +66,8 @@ impl TestAction<'_> {
         command::cargo_test_backend(
             self.project.project_root(),
             self.backend_name(),
-            self.args(),
+            &self.filters,
+            self.get_passthrough_args(),
         );
     }
 
@@ -74,23 +81,37 @@ impl TestAction<'_> {
         self.passthrough_args.iter().map(AsRef::as_ref).collect()
     }
 
-    /// Returns arguments to be passed to `cargo test` command.
-    ///
-    /// This includes the test name and passthrough arguments.
-    fn args(&self) -> Vec<&str> {
-        [
-            self.test
-                .as_ref()
-                .map(|t| vec![t.as_str()])
-                .unwrap_or_default(),
-            self.get_passthrough_args(),
-        ]
-        .concat()
-    }
-
     /// Build *.wasm files before testing.
     fn build_wasm_files(&self) {
         BuildAction::new(self.project, None).build();
         log::info("Building finished.")
+    }
+}
+
+pub struct TestFilters {
+    targets: Vec<String>,
+    filter: Option<String>,
+}
+
+impl TestFilters {
+    fn new(targets: Vec<String>, filter: Option<String>) -> Self {
+        Self { targets, filter }
+    }
+
+    pub fn as_args(&self) -> Vec<&str> {
+        let mut args = match &self.targets.len() {
+            0 => vec!["--tests"],
+            _ => self
+                .targets
+                .iter()
+                .flat_map(|t| vec!["--test", t.as_str()])
+                .collect(),
+        };
+
+        if let Some(filter) = &self.filter {
+            args.push(filter.as_str());
+        }
+
+        args
     }
 }
