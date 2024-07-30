@@ -2,7 +2,19 @@
 
 Changelog for `cargo-odra`.
 
-## [0.1.2] - 2024-XX-XX
+## [0.1.4] - 2024-07-30
+
+### Added
+
+- Tests filter with `--test` flag.
+
+## [0.1.3] - 2024-06-17
+
+### Fixed
+
+- Handle empty `Odra.toml`.
+
+## [0.1.2] - 2024-05-23
 
 ### Added
 
