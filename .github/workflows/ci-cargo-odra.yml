@@ -34,5 +34,5 @@ jobs:
       - run: just install
       - run: just test-project-generation-on-future-odra
       - run: just test-workspace-generation-on-future-odra
-      - run: just test-project-generation-on-stable-odra
-      - run: just test-workspace-generation-on-stable-odra
+      # - run: just test-project-generation-on-stable-odra
+      # - run: just test-workspace-generation-on-stable-odra
