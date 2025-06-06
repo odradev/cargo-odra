@@ -144,6 +144,15 @@ impl InitAction {
             "odra-modules",
             "modules",
         );
+        
+        Self::replace_package_placeholder(
+            init,
+            &odra_location,
+            &cargo_toml_path,
+            "#odra_cli_dependency",
+            "odra-cli",
+            "odra-cli",
+        );
 
         rename_file(cargo_toml_path, "Cargo.toml");
         log::info("Done!");
