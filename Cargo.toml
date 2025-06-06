@@ -10,7 +10,7 @@ description = "A cargo utility that helps to create, manage and test your smart 
 keywords = ["wasm", "webassembly", "blockchain"]
 categories = ["wasm", "development-tools::cargo-plugins"]
 name = "cargo-odra"
-version = "0.1.4"
+version = "0.1.5"
 edition = "2021"
 
 [dependencies]

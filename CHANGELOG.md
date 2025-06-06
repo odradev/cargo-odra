@@ -2,6 +2,13 @@
 
 Changelog for `cargo-odra`.
 
+## [0.1.5] - 2025-06-06
+
+### Added
+
+- Support for `odra-cli` placeholder in `Odra.toml` to specify the CLI version
+  used for the project.
+
 ## [0.1.4] - 2024-07-30
 
 ### Added
