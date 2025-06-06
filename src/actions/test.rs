@@ -21,7 +21,7 @@ impl<'a> TestAction<'a> {
         skip_build: bool,
         tests: Vec<String>,
         filter: Option<String>,
-    ) -> TestAction {
+    ) -> TestAction<'_> {
         let filters = TestFilters::new(tests, filter);
         TestAction {
             backend,

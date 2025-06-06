@@ -63,7 +63,7 @@ impl TemplateGenerator {
                 })
             }
             OdraLocation::CratesIO(version) => {
-                let branch = format!("release/{}", version);
+                let branch = format!("release/{version}");
                 let template_path = self.template_path(TEMPLATES_JSON_PATH, branch);
                 let templates_json = Self::download_template(&template_path);
                 serde_json::from_str(&templates_json).unwrap_or_else(|_| {
@@ -100,7 +100,7 @@ impl TemplateGenerator {
                 Self::download_template(&template_path)
             }
             OdraLocation::CratesIO(version) => {
-                let branch = format!("release/{}", version);
+                let branch = format!("release/{version}");
                 let template_path = self.template_path(&template.path, branch);
                 Self::download_template(&template_path)
             }

@@ -128,7 +128,7 @@ pub fn cargo_build_wasm_files(
     crate_name: String,
 ) {
     env::set_var(ODRA_MODULE_ENV_KEY, contract_name);
-    let build_contract = format!("{}_build_contract", module_name);
+    let build_contract = format!("{module_name}_build_contract");
     let mut params = vec![
         "--target",
         "wasm32-unknown-unknown",
@@ -146,7 +146,7 @@ pub fn cargo_build_wasm_files(
 /// Build schema files.
 pub fn cargo_generate_schema_files(current_dir: PathBuf, contract_name: &str, module_name: &str) {
     env::set_var(ODRA_MODULE_ENV_KEY, contract_name);
-    let gen_schema = format!("{}_build_schema", module_name);
+    let gen_schema = format!("{module_name}_build_schema");
     cargo(current_dir, "run", vec!["--bin", &gen_schema, "--release"]);
 }
 

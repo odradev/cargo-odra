@@ -66,7 +66,7 @@ impl InitAction {
                 subfolder: Some(template_repository_path),
                 test: false,
                 git: None,
-                branch: Some(format!("release/{}", version)),
+                branch: Some(format!("release/{version}")),
                 tag: None,
                 revision: None,
                 path: None,
@@ -144,7 +144,7 @@ impl InitAction {
             "odra-modules",
             "modules",
         );
-        
+
         Self::replace_package_placeholder(
             init,
             &odra_location,
