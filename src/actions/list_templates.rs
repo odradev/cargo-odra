@@ -1,20 +1,17 @@
 //! Module responsible for listing templates in cli.
 
 use crate::{
-    consts::ODRA_TEMPLATE_GH_RAW_REPO,
     project::OdraLocation,
     template::{TemplateGenerator, TemplateType},
 };
 
 /// ListTemplatesAction configuration.
 #[derive(Clone)]
-pub struct ListTemplatesAction {}
+pub struct ListTemplatesAction;
 
 impl ListTemplatesAction {
     pub fn list(odra_location: OdraLocation) {
-        let templates =
-            TemplateGenerator::new(ODRA_TEMPLATE_GH_RAW_REPO.to_string(), odra_location)
-                .fetch_templates();
+        let templates = TemplateGenerator::new_gh_repo(odra_location).fetch_templates();
         println!("Available contract templates:");
         templates
             .iter()

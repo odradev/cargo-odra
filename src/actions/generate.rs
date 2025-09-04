@@ -4,7 +4,6 @@ use std::path::PathBuf;
 
 use crate::{
     command,
-    consts::ODRA_TEMPLATE_GH_RAW_REPO,
     errors::Error,
     log,
     odra_toml::Contract,
@@ -40,7 +39,6 @@ impl<'a> GenerateAction<'a> {
 
         let odra_location = match source {
             None => project.project_odra_location(),
-
             Some(_) => OdraLocation::from_source(source),
         };
 
@@ -51,10 +49,7 @@ impl<'a> GenerateAction<'a> {
             module_root: project.module_root(module_name.clone()),
             module_name,
             template_name,
-            template_generator: TemplateGenerator::new(
-                ODRA_TEMPLATE_GH_RAW_REPO.to_string(),
-                odra_location,
-            ),
+            template_generator: TemplateGenerator::new_gh_repo(odra_location),
         }
     }
 }

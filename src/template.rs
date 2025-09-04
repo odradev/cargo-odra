@@ -3,7 +3,7 @@ use ureq::{get, serde_json};
 
 use crate::{
     command::read_file_content,
-    consts::{MODULE_REGISTER, MODULE_TEMPLATE, TEMPLATES_JSON_PATH},
+    consts::{MODULE_REGISTER, MODULE_TEMPLATE, ODRA_TEMPLATE_GH_RAW_REPO, TEMPLATES_JSON_PATH},
     errors::Error,
     project::OdraLocation,
 };
@@ -14,6 +14,7 @@ pub enum TemplateType {
     Contract,
     Project,
     Internal,
+    Client,
 }
 
 /// Struct representing Template.
@@ -32,9 +33,16 @@ pub struct TemplateGenerator {
 }
 
 impl TemplateGenerator {
-    pub fn new(repository_path: String, odra_location: OdraLocation) -> Self {
+    // pub fn new(repository_path: String, odra_location: OdraLocation) -> Self {
+    //     Self {
+    //         raw_repository_path: repository_path,
+    //         odra_location,
+    //     }
+    // }
+
+    pub fn new_gh_repo(odra_location: OdraLocation) -> Self {
         Self {
-            raw_repository_path: repository_path,
+            raw_repository_path: ODRA_TEMPLATE_GH_RAW_REPO.to_string(),
             odra_location,
         }
     }

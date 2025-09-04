@@ -96,6 +96,12 @@ pub enum Error {
 
     #[error("Incorrect template type.")]
     IncorrectTemplateType,
+
+    #[error("Client already exists in the project.")]
+    ClientAlreadyExists,
+
+    #[error("Couldn't create client.")]
+    ClientCreateFailed,
 }
 
 impl Error {
@@ -132,6 +138,8 @@ impl Error {
             Error::TemplateNotFound(_) => 29,
             Error::IncorrectTemplateType => 30,
             Error::ContractDuplicate(_) => 31,
+            Error::ClientAlreadyExists => 32,
+            Error::ClientCreateFailed => 33,
         }
     }
 
