@@ -32,6 +32,7 @@ impl<'a> GenerateClientAction<'a> {
             Ok(_) => {
                 self.create_crate_structure();
                 self.write_cargo_toml();
+                self.write_main_rs();
                 self.generate_schema();
                 self.build_client();
             }
@@ -56,7 +57,7 @@ impl<'a> GenerateClientAction<'a> {
         let templates = template_generator.fetch_templates();
         let client_template = templates
             .iter()
-            .find(|template| template.template_type == TemplateType::Client)
+            .find(|template| template.template_type == TemplateType::Client && template.name.contains("cargo"))
             .unwrap_or_else(|| {
                 Error::TemplateNotFound("client".to_string()).print_and_die();
             });
@@ -69,13 +70,39 @@ impl<'a> GenerateClientAction<'a> {
             "odra-wasm-client = {{ {} }}",
             cargo_toml::odra_project_dependency_string(&odra_location, "odra-wasm-client", false)
         );
+        let wasm_client_builder = format!(
+            "odra-wasm-client-builder = {{ {} }}",
+            cargo_toml::odra_project_dependency_string(&odra_location, "odra-wasm-client-builder", false)
+        );
         let client_template = template_generator
             .fetch_template(&client_template.name)
             .replace("#odra_core_dependency", &core)
-            .replace("#odra_wasm_client_dependency", &wasm_client);
+            .replace("#odra_wasm_client_dependency", &wasm_client)
+            .replace("#odra_wasm_client_builder_dependency", &wasm_client_builder)
+            .replace("{{project-name}}", &self.project.name);
 
         let cargo_toml_path = self.module_root.join("Cargo.toml");
         command::write_to_file(cargo_toml_path, &client_template);
+    }
+
+    fn write_main_rs(&self) {
+        let odra_location = self.project.project_odra_location();
+        let template_generator = TemplateGenerator::new_gh_repo(odra_location.clone());
+
+        let templates = template_generator.fetch_templates();
+        let client_template = templates
+            .iter()
+            .find(|template| template.template_type == TemplateType::Client && template.name.contains("codegen"))
+            .unwrap_or_else(|| {
+                Error::TemplateNotFound("client".to_string()).print_and_die();
+            });
+
+        let client_template = template_generator
+            .fetch_template(&client_template.name)
+            .replace("{{project-name}}", &self.project.name);
+
+        let main_rs_path = self.module_root.join("src").join("main.rs");
+        command::write_to_file(main_rs_path, &client_template);
     }
 
     fn generate_schema(&self) {

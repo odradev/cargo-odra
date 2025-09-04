@@ -33,12 +33,12 @@ pub struct TemplateGenerator {
 }
 
 impl TemplateGenerator {
-    // pub fn new(repository_path: String, odra_location: OdraLocation) -> Self {
-    //     Self {
-    //         raw_repository_path: repository_path,
-    //         odra_location,
-    //     }
-    // }
+    pub fn new(repository_path: String, odra_location: OdraLocation) -> Self {
+        Self {
+            raw_repository_path: repository_path,
+            odra_location,
+        }
+    }
 
     pub fn new_gh_repo(odra_location: OdraLocation) -> Self {
         Self {

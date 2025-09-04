@@ -180,12 +180,12 @@ impl Project {
     }
 
     pub fn add_client_if_needed(&self) -> Result<(), Error> {
-        let name = format!("{}_client", self.project_crate_name());
+        let name = format!("{}-client", self.project_crate_name());
         let mut cargo_toml = load_cargo_toml(&self.cargo_toml_location);
         let client_exists = cargo_toml
             .workspace
             .as_ref()
-            .ok_or(Error::NotAnOdraProject)?
+            .ok_or(Error::NotWorkspace)?
             .exclude
             .iter()
             .any(|member| member == &name);

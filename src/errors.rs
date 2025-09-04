@@ -102,6 +102,9 @@ pub enum Error {
 
     #[error("Couldn't create client.")]
     ClientCreateFailed,
+
+    #[error("Project is not a workspace.")]
+    NotWorkspace,
 }
 
 impl Error {
@@ -140,6 +143,7 @@ impl Error {
             Error::ContractDuplicate(_) => 31,
             Error::ClientAlreadyExists => 32,
             Error::ClientCreateFailed => 33,
+            Error::NotWorkspace => 34,
         }
     }
 

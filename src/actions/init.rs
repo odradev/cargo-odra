@@ -9,7 +9,7 @@ use crate::{
     cargo_toml,
     cli::InitCommand,
     command::{rename_file, replace_in_file},
-    consts::ODRA_TEMPLATE_GH_REPO,
+    consts::{ODRA_TEMPLATE_GH_RAW_REPO, ODRA_TEMPLATE_GH_REPO},
     errors::Error,
     log,
     paths,
@@ -32,9 +32,10 @@ impl InitAction {
 
         let odra_location = OdraLocation::from_source(init_command.source);
 
-        let template_repository_path = TemplateGenerator::new_gh_repo(odra_location.clone())
-            .find_template(&init_command.template)
-            .path;
+        let template_repository_path =
+            TemplateGenerator::new(ODRA_TEMPLATE_GH_RAW_REPO.to_string(), odra_location.clone())
+                .find_template(&init_command.template)
+                .path;
 
         let template_path = match odra_location.clone() {
             OdraLocation::Local(local_path) => TemplatePath {
