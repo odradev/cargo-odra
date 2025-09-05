@@ -6,14 +6,9 @@ use clap::{CommandFactory, Parser, Subcommand};
 
 use crate::{
     actions::{
-        build::BuildAction,
-        clean::clean_action,
-        client::GenerateClientAction,
-        generate::GenerateAction,
-        init::InitAction,
-        list_templates::ListTemplatesAction,
-        schema::SchemaAction,
-        test::TestAction,
+        build::BuildAction, clean::clean_action, client::GenerateClientAction,
+        generate::GenerateAction, init::InitAction, list_templates::ListTemplatesAction,
+        schema::SchemaAction, test::TestAction,
     },
     cargo_toml::load_cargo_toml,
     consts,

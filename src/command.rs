@@ -16,8 +16,7 @@ use crate::{
     cli::Cargo,
     consts::{ODRA_BACKEND_ENV_KEY, ODRA_MODULE_ENV_KEY},
     errors::Error,
-    log,
-    paths,
+    log, paths,
 };
 
 /// Returns output of a command as a String.
@@ -180,6 +179,25 @@ pub fn cargo_test_backend<'a>(
 pub fn cargo_clean(current_dir: PathBuf) {
     log::info("Running cargo clean...");
     cargo(current_dir, "clean", vec![]);
+}
+
+/// Build wasm client.
+pub fn cargo_build_wasm_client(current_dir: PathBuf, project_root: PathBuf) {
+    log::info("Building WASM client...");
+    let casper_contract_schemas_path = project_root
+        .join("resources")
+        .join("casper_contract_schemas");
+    cargo(
+        current_dir,
+        "run",
+        vec![
+            "--bin",
+            "codegen",
+            "--features",
+            "codegen",
+            casper_contract_schemas_path.to_str().unwrap(),
+        ],
+    );
 }
 
 /// Writes a content to a file at the given path.

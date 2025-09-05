@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use cargo_toml::{Dependency, DependencyDetail, Manifest};
 
-use crate::{errors::Error, project::OdraLocation, utils::odra_latest_version};
+use crate::{command, errors::Error, project::OdraLocation, utils::odra_latest_version};
 
 /// Returns Cargo.toml as Manifest struct.
 pub fn load_cargo_toml(path: &PathBuf) -> Manifest {
@@ -13,6 +13,12 @@ pub fn load_cargo_toml(path: &PathBuf) -> Manifest {
             Error::FailedToReadCargo(err.to_string()).print_and_die();
         }
     }
+}
+
+/// Saves configuration into Odra.toml file.
+pub fn save_cargo_toml(path: PathBuf, cargo_toml: &Manifest) -> Result<(), Error> {
+    let content = toml::to_string(cargo_toml)?;
+    Ok(command::write_to_file(path, &content))
 }
 
 pub fn odra_project_dependency(

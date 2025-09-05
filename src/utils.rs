@@ -1,12 +1,10 @@
+use std::process::Command;
+
 use ureq::serde_json;
 
 use crate::{
-    command,
-    consts::ODRA_GITHUB_API_DATA,
-    errors::Error,
-    odra_toml::Contract,
-    paths::to_camel_case,
-    project::Project,
+    command, consts::ODRA_GITHUB_API_DATA, errors::Error, odra_toml::Contract,
+    paths::to_camel_case, project::Project,
 };
 
 /// Check if wasm32-unknown-unknown target is installed.
@@ -14,6 +12,20 @@ pub fn check_target_requirements() {
     if !command::command_output("rustup target list --installed").contains("wasm32-unknown-unknown")
     {
         Error::WasmTargetNotInstalled.print_and_die();
+    }
+}
+
+/// Check if wasm-pack is installed.
+pub fn check_wasm_pack() {
+    let result = Command::new("wasm-pack")
+        .arg("--version")
+        .status()
+        .unwrap_or_else(|_| {
+            Error::WasmPackNotInstalled.print_and_die();
+        });
+
+    if !result.success() {
+        Error::WasmPackNotInstalled.print_and_die()
     }
 }
 

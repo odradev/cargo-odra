@@ -5,29 +5,38 @@ use crate::{
     cargo_toml,
     command::{self, mkdir},
     errors::Error,
-    project::Project,
+    log,
+    project::{OdraLocation, Project},
     template::{TemplateGenerator, TemplateType},
+    utils,
 };
 
 /// GenerateClientAction configuration.
 pub struct GenerateClientAction<'a> {
     project: &'a mut Project,
     module_root: PathBuf,
+    odra_location: OdraLocation,
+    template_generator: TemplateGenerator,
 }
 
 impl<'a> GenerateClientAction<'a> {
     pub fn new(project: &'a mut Project) -> Self {
         let name = format!("{}_client", project.project_crate_name());
         let module_root = project.project_root().join(name);
+        let odra_location = project.project_odra_location();
+        let template_generator = TemplateGenerator::new_gh_repo(odra_location.clone());
         GenerateClientAction {
             project,
             module_root,
+            odra_location,
+            template_generator,
         }
     }
 
     /// Create a new GenerateClientAction for a given contract.
     pub fn generate(&mut self) {
-        println!("Generate client code...");
+        utils::check_wasm_pack();
+        log::info("Generate client code...");
         match self.project.add_client_if_needed() {
             Ok(_) => {
                 self.create_crate_structure();
@@ -51,30 +60,38 @@ impl<'a> GenerateClientAction<'a> {
     }
 
     fn write_cargo_toml(&self) {
-        let odra_location = self.project.project_odra_location();
-        let template_generator = TemplateGenerator::new_gh_repo(odra_location.clone());
-
-        let templates = template_generator.fetch_templates();
+        let templates = self.template_generator.fetch_templates();
         let client_template = templates
             .iter()
-            .find(|template| template.template_type == TemplateType::Client && template.name.contains("cargo"))
+            .find(|template| {
+                template.template_type == TemplateType::Client && template.name.contains("cargo")
+            })
             .unwrap_or_else(|| {
-                Error::TemplateNotFound("client".to_string()).print_and_die();
+                Error::TemplateNotFound("WASM Client Cargo".to_string()).print_and_die();
             });
 
         let core = format!(
             "odra-core = {{ {} }}",
-            cargo_toml::odra_project_dependency_string(&odra_location, "core", false)
+            cargo_toml::odra_project_dependency_string(&self.odra_location, "core", false)
         );
         let wasm_client = format!(
             "odra-wasm-client = {{ {} }}",
-            cargo_toml::odra_project_dependency_string(&odra_location, "odra-wasm-client", false)
+            cargo_toml::odra_project_dependency_string(
+                &self.odra_location,
+                "odra-wasm-client",
+                false
+            )
         );
         let wasm_client_builder = format!(
             "odra-wasm-client-builder = {{ {} }}",
-            cargo_toml::odra_project_dependency_string(&odra_location, "odra-wasm-client-builder", false)
+            cargo_toml::odra_project_dependency_string(
+                &self.odra_location,
+                "odra-wasm-client-builder",
+                false
+            )
         );
-        let client_template = template_generator
+        let client_template = self
+            .template_generator
             .fetch_template(&client_template.name)
             .replace("#odra_core_dependency", &core)
             .replace("#odra_wasm_client_dependency", &wasm_client)
@@ -86,18 +103,18 @@ impl<'a> GenerateClientAction<'a> {
     }
 
     fn write_main_rs(&self) {
-        let odra_location = self.project.project_odra_location();
-        let template_generator = TemplateGenerator::new_gh_repo(odra_location.clone());
-
-        let templates = template_generator.fetch_templates();
+        let templates = self.template_generator.fetch_templates();
         let client_template = templates
             .iter()
-            .find(|template| template.template_type == TemplateType::Client && template.name.contains("codegen"))
+            .find(|template| {
+                template.template_type == TemplateType::Client && template.name.contains("codegen")
+            })
             .unwrap_or_else(|| {
-                Error::TemplateNotFound("client".to_string()).print_and_die();
+                Error::TemplateNotFound("WASM Client Codegen".to_string()).print_and_die();
             });
 
-        let client_template = template_generator
+        let client_template = self
+            .template_generator
             .fetch_template(&client_template.name)
             .replace("{{project-name}}", &self.project.name);
 
@@ -110,6 +127,9 @@ impl<'a> GenerateClientAction<'a> {
     }
 
     fn build_client(&self) {
-        // BuildAction::new(self.project).build_client();
+        command::cargo_build_wasm_client(
+            self.module_root.clone(),
+            self.project.project_root.clone(),
+        );
     }
 }

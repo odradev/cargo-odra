@@ -105,6 +105,14 @@ pub enum Error {
 
     #[error("Project is not a workspace.")]
     NotWorkspace,
+
+    #[error(
+        "wasm-pack is not installed. Please install it from https://github.com/drager/wasm-pack"
+    )]
+    WasmPackNotInstalled,
+
+    #[error("Toml serialization error: {0}")]
+    TomlSerializationError(#[from] toml::ser::Error),
 }
 
 impl Error {
@@ -144,6 +152,8 @@ impl Error {
             Error::ClientAlreadyExists => 32,
             Error::ClientCreateFailed => 33,
             Error::NotWorkspace => 34,
+            Error::WasmPackNotInstalled => 35,
+            Error::TomlSerializationError(_) => 36,
         }
     }
 

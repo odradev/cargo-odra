@@ -6,10 +6,7 @@ use std::{
 use cargo_toml::{Dependency, DependencyDetail, Manifest};
 
 use crate::{
-    cargo_toml::load_cargo_toml,
-    consts::ODRA_TEMPLATE_GH_REPO,
-    errors::Error,
-    odra_toml::OdraToml,
+    cargo_toml::load_cargo_toml, consts::ODRA_TEMPLATE_GH_REPO, errors::Error, odra_toml::OdraToml,
     utils::odra_latest_version,
 };
 
@@ -199,7 +196,9 @@ impl Project {
             .map(|workspace| {
                 workspace.exclude.push(name);
             })
-            .ok_or(Error::ClientCreateFailed)
+            .ok_or(Error::ClientCreateFailed)?;
+
+        crate::cargo_toml::save_cargo_toml(self.cargo_toml_location.clone(), &cargo_toml)
     }
 }
 
