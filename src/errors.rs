@@ -112,10 +112,10 @@ pub enum Error {
     WasmPackNotInstalled,
 
     #[error("Toml serialization error: {0}")]
-    TomlSerializationError(#[from] toml::ser::Error),
+    TomlSerializationFailed(#[from] toml::ser::Error),
 
     #[error("IO error: {0}")]
-    IOError(#[from] std::io::Error),
+    IO(#[from] std::io::Error),
 }
 
 impl Error {
@@ -156,8 +156,8 @@ impl Error {
             Error::ClientCreateFailed => 33,
             Error::NotWorkspace => 34,
             Error::WasmPackNotInstalled => 35,
-            Error::TomlSerializationError(_) => 36,
-            Error::IOError(_) => 37,
+            Error::TomlSerializationFailed(_) => 36,
+            Error::IO(_) => 37,
         }
     }
 

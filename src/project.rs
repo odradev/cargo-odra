@@ -6,7 +6,10 @@ use std::{
 use cargo_toml::{Dependency, DependencyDetail, Manifest};
 
 use crate::{
-    cargo_toml::load_cargo_toml, consts::ODRA_TEMPLATE_GH_REPO, errors::Error, odra_toml::OdraToml,
+    cargo_toml::load_cargo_toml,
+    consts::ODRA_TEMPLATE_GH_REPO,
+    errors::Error,
+    odra_toml::OdraToml,
     utils::odra_latest_version,
 };
 
@@ -174,31 +177,6 @@ impl Project {
 
     pub fn project_odra_location(&self) -> OdraLocation {
         OdraLocation::from_project(load_cargo_toml(&self.cargo_toml_location))
-    }
-
-    pub fn add_client_if_needed(&self) -> Result<(), Error> {
-        let name = format!("{}-client", self.project_crate_name());
-        let mut cargo_toml = load_cargo_toml(&self.cargo_toml_location);
-        let client_exists = cargo_toml
-            .workspace
-            .as_ref()
-            .ok_or(Error::NotWorkspace)?
-            .exclude
-            .iter()
-            .any(|member| member == &name);
-
-        if client_exists {
-            return Err(Error::ClientAlreadyExists);
-        }
-        cargo_toml
-            .workspace
-            .as_mut()
-            .map(|workspace| {
-                workspace.exclude.push(name);
-            })
-            .ok_or(Error::ClientCreateFailed)?;
-
-        crate::cargo_toml::save_cargo_toml(self.cargo_toml_location.clone(), &cargo_toml)
     }
 }
 

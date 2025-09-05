@@ -3,8 +3,12 @@ use std::process::Command;
 use ureq::serde_json;
 
 use crate::{
-    command, consts::ODRA_GITHUB_API_DATA, errors::Error, odra_toml::Contract,
-    paths::to_camel_case, project::Project,
+    command,
+    consts::ODRA_GITHUB_API_DATA,
+    errors::Error,
+    odra_toml::Contract,
+    paths::to_camel_case,
+    project::Project,
 };
 
 /// Check if wasm32-unknown-unknown target is installed.

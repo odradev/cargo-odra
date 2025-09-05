@@ -24,6 +24,7 @@ pub fn save_cargo_toml(path: PathBuf, cargo_toml: &Manifest) -> Result<(), Error
 pub fn odra_project_dependency(
     odra_location: &OdraLocation,
     crate_path: &str,
+    optional: bool,
     init: bool,
 ) -> Dependency {
     let (version, path, git, branch) = match odra_location {
@@ -58,7 +59,7 @@ pub fn odra_project_dependency(
         tag: None,
         rev: None,
         features: vec![],
-        optional: false,
+        optional,
         default_features: false,
         package: None,
     })
@@ -69,8 +70,29 @@ pub fn odra_project_dependency_string(
     crate_path: &str,
     init: bool,
 ) -> String {
-    toml::to_string(&odra_project_dependency(odra_location, crate_path, init))
-        .expect("Failed to serialize odra dependency.")
-        .trim_end()
-        .replace('\n', ", ")
+    toml::to_string(&odra_project_dependency(
+        odra_location,
+        crate_path,
+        false,
+        init,
+    ))
+    .expect("Failed to serialize odra dependency.")
+    .trim_end()
+    .replace('\n', ", ")
+}
+
+pub fn opt_odra_project_dependency_string(
+    odra_location: &OdraLocation,
+    crate_path: &str,
+    init: bool,
+) -> String {
+    toml::to_string(&odra_project_dependency(
+        odra_location,
+        crate_path,
+        true,
+        init,
+    ))
+    .expect("Failed to serialize odra dependency.")
+    .trim_end()
+    .replace('\n', ", ")
 }

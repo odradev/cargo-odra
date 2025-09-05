@@ -1,9 +1,11 @@
 use std::path::PathBuf;
 
+use convert_case::{Case, Casing};
+
 use crate::{
     actions::schema::SchemaAction,
     cargo_toml,
-    command::{self, mkdir},
+    command,
     errors::Error,
     log,
     project::{OdraLocation, Project},
@@ -21,7 +23,7 @@ pub struct GenerateClientAction<'a> {
 
 impl<'a> GenerateClientAction<'a> {
     pub fn new(project: &'a mut Project) -> Self {
-        let name = format!("{}_client", project.project_crate_name());
+        let name = format!("{}_client", project.project_crate_name()).to_case(Case::Snake);
         let module_root = project.project_root().join(name);
         let odra_location = project.project_odra_location();
         let template_generator = TemplateGenerator::new_gh_repo(odra_location.clone());
@@ -34,41 +36,41 @@ impl<'a> GenerateClientAction<'a> {
     }
 
     /// Create a new GenerateClientAction for a given contract.
-    pub fn generate(&mut self) {
+    pub fn generate(&mut self) -> Result<(), Error> {
         utils::check_wasm_pack();
         log::info("Generate client code...");
-        match self.project.add_client_if_needed() {
-            Ok(_) => {
-                self.create_crate_structure();
-                self.write_cargo_toml();
-                self.write_main_rs();
+        match self.add_to_workspace_if_needed() {
+            Ok(_) | Err(Error::ClientAlreadyExists) => {
+                self.create_crate_structure()?;
+                self.write_cargo_toml()?;
+                self.write_main_rs()?;
                 self.generate_schema();
                 self.build_client();
             }
-            Err(Error::ClientAlreadyExists) => {
-                self.generate_schema();
-                self.build_client();
-            }
-            Err(e) => e.print_and_die(),
-        }
+            Err(e) => return Err(e),
+        };
+        Ok(())
     }
 
-    fn create_crate_structure(&self) {
+    fn create_crate_structure(&self) -> Result<(), Error> {
         let path = self.module_root.clone();
-        mkdir(path.clone()).unwrap_or_else(|err| err.print_and_die());
-        mkdir(path.join("src")).unwrap_or_else(|err| err.print_and_die());
+        command::mkdir(path.join("src"))?;
+        command::write_to_file(path.join("src").join("lib.rs"), "")
     }
 
-    fn write_cargo_toml(&self) {
+    fn write_cargo_toml(&self) -> Result<(), Error> {
+        let cargo_toml_path = self.module_root.join("Cargo.toml");
+        if cargo_toml_path.exists() {
+            return Ok(());
+        }
+
         let templates = self.template_generator.fetch_templates();
         let client_template = templates
             .iter()
             .find(|template| {
                 template.template_type == TemplateType::Client && template.name.contains("cargo")
             })
-            .unwrap_or_else(|| {
-                Error::TemplateNotFound("WASM Client Cargo".to_string()).print_and_die();
-            });
+            .ok_or(Error::TemplateNotFound("WASM Client Cargo".to_string()))?;
 
         let core = format!(
             "odra-core = {{ {} }}",
@@ -84,7 +86,7 @@ impl<'a> GenerateClientAction<'a> {
         );
         let wasm_client_builder = format!(
             "odra-wasm-client-builder = {{ {} }}",
-            cargo_toml::odra_project_dependency_string(
+            cargo_toml::opt_odra_project_dependency_string(
                 &self.odra_location,
                 "odra-wasm-client-builder",
                 false
@@ -96,32 +98,32 @@ impl<'a> GenerateClientAction<'a> {
             .replace("#odra_core_dependency", &core)
             .replace("#odra_wasm_client_dependency", &wasm_client)
             .replace("#odra_wasm_client_builder_dependency", &wasm_client_builder)
-            .replace("{{project-name}}", &self.project.name);
+            .replace("{{project-name}}", &self.project.name.to_case(Case::Kebab))
+            .replace("{{lib-name}}", &self.project.name.to_case(Case::Snake));
 
-        let cargo_toml_path = self.module_root.join("Cargo.toml");
         command::write_to_file(cargo_toml_path, &client_template)
-            .unwrap_or_else(|err| err.print_and_die());
     }
 
-    fn write_main_rs(&self) {
+    fn write_main_rs(&self) -> Result<(), Error> {
+        let main_rs_path = self.module_root.join("src").join("main.rs");
+        if main_rs_path.exists() {
+            return Ok(());
+        }
+
         let templates = self.template_generator.fetch_templates();
         let client_template = templates
             .iter()
             .find(|template| {
                 template.template_type == TemplateType::Client && template.name.contains("codegen")
             })
-            .unwrap_or_else(|| {
-                Error::TemplateNotFound("WASM Client Codegen".to_string()).print_and_die();
-            });
+            .ok_or(Error::TemplateNotFound("WASM Client Codegen".to_string()))?;
 
         let client_template = self
             .template_generator
             .fetch_template(&client_template.name)
-            .replace("{{project-name}}", &self.project.name);
+            .replace("{{project-name}}", &self.project.name.to_case(Case::Snake));
 
-        let main_rs_path = self.module_root.join("src").join("main.rs");
         command::write_to_file(main_rs_path, &client_template)
-            .unwrap_or_else(|err| err.print_and_die());
     }
 
     fn generate_schema(&self) {
@@ -133,5 +135,31 @@ impl<'a> GenerateClientAction<'a> {
             self.module_root.clone(),
             self.project.project_root.clone(),
         );
+    }
+
+    fn add_to_workspace_if_needed(&self) -> Result<(), Error> {
+        let cargo_toml_location = self.project.cargo_toml_location.clone();
+        let name = format!("{}-client", self.project.project_crate_name()).to_case(Case::Snake);
+        let mut cargo_toml = cargo_toml::load_cargo_toml(&cargo_toml_location);
+        let client_exists = cargo_toml
+            .workspace
+            .as_ref()
+            .ok_or(Error::NotWorkspace)?
+            .exclude
+            .iter()
+            .any(|member| member == &name);
+
+        if client_exists {
+            return Err(Error::ClientAlreadyExists);
+        }
+        cargo_toml
+            .workspace
+            .as_mut()
+            .map(|workspace| {
+                workspace.exclude.push(name);
+            })
+            .ok_or(Error::ClientCreateFailed)?;
+
+        crate::cargo_toml::save_cargo_toml(cargo_toml_location, &cargo_toml)
     }
 }

@@ -6,9 +6,14 @@ use clap::{CommandFactory, Parser, Subcommand};
 
 use crate::{
     actions::{
-        build::BuildAction, clean::clean_action, client::GenerateClientAction,
-        generate::GenerateAction, init::InitAction, list_templates::ListTemplatesAction,
-        schema::SchemaAction, test::TestAction,
+        build::BuildAction,
+        clean::clean_action,
+        client::GenerateClientAction,
+        generate::GenerateAction,
+        init::InitAction,
+        list_templates::ListTemplatesAction,
+        schema::SchemaAction,
+        test::TestAction,
     },
     cargo_toml::load_cargo_toml,
     consts,
@@ -229,7 +234,11 @@ pub fn make_action() {
         }
         OdraSubcommand::GenerateClient(_generate_client) => {
             let mut project = Project::detect(current_dir);
-            GenerateClientAction::new(&mut project).generate();
+            GenerateClientAction::new(&mut project)
+                .generate()
+                .unwrap_or_else(|err| {
+                    err.print_and_die();
+                });
         }
     }
 }

@@ -16,7 +16,8 @@ use crate::{
     cli::Cargo,
     consts::{ODRA_BACKEND_ENV_KEY, ODRA_MODULE_ENV_KEY},
     errors::Error,
-    log, paths,
+    log,
+    paths,
 };
 
 /// Returns output of a command as a String.
@@ -67,7 +68,7 @@ pub fn rm_dir(path: PathBuf) {
 
 /// Creates a directory.
 pub fn mkdir(path: PathBuf) -> Result<(), Error> {
-    fs::create_dir_all(path).map_err(Error::IOError)?;
+    fs::create_dir_all(path).map_err(Error::IO)?;
     Ok(())
 }
 
@@ -196,7 +197,7 @@ pub fn cargo_build_wasm_client(current_dir: PathBuf, project_root: PathBuf) {
             "codegen",
             "--features",
             "codegen",
-            casper_contract_schemas_path.to_str().unwrap(),
+            casper_contract_schemas_path.to_str().unwrap_or_default(),
         ],
     );
 }
@@ -234,7 +235,7 @@ pub fn rename_file(path: PathBuf, new_name: &str) -> Result<(), Error> {
 
 /// Loads a file to a string.
 pub fn read_file_content(path: PathBuf) -> Result<String, Error> {
-    fs::read_to_string(path).map_err(Error::IOError)
+    fs::read_to_string(path).map_err(Error::IO)
 }
 
 // TODO: Is there a better way? A global static to hold that?
