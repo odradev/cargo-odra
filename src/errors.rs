@@ -113,6 +113,9 @@ pub enum Error {
 
     #[error("Toml serialization error: {0}")]
     TomlSerializationError(#[from] toml::ser::Error),
+
+    #[error("IO error: {0}")]
+    IOError(#[from] std::io::Error),
 }
 
 impl Error {
@@ -154,6 +157,7 @@ impl Error {
             Error::NotWorkspace => 34,
             Error::WasmPackNotInstalled => 35,
             Error::TomlSerializationError(_) => 36,
+            Error::IOError(_) => 37,
         }
     }
 

@@ -83,9 +83,9 @@ impl OdraToml {
     }
 
     /// Saves configuration into Odra.toml file.
-    pub fn save(&self) {
-        let content = toml::to_string(&self).unwrap();
-        command::write_to_file(self.location.clone(), &content);
+    pub fn save(&self) -> Result<(), Error> {
+        let content = toml::to_string(&self)?;
+        command::write_to_file(self.location.clone(), &content)
     }
 
     /// Check if the contract is defined in Odra.toml file.

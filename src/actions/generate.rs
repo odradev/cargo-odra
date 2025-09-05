@@ -107,7 +107,7 @@ impl GenerateAction<'_> {
         }
 
         // Write to file.
-        command::write_to_file(path, &contract_body);
+        command::write_to_file(path, &contract_body).unwrap_or_else(|err| err.print_and_die());
     }
 
     /// Append `mod` section to lib.rs.
@@ -141,7 +141,8 @@ impl GenerateAction<'_> {
         }
 
         // Write to file.
-        command::append_file(self.module_root.join("src/lib.rs"), &register_module_code);
+        command::append_file(self.module_root.join("src/lib.rs"), &register_module_code)
+            .unwrap_or_else(|err| err.print_and_die());
 
         // Print info.
         log::info(format!("Added to src/lib.rs:\n{register_module_code}"));
@@ -176,7 +177,7 @@ impl GenerateAction<'_> {
         odra_toml.contracts.push(Contract { fqn });
 
         // Write to file.
-        odra_toml.save();
+        odra_toml.save().unwrap_or_else(|err| err.print_and_die());
 
         // Print info.
         log::info("Added contract to Odra.toml.");

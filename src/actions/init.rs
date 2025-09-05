@@ -99,7 +99,7 @@ impl InitAction {
         });
 
         let project_name = init_command.name.to_lowercase();
-        rename_file(project_path, &project_name);
+        rename_file(project_path, &project_name).unwrap_or_else(|err| err.print_and_die());
 
         let mut cargo_toml_path = current_dir;
         if !init {
@@ -152,7 +152,7 @@ impl InitAction {
             "odra-cli",
         );
 
-        rename_file(cargo_toml_path, "Cargo.toml");
+        rename_file(cargo_toml_path, "Cargo.toml").unwrap_or_else(|err| err.print_and_die());
         log::info("Done!");
     }
 
@@ -173,7 +173,8 @@ impl InitAction {
                 cargo_toml::odra_project_dependency_string(odra_location, crate_path, init)
             )
             .as_str(),
-        );
+        )
+        .unwrap_or_else(|err| err.print_and_die());
     }
 
     fn assert_dir_is_empty(dir: PathBuf) {

@@ -55,8 +55,8 @@ impl<'a> GenerateClientAction<'a> {
 
     fn create_crate_structure(&self) {
         let path = self.module_root.clone();
-        mkdir(path.clone());
-        mkdir(path.join("src"));
+        mkdir(path.clone()).unwrap_or_else(|err| err.print_and_die());
+        mkdir(path.join("src")).unwrap_or_else(|err| err.print_and_die());
     }
 
     fn write_cargo_toml(&self) {
@@ -99,7 +99,8 @@ impl<'a> GenerateClientAction<'a> {
             .replace("{{project-name}}", &self.project.name);
 
         let cargo_toml_path = self.module_root.join("Cargo.toml");
-        command::write_to_file(cargo_toml_path, &client_template);
+        command::write_to_file(cargo_toml_path, &client_template)
+            .unwrap_or_else(|err| err.print_and_die());
     }
 
     fn write_main_rs(&self) {
@@ -119,7 +120,8 @@ impl<'a> GenerateClientAction<'a> {
             .replace("{{project-name}}", &self.project.name);
 
         let main_rs_path = self.module_root.join("src").join("main.rs");
-        command::write_to_file(main_rs_path, &client_template);
+        command::write_to_file(main_rs_path, &client_template)
+            .unwrap_or_else(|err| err.print_and_die());
     }
 
     fn generate_schema(&self) {

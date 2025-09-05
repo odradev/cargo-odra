@@ -18,7 +18,7 @@ pub fn load_cargo_toml(path: &PathBuf) -> Manifest {
 /// Saves configuration into Odra.toml file.
 pub fn save_cargo_toml(path: PathBuf, cargo_toml: &Manifest) -> Result<(), Error> {
     let content = toml::to_string(cargo_toml)?;
-    Ok(command::write_to_file(path, &content))
+    command::write_to_file(path, &content)
 }
 
 pub fn odra_project_dependency(
