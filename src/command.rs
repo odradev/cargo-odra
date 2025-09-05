@@ -198,6 +198,7 @@ pub fn cargo_build_wasm_client(current_dir: PathBuf, project_root: PathBuf) {
             "--features",
             "codegen",
             casper_contract_schemas_path.to_str().unwrap_or_default(),
+            ".",
         ],
     );
 }

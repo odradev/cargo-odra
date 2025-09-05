@@ -120,8 +120,7 @@ impl<'a> GenerateClientAction<'a> {
 
         let client_template = self
             .template_generator
-            .fetch_template(&client_template.name)
-            .replace("{{project-name}}", &self.project.name.to_case(Case::Snake));
+            .fetch_template(&client_template.name);
 
         command::write_to_file(main_rs_path, &client_template)
     }
