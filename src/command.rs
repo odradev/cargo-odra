@@ -146,6 +146,7 @@ pub fn cargo_build_wasm_files(
 
 /// Build schema files.
 pub fn cargo_generate_schema_files(current_dir: PathBuf, contract_name: &str, module_name: &str) {
+    let module_name = module_name.replace('-', "_");
     env::set_var(ODRA_MODULE_ENV_KEY, contract_name);
     let gen_schema = format!("{module_name}_build_schema");
     cargo(current_dir, "run", vec!["--bin", &gen_schema, "--release"]);
