@@ -3,7 +3,7 @@
 use std::{
     env,
     fs::{self, File, OpenOptions},
-    io::{self, Write},
+    io::Write,
     path::PathBuf,
     process::{Command, ExitStatus},
 };
@@ -67,8 +67,9 @@ pub fn rm_dir(path: PathBuf) {
 }
 
 /// Creates a directory.
-pub fn mkdir(path: PathBuf) {
-    fs::create_dir_all(path).unwrap();
+pub fn mkdir(path: PathBuf) -> Result<(), Error> {
+    fs::create_dir_all(path).map_err(Error::IO)?;
+    Ok(())
 }
 
 /// Runs wasm-strip and wasm-opt on a given contract's wasm file.
@@ -145,6 +146,7 @@ pub fn cargo_build_wasm_files(
 
 /// Build schema files.
 pub fn cargo_generate_schema_files(current_dir: PathBuf, contract_name: &str, module_name: &str) {
+    let module_name = module_name.replace('-', "_");
     env::set_var(ODRA_MODULE_ENV_KEY, contract_name);
     let gen_schema = format!("{module_name}_build_schema");
     cargo(current_dir, "run", vec!["--bin", &gen_schema, "--release"]);
@@ -182,37 +184,60 @@ pub fn cargo_clean(current_dir: PathBuf) {
     cargo(current_dir, "clean", vec![]);
 }
 
+/// Build wasm client.
+pub fn cargo_build_wasm_client(current_dir: PathBuf, project_root: PathBuf) {
+    log::info("Building WASM client...");
+    let casper_contract_schemas_path = project_root
+        .join("resources")
+        .join("casper_contract_schemas");
+    cargo(
+        current_dir,
+        "run",
+        vec![
+            "--bin",
+            "codegen",
+            "--features",
+            "codegen",
+            casper_contract_schemas_path.to_str().unwrap_or_default(),
+            ".",
+        ],
+    );
+}
+
 /// Writes a content to a file at the given path.
-pub fn write_to_file(path: PathBuf, content: &str) {
-    let mut file = File::create(path).unwrap();
-    file.write_all(content.as_bytes()).unwrap();
+pub fn write_to_file(path: PathBuf, content: &str) -> Result<(), Error> {
+    let mut file = File::create(path)?;
+    file.write_all(content.as_bytes())?;
+    Ok(())
 }
 
 /// Appends a content to a file at the given path.
-pub fn append_file(path: PathBuf, content: &str) {
-    let mut file = OpenOptions::new().append(true).open(path).unwrap();
-
-    file.write_all(content.as_bytes()).unwrap();
+pub fn append_file(path: PathBuf, content: &str) -> Result<(), Error> {
+    let mut file = OpenOptions::new().append(true).open(path)?;
+    file.write_all(content.as_bytes())?;
+    Ok(())
 }
 
 /// Replaces strings in a file.
-pub fn replace_in_file(path: PathBuf, from: &str, to: &str) {
-    let content = read_file_content(path.clone()).unwrap();
+pub fn replace_in_file(path: PathBuf, from: &str, to: &str) -> Result<(), Error> {
+    let content = read_file_content(path.clone())?;
     let new_content = content.replace(from, to);
-    write_to_file(path, new_content.as_str());
+    write_to_file(path, new_content.as_str())?;
+    Ok(())
 }
 
 /// Renames a file.
-pub fn rename_file(path: PathBuf, new_name: &str) {
+pub fn rename_file(path: PathBuf, new_name: &str) -> Result<(), Error> {
     let mut new_path = path.clone();
     new_path.pop();
     new_path.push(new_name);
-    fs::rename(path, new_path).unwrap();
+    fs::rename(path, new_path)?;
+    Ok(())
 }
 
 /// Loads a file to a string.
-pub fn read_file_content(path: PathBuf) -> io::Result<String> {
-    fs::read_to_string(path)
+pub fn read_file_content(path: PathBuf) -> Result<String, Error> {
+    fs::read_to_string(path).map_err(Error::IO)
 }
 
 // TODO: Is there a better way? A global static to hold that?

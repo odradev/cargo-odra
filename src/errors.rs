@@ -96,6 +96,26 @@ pub enum Error {
 
     #[error("Incorrect template type.")]
     IncorrectTemplateType,
+
+    #[error("Client already exists in the project.")]
+    ClientAlreadyExists,
+
+    #[error("Couldn't create client.")]
+    ClientCreateFailed,
+
+    #[error("Project is not a workspace.")]
+    NotWorkspace,
+
+    #[error(
+        "wasm-pack is not installed. Please install it from https://github.com/drager/wasm-pack"
+    )]
+    WasmPackNotInstalled,
+
+    #[error("Toml serialization error: {0}")]
+    TomlSerializationFailed(#[from] toml::ser::Error),
+
+    #[error("IO error: {0}")]
+    IO(#[from] std::io::Error),
 }
 
 impl Error {
@@ -132,6 +152,12 @@ impl Error {
             Error::TemplateNotFound(_) => 29,
             Error::IncorrectTemplateType => 30,
             Error::ContractDuplicate(_) => 31,
+            Error::ClientAlreadyExists => 32,
+            Error::ClientCreateFailed => 33,
+            Error::NotWorkspace => 34,
+            Error::WasmPackNotInstalled => 35,
+            Error::TomlSerializationFailed(_) => 36,
+            Error::IO(_) => 37,
         }
     }
 

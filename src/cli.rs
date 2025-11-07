@@ -8,6 +8,7 @@ use crate::{
     actions::{
         build::BuildAction,
         clean::clean_action,
+        client::GenerateClientAction,
         generate::GenerateAction,
         init::InitAction,
         list_templates::ListTemplatesAction,
@@ -69,6 +70,8 @@ pub enum OdraSubcommand {
         #[arg(value_enum)]
         shell: clap_complete_command::Shell,
     },
+    /// Generates client code for a given contract.
+    GenerateClient(GenerateClientCommand),
 }
 
 #[derive(clap::Args)]
@@ -146,12 +149,15 @@ pub struct GenerateCommand {
 }
 
 #[derive(clap::Args, Debug)]
+pub struct GenerateClientCommand;
+
+#[derive(clap::Args, Debug)]
 /// `cargo odra clean`
-pub struct CleanCommand {}
+pub struct CleanCommand;
 
 #[derive(clap::Args, Debug)]
 /// `cargo odra update`
-pub struct UpdateCommand {}
+pub struct UpdateCommand;
 
 #[derive(clap::Args, Debug)]
 /// `cargo odra list-templates`
@@ -225,6 +231,14 @@ pub fn make_action() {
             };
 
             ListTemplatesAction::list(odra_location);
+        }
+        OdraSubcommand::GenerateClient(_generate_client) => {
+            let mut project = Project::detect(current_dir);
+            GenerateClientAction::new(&mut project)
+                .generate()
+                .unwrap_or_else(|err| {
+                    err.print_and_die();
+                });
         }
     }
 }
