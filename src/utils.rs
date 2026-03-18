@@ -5,7 +5,7 @@ use crate::{
     consts::ODRA_GITHUB_API_DATA,
     errors::Error,
     odra_toml::Contract,
-    paths::to_camel_case,
+    paths::to_snake_case,
     project::Project,
 };
 
@@ -26,7 +26,7 @@ pub fn contracts(project: &Project, names_string: String) -> Result<Vec<Contract
         false => odra_toml
             .contracts
             .into_iter()
-            .filter(|c| names.contains(&c.struct_name()))
+            .filter(|c| names.contains(&to_snake_case(c.struct_name())))
             .collect(),
     })
 }
@@ -39,7 +39,7 @@ pub fn validate_contract_name_argument(project: &Project, names_string: String) 
             .odra_toml()
             .contracts
             .iter()
-            .any(|c| c.struct_name() == *contract_name)
+            .any(|c| to_snake_case(c.struct_name()) == *contract_name)
         {
             Error::ContractNotFound(contract_name.clone()).print_and_die();
         }
@@ -78,8 +78,7 @@ fn parse_contracts_names(names_string: String) -> Result<Vec<String>, &'static s
         false => remove_extra_spaces(&names_string).map(|string| {
             string
                 .split(' ')
-                .map(ToString::to_string)
-                .map(to_camel_case)
+                .map(to_snake_case)
                 .collect::<Vec<_>>()
         }),
     }

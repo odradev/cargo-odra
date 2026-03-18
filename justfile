@@ -42,6 +42,7 @@ test-workspace-generation-on-future-odra:
 test-testproject:
     cd testproject && rustup target add wasm32-unknown-unknown
     cd testproject && cargo odra generate -c plascoin
+    just test-contract-name-flexibility testproject src/plascoin.rs
     cd testproject && cargo odra test
     cd testproject && cargo odra test -b casper
     cd testproject && cargo odra clean
@@ -49,9 +50,25 @@ test-testproject:
 test-workspace-project:
     cd testproject && rustup target add wasm32-unknown-unknown
     cd testproject && cargo odra generate -c plascoin -m flipper
+    just test-contract-name-flexibility testproject flipper/src/plascoin.rs
     cd testproject && cargo odra test
     cd testproject && cargo odra test -b casper
     cd testproject && cargo odra clean
+
+# Verify -c flag accepts various case formats for contract names
+test-contract-name-flexibility project_dir source_file:
+    # Test with lowercase input against CamelCase contract (Plascoin)
+    cd {{project_dir}} && cargo odra build -c plascoin
+    # Test with snake_case input against CamelCase contract (Flipper)
+    cd {{project_dir}} && cargo odra build -c flipper
+    # Rename Plascoin to PLASCOIN and verify uppercased names work
+    cd {{project_dir}} && sed 's/Plascoin/PLASCOIN/g' Odra.toml > Odra.toml.tmp && mv Odra.toml.tmp Odra.toml
+    cd {{project_dir}} && sed 's/Plascoin/PLASCOIN/g' {{source_file}} > {{source_file}}.tmp && mv {{source_file}}.tmp {{source_file}}
+    cd {{project_dir}} && cargo odra build -c PLASCOIN
+    cd {{project_dir}} && cargo odra build -c plascoin
+    # Revert rename
+    cd {{project_dir}} && sed 's/PLASCOIN/Plascoin/g' Odra.toml > Odra.toml.tmp && mv Odra.toml.tmp Odra.toml
+    cd {{project_dir}} && sed 's/PLASCOIN/Plascoin/g' {{source_file}} > {{source_file}}.tmp && mv {{source_file}}.tmp {{source_file}}
 
 clippy:
 	cargo +nightly clippy --all-targets -- -D warnings
