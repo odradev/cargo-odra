@@ -75,12 +75,8 @@ fn remove_extra_spaces(input: &str) -> Result<String, &'static str> {
 fn parse_contracts_names(names_string: String) -> Result<Vec<String>, &'static str> {
     match names_string.is_empty() {
         true => Ok(vec![]),
-        false => remove_extra_spaces(&names_string).map(|string| {
-            string
-                .split(' ')
-                .map(to_snake_case)
-                .collect::<Vec<_>>()
-        }),
+        false => remove_extra_spaces(&names_string)
+            .map(|string| string.split(' ').map(to_snake_case).collect::<Vec<_>>()),
     }
 }
 
