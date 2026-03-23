@@ -14,10 +14,10 @@ prepare:
     rustup component add --toolchain nightly-x86_64-unknown-linux-gnu clippy
     rustup component add --toolchain nightly-x86_64-unknown-linux-gnu rustfmt
     sudo apt install wabt
-    wget https://github.com/WebAssembly/binaryen/releases/download/{{BINARYEN_VERSION}}/binaryen-{{BINARYEN_VERSION}}-x86_64-linux.tar.gz || { echo "Download failed"; exit 1; }
-    sha256sum binaryen-{{BINARYEN_VERSION}}-x86_64-linux.tar.gz | grep {{BINARYEN_CHECKSUM}} || { echo "Checksum verification failed"; exit 1; }
-    tar -xzf binaryen-{{BINARYEN_VERSION}}-x86_64-linux.tar.gz || { echo "Extraction failed"; exit 1; }
-    sudo cp binaryen-{{BINARYEN_VERSION}}/bin/wasm-opt /usr/local/bin/wasm-opt
+    wget https://github.com/WebAssembly/binaryen/releases/download/{{ BINARYEN_VERSION }}/binaryen-{{ BINARYEN_VERSION }}-x86_64-linux.tar.gz || { echo "Download failed"; exit 1; }
+    sha256sum binaryen-{{ BINARYEN_VERSION }}-x86_64-linux.tar.gz | grep {{ BINARYEN_CHECKSUM }} || { echo "Checksum verification failed"; exit 1; }
+    tar -xzf binaryen-{{ BINARYEN_VERSION }}-x86_64-linux.tar.gz || { echo "Extraction failed"; exit 1; }
+    sudo cp binaryen-{{ BINARYEN_VERSION }}/bin/wasm-opt /usr/local/bin/wasm-opt
 
 test-project-generation-on-stable-odra:
     rm -rf testproject
@@ -26,7 +26,7 @@ test-project-generation-on-stable-odra:
 
 test-project-generation-on-future-odra:
     rm -rf testproject
-    cargo odra new --name testproject --source {{DEVELOPMENT_ODRA_BRANCH}}
+    cargo odra new --name testproject --source {{ DEVELOPMENT_ODRA_BRANCH }}
     just test-testproject
 
 test-workspace-generation-on-stable-odra:
@@ -36,7 +36,7 @@ test-workspace-generation-on-stable-odra:
 
 test-workspace-generation-on-future-odra:
     rm -rf testproject
-    cargo odra new --name testproject --template workspace --source {{DEVELOPMENT_ODRA_BRANCH}}
+    cargo odra new --name testproject --template workspace --source {{ DEVELOPMENT_ODRA_BRANCH }}
     just test-workspace-project
 
 test-testproject:
@@ -71,13 +71,13 @@ test-contract-name-flexibility project_dir source_file:
     cd {{project_dir}} && sed 's/PLASCOIN/Plascoin/g' {{source_file}} > {{source_file}}.tmp && mv {{source_file}}.tmp {{source_file}}
 
 clippy:
-	cargo +nightly clippy --all-targets -- -D warnings
+    cargo +nightly clippy --all-targets -- -D warnings
 
 check-lint: clippy
-	cargo +nightly fmt -- --check
+    cargo +nightly fmt -- --check
 
 lint: clippy
-	cargo +nightly fmt
+    cargo +nightly fmt
 
 clean:
-	cargo clean
+    cargo clean

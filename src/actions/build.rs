@@ -32,7 +32,8 @@ impl BuildAction<'_> {
     /// Build .wasm files.
     fn build_wasm_files(&self) {
         log::info("Generating wasm files...");
-        command::mkdir(paths::wasm_dir(&self.project.project_root()));
+        command::mkdir(paths::wasm_dir(&self.project.project_root()))
+            .unwrap_or_else(|err| err.print_and_die());
 
         let contracts =
             utils::contracts(self.project, self.contracts_names()).unwrap_or_else(|_| {
@@ -65,7 +66,7 @@ impl BuildAction<'_> {
                     .project_root()
                     .join(contract.module_crate_name(self.project))
                     .join("wasm");
-                command::mkdir(module_wasm_dir.clone());
+                command::mkdir(module_wasm_dir.clone()).unwrap_or_else(|err| err.print_and_die());
                 let mut module_wasm_path = module_wasm_dir.clone().join(contract.struct_name());
                 module_wasm_path.set_extension("wasm");
                 log::info(format!("Copying to {}", module_wasm_path.display()));

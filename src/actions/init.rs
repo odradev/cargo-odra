@@ -3,10 +3,10 @@
 use std::path::{Path, PathBuf};
 
 use cargo_generate::{GenerateArgs, TemplatePath, Vcs};
-use cargo_toml::{Dependency, DependencyDetail};
 use chrono::Utc;
 
 use crate::{
+    cargo_toml,
     cli::InitCommand,
     command::{rename_file, replace_in_file},
     consts::{ODRA_TEMPLATE_GH_RAW_REPO, ODRA_TEMPLATE_GH_REPO},
@@ -15,7 +15,6 @@ use crate::{
     paths,
     project::OdraLocation,
     template::TemplateGenerator,
-    utils::odra_latest_version,
 };
 
 /// InitAction configuration.
@@ -101,7 +100,7 @@ impl InitAction {
         });
 
         let project_name = init_command.name.to_lowercase();
-        rename_file(project_path, &project_name);
+        rename_file(project_path, &project_name).unwrap_or_else(|err| err.print_and_die());
 
         let mut cargo_toml_path = current_dir;
         if !init {
@@ -154,7 +153,7 @@ impl InitAction {
             "odra-cli",
         );
 
-        rename_file(cargo_toml_path, "Cargo.toml");
+        rename_file(cargo_toml_path, "Cargo.toml").unwrap_or_else(|err| err.print_and_die());
         log::info("Done!");
     }
 
@@ -172,64 +171,16 @@ impl InitAction {
             format!(
                 "{} = {{ {} }}",
                 crate_name,
-                toml::to_string(&Self::odra_project_dependency(
-                    odra_location.clone(),
-                    crate_path,
-                    init
-                ))
-                .unwrap()
-                .trim_end()
-                .replace('\n', ", ")
+                cargo_toml::odra_project_dependency_string(odra_location, crate_path, init)
             )
             .as_str(),
-        );
+        )
+        .unwrap_or_else(|err| err.print_and_die());
     }
+
     fn assert_dir_is_empty(dir: PathBuf) {
         if dir.read_dir().unwrap().next().is_some() {
             Error::CurrentDirIsNotEmpty.print_and_die();
         }
-    }
-
-    fn odra_project_dependency(
-        odra_location: OdraLocation,
-        crate_path: &str,
-        init: bool,
-    ) -> Dependency {
-        let (version, path, git, branch) = match odra_location {
-            OdraLocation::Local(path) => {
-                let path = match init {
-                    true => path,
-                    false => PathBuf::from("..").join(path),
-                };
-                let path = path
-                    .join(crate_path)
-                    .into_os_string()
-                    .to_str()
-                    .unwrap()
-                    .to_string();
-                (None, Some(path), None, None)
-            }
-            OdraLocation::Remote(repo, branch) => match branch {
-                None => (Some(odra_latest_version()), None, None, None),
-                Some(branch) => (None, None, Some(repo), Some(branch)),
-            },
-            OdraLocation::CratesIO(version) => (Some(version), None, None, None),
-        };
-
-        Dependency::Detailed(DependencyDetail {
-            version,
-            registry: None,
-            registry_index: None,
-            path,
-            inherited: false,
-            git,
-            branch,
-            tag: None,
-            rev: None,
-            features: vec![],
-            optional: false,
-            default_features: false,
-            package: None,
-        })
     }
 }
