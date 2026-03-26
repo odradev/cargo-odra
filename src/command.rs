@@ -76,7 +76,9 @@ pub fn mkdir(path: PathBuf) -> Result<(), Error> {
 pub fn process_wasm(contract_name: &str, project_root: PathBuf) {
     let command = Command::new("wasm-opt")
         .current_dir(project_root.clone())
+        .arg("--enable-bulk-memory")
         .arg("--signext-lowering")
+        .arg("--llvm-memory-copy-fill-lowering")
         .arg(paths::wasm_path_in_wasm_dir(contract_name, &project_root))
         .arg("-o")
         .arg(paths::wasm_path_in_wasm_dir(contract_name, &project_root))
