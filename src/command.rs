@@ -152,17 +152,16 @@ fn cargo(current_dir: PathBuf, command: &str, tail_args: Vec<&str>) {
 pub fn cargo_build_wasm_files(
     current_dir: PathBuf,
     contract_name: &str,
-    module_name: &str,
+    build_bin: &str,
     is_workspace: bool,
     crate_name: String,
 ) {
     env::set_var(ODRA_MODULE_ENV_KEY, contract_name);
-    let build_contract = format!("{module_name}_build_contract");
     let mut params = vec![
         "--target",
         "wasm32-unknown-unknown",
         "--bin",
-        &build_contract,
+        build_bin,
         "--release",
     ];
     if is_workspace {

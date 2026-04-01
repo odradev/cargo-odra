@@ -5,6 +5,29 @@ use cargo_toml::{Dependency, DependencyDetail, Manifest};
 
 use crate::{command, errors::Error, project::OdraLocation, utils::odra_latest_version};
 
+/// Discovers the single binary ending with `_build_contract` in the given `Cargo.toml`.
+/// Falls back to `default` when none is found.
+/// Errors out when more than one match is found (ambiguous).
+pub fn discover_build_contract_bin(cargo_toml_path: &PathBuf, default: &str) -> String {
+    let mut manifest = load_cargo_toml(cargo_toml_path);
+    let _ = manifest.complete_from_path(cargo_toml_path);
+    let matches: Vec<String> = manifest
+        .bin
+        .iter()
+        .filter_map(|b| b.name.clone())
+        .filter(|name| name.ends_with("_build_contract"))
+        .collect();
+    match matches.as_slice() {
+        [] => default.to_string(),
+        [name] => name.clone(),
+        _ => Error::MultipleBuildContractBins(
+            cargo_toml_path.display().to_string(),
+            matches.join(", "),
+        )
+        .print_and_die(),
+    }
+}
+
 /// Returns Cargo.toml as Manifest struct.
 pub fn load_cargo_toml(path: &PathBuf) -> Manifest {
     match Manifest::from_path(path) {

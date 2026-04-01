@@ -1,6 +1,6 @@
 //! Module for managing and building wasm files.
 
-use crate::{command, errors::Error, log, paths, project::Project, utils};
+use crate::{cargo_toml, command, errors::Error, log, paths, project::Project, utils};
 
 /// BuildAction configuration.
 pub struct BuildAction<'a> {
@@ -45,11 +45,19 @@ impl BuildAction<'_> {
                 true => contract.module_name(),
                 false => contract.crate_name(self.project),
             };
-            let build_contract = format!("{}_build_contract", &module_name);
+            let module_root = self.project.module_root(
+                self.project
+                    .is_workspace()
+                    .then(|| contract.module_crate_name(self.project)),
+            );
+            let crate_cargo_toml = module_root.join("Cargo.toml");
+            let default_bin = format!("{}_build_contract", &module_name);
+            let build_contract =
+                cargo_toml::discover_build_contract_bin(&crate_cargo_toml, &default_bin);
             command::cargo_build_wasm_files(
                 self.project.project_root(),
                 &contract.struct_name(),
-                &module_name,
+                &build_contract,
                 self.project.is_workspace(),
                 contract.module_crate_name(self.project),
             );

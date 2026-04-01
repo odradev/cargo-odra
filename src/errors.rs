@@ -106,6 +106,9 @@ pub enum Error {
     #[error("Project is not a workspace.")]
     NotWorkspace,
 
+    #[error("Multiple binaries ending with '_build_contract' found in {0}: {1}. There must be exactly one.")]
+    MultipleBuildContractBins(String, String),
+
     #[error(
         "wasm-pack is not installed. Please install it from https://github.com/drager/wasm-pack"
     )]
@@ -156,6 +159,7 @@ impl Error {
             Error::ClientCreateFailed => 33,
             Error::NotWorkspace => 34,
             Error::WasmPackNotInstalled => 35,
+            Error::MultipleBuildContractBins(_, _) => 38,
             Error::TomlSerializationFailed(_) => 36,
             Error::IO(_) => 37,
         }
