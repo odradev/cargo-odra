@@ -2,6 +2,20 @@
 
 Changelog for `cargo-odra`.
 
+## [0.1.7] - 2026-04-03
+
+### Added
+- Added `wasm-opt` flags.
+
+### Fixed
+- `-c` flag to accept contract names in any case format.
+
+
+## [0.1.6] - 2025-06-09
+
+### Added
+- Support for `odra-cli`.
+
 ## [0.1.5] - 2025-06-06
 
 ### Added
