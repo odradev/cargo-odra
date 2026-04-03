@@ -72,11 +72,39 @@ pub fn mkdir(path: PathBuf) -> Result<(), Error> {
     Ok(())
 }
 
+/// Returns true if the active Rust toolchain was built on or after 2025-02-17,
+/// which corresponds to nightly-2025-02-18 — the first nightly that includes the
+/// LLVM 20 upgrade (rust-lang/rust#135763). LLVM 20 enables `bulk-memory` by default
+/// for wasm32 targets, causing the compiler to emit `memory.copy` / `memory.fill`
+/// instructions. Older LLVM versions emitted inline loops or libc-style calls instead.
+///
+/// The first stable release with this change is Rust 1.87.0 (2025-05-15).
+///
+/// Sources:
+/// - https://github.com/rust-lang/rust/issues/137315 (bisected to nightly-2025-02-18)
+/// - https://github.com/rust-lang/rust/pull/135763 (LLVM 20 upgrade, merged 2025-02-17)
+fn needs_bulk_memory_flags() -> bool {
+    let version = command_output("rustc --version");
+    // Format: "rustc X.Y.Z(-nightly)? (hash YYYY-MM-DD)"
+    version
+        .rsplit_once(' ')
+        .and_then(|(_, date)| date.trim().trim_end_matches(')').parse::<String>().ok())
+        .is_some_and(|date| date.as_str() >= "2025-02-17")
+}
+
 /// Runs wasm-strip and wasm-opt on a given contract's wasm file.
 pub fn process_wasm(contract_name: &str, project_root: PathBuf) {
-    let command = Command::new("wasm-opt")
-        .current_dir(project_root.clone())
-        .arg("--signext-lowering")
+    let mut cmd = Command::new("wasm-opt");
+    cmd.current_dir(project_root.clone());
+
+    cmd.arg("--signext-lowering");
+
+    if needs_bulk_memory_flags() {
+        cmd.arg("--enable-bulk-memory")
+            .arg("--llvm-memory-copy-fill-lowering");
+    }
+
+    let command = cmd
         .arg(paths::wasm_path_in_wasm_dir(contract_name, &project_root))
         .arg("-o")
         .arg(paths::wasm_path_in_wasm_dir(contract_name, &project_root))
