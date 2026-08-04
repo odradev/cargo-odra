@@ -28,6 +28,15 @@ pub enum Error {
     #[error("There was an error while running wasm-opt - is it installed?")]
     WasmoptDidNotFinish,
 
+    #[error("wasm-opt was not found. Install binaryen and make sure it is in your PATH:\nhttps://github.com/WebAssembly/binaryen/releases")]
+    WasmoptNotInstalled,
+
+    #[error("wasm-opt reports binaryen {0}, but {1} or newer is required.\nBuilding contracts needs --llvm-memory-copy-fill-lowering, which binaryen {0} does not support.\nPackages shipped by Linux distributions are usually too old - install a release from:\nhttps://github.com/WebAssembly/binaryen/releases")]
+    WasmoptTooOld(u32, u32),
+
+    #[error("wasm-strip was not found. Install wabt and make sure it is in your PATH:\nhttps://github.com/WebAssembly/wabt")]
+    WasmstripNotInstalled,
+
     #[error("Current directory is not empty.")]
     CurrentDirIsNotEmpty,
 
@@ -158,6 +167,9 @@ impl Error {
             Error::WasmPackNotInstalled => 35,
             Error::TomlSerializationFailed(_) => 36,
             Error::IO(_) => 37,
+            Error::WasmoptNotInstalled => 38,
+            Error::WasmoptTooOld(_, _) => 39,
+            Error::WasmstripNotInstalled => 40,
         }
     }
 

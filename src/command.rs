@@ -92,14 +92,59 @@ fn needs_bulk_memory_flags() -> bool {
         .is_some_and(|date| date.as_str() >= "2025-02-17")
 }
 
+/// Oldest binaryen release that understands `--llvm-memory-copy-fill-lowering`.
+/// Older releases reject the flag outright, which makes the build fail for a reason
+/// that has nothing to do with the contract being built.
+const MIN_BINARYEN_VERSION: u32 = 121;
+
+/// What a local `wasm-opt --version` tells us.
+enum WasmOpt {
+    /// `wasm-opt` could not be executed - not installed, or not in PATH.
+    Missing,
+    /// `wasm-opt` ran; holds the binaryen version if it could be read from the output.
+    Found(Option<u32>),
+}
+
+/// Runs `wasm-opt --version` and reads the binaryen version out of it.
+fn probe_wasm_opt() -> WasmOpt {
+    match Command::new("wasm-opt").arg("--version").output() {
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => WasmOpt::Missing,
+        // Anything else - a permission problem, say - is not ours to diagnose.
+        Err(_) => WasmOpt::Found(None),
+        Ok(output) => {
+            // Output looks like: "wasm-opt version 121 (version_121)"
+            let version = std::str::from_utf8(&output.stdout)
+                .ok()
+                .and_then(|text| text.split_whitespace().nth(2)?.parse().ok());
+            WasmOpt::Found(version)
+        }
+    }
+}
+
+/// Quits with an actionable message if `wasm-opt` is missing, or too old for the
+/// flags we are about to pass it.
+fn check_wasm_opt(needs_bulk_memory: bool) {
+    match probe_wasm_opt() {
+        WasmOpt::Missing => Error::WasmoptNotInstalled.print_and_die(),
+        WasmOpt::Found(Some(version)) if needs_bulk_memory && version < MIN_BINARYEN_VERSION => {
+            Error::WasmoptTooOld(version, MIN_BINARYEN_VERSION).print_and_die()
+        }
+        // An unreadable version is not worth failing over - let the build speak for itself.
+        WasmOpt::Found(_) => {}
+    }
+}
+
 /// Runs wasm-strip and wasm-opt on a given contract's wasm file.
 pub fn process_wasm(contract_name: &str, project_root: PathBuf) {
+    let needs_bulk_memory = needs_bulk_memory_flags();
+    check_wasm_opt(needs_bulk_memory);
+
     let mut cmd = Command::new("wasm-opt");
     cmd.current_dir(project_root.clone());
 
     cmd.arg("--signext-lowering");
 
-    if needs_bulk_memory_flags() {
+    if needs_bulk_memory {
         cmd.arg("--enable-bulk-memory")
             .arg("--llvm-memory-copy-fill-lowering");
     }
@@ -119,8 +164,13 @@ pub fn process_wasm(contract_name: &str, project_root: PathBuf) {
         .arg(paths::wasm_path_in_wasm_dir(contract_name, &project_root))
         .status();
 
-    if command.is_err() || !command.unwrap().success() {
-        Error::WasmstripDidNotFinish.print_and_die();
+    match command {
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            Error::WasmstripNotInstalled.print_and_die()
+        }
+        Err(_) => Error::WasmstripDidNotFinish.print_and_die(),
+        Ok(status) if !status.success() => Error::WasmstripDidNotFinish.print_and_die(),
+        Ok(_) => {}
     }
 }
 

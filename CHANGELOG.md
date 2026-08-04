@@ -2,6 +2,15 @@
 
 Changelog for `cargo-odra`.
 
+## [0.1.8] - 2026-08-04
+
+### Fixed
+- `wasm-opt` failures now say what is actually wrong. A missing `wasm-opt` and one too old for the
+  `--llvm-memory-copy-fill-lowering` flag (binaryen < 121, which is what most Linux distributions
+  package) both used to report `There was an error while running wasm-opt - is it installed?`.
+  The version is now checked up front and reported, with a link to the binaryen releases.
+- A missing `wasm-strip` is reported as missing rather than as a failed run.
+
 ## [0.1.7] - 2026-04-03
 
 ### Added
