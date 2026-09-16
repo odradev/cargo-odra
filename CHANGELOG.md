@@ -2,6 +2,22 @@
 
 Changelog for `cargo-odra`.
 
+## [Unreleased]
+
+### Changed
+- `DEVELOPMENT_ODRA_BRANCH` in the justfile moved from `release/2.5.1` to `release/3.0.0`, so CI
+  generates test projects against the Odra branch actually being developed.
+- The justfile installs binaryen 125 instead of 116. Contracts are optimised with
+  `--llvm-memory-copy-fill-lowering`, which binaryen below 121 rejects, so `just prepare` used to
+  set up an environment in which no contract could be built.
+- CI runs on `ubuntu-latest` instead of a BuildJet runner, with up-to-date actions
+  (`actions/checkout@v4`, `dtolnay/rust-toolchain`, `extractions/setup-just@v2`) in place of
+  `actions/checkout@v2` and the archived `actions-rs/toolchain`. Cargo's registry and git
+  checkouts are cached, and a new run on the same branch cancels the previous one.
+- CI now runs the unit tests (`just test`), which nothing executed before.
+- `just prepare` no longer hardcodes the `x86_64-unknown-linux-gnu` host triple when adding
+  nightly components.
+
 ## [0.1.8] - 2026-08-04
 
 ### Fixed

@@ -45,7 +45,7 @@ impl BuildAction<'_> {
                 true => contract.module_name(),
                 false => contract.crate_name(self.project),
             };
-            let build_contract = format!("{}_build_contract", &module_name);
+            let build_contract = format!("{}_build_contract", module_name);
             command::cargo_build_wasm_files(
                 self.project.project_root(),
                 &contract.struct_name(),

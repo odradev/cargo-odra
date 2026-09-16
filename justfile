@@ -1,6 +1,8 @@
-DEVELOPMENT_ODRA_BRANCH := "release/2.5.1"
-BINARYEN_VERSION := "version_116"
-BINARYEN_CHECKSUM := "c55b74f3109cdae97490faf089b0286d3bba926bb6ea5ed00c8c784fc53718fd"
+DEVELOPMENT_ODRA_BRANCH := "release/3.0.0"
+# Must stay >= 121: contracts are optimised with --llvm-memory-copy-fill-lowering,
+# which older binaryen releases reject.
+BINARYEN_VERSION := "version_125"
+BINARYEN_CHECKSUM := "7c3bc16599c8274a04d34a504fe4be2047884f900e0e2da2f6fb9cd667183be4"
 
 default:
     just --list
@@ -11,8 +13,8 @@ install:
 prepare:
     rustup target add wasm32-unknown-unknown
     rustup toolchain install nightly
-    rustup component add --toolchain nightly-x86_64-unknown-linux-gnu clippy
-    rustup component add --toolchain nightly-x86_64-unknown-linux-gnu rustfmt
+    rustup component add --toolchain nightly clippy
+    rustup component add --toolchain nightly rustfmt
     sudo apt install wabt
     wget https://github.com/WebAssembly/binaryen/releases/download/{{ BINARYEN_VERSION }}/binaryen-{{ BINARYEN_VERSION }}-x86_64-linux.tar.gz || { echo "Download failed"; exit 1; }
     sha256sum binaryen-{{ BINARYEN_VERSION }}-x86_64-linux.tar.gz | grep {{ BINARYEN_CHECKSUM }} || { echo "Checksum verification failed"; exit 1; }
@@ -69,6 +71,10 @@ test-contract-name-flexibility project_dir source_file:
     # Revert rename
     cd {{project_dir}} && sed 's/PLASCOIN/Plascoin/g' Odra.toml > Odra.toml.tmp && mv Odra.toml.tmp Odra.toml
     cd {{project_dir}} && sed 's/PLASCOIN/Plascoin/g' {{source_file}} > {{source_file}}.tmp && mv {{source_file}}.tmp {{source_file}}
+
+# Run cargo-odra's own unit tests.
+test:
+    cargo test
 
 clippy:
     cargo +nightly clippy --all-targets -- -D warnings

@@ -3,36 +3,60 @@ name: ci-cargo-odra
 on:
   push:
     branches:
-      - master
-      - develop
       - release/*
     paths-ignore:
       - "**.md"
 
   pull_request:
     branches:
-      - master
-      - develop
       - feature/*
       - release/*
-      - '*.*.*'
     paths-ignore:
       - "**.md"
+
+# A new push to the same branch makes the previous run pointless.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
 
 jobs:
   build_and_test:
     name: Build and test
-    runs-on: buildjet-8vcpu-ubuntu-2204 # We use buildjet instead GH's free ubuntu-latest for faster builds
+    runs-on: ubuntu-latest
     steps:
-      - uses: extractions/setup-just@v1
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - name: Setup just
+        uses: extractions/setup-just@v2
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup toolchain
+        uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: stable
+          targets: wasm32-unknown-unknown
           components: rustfmt, clippy
-      - run: just prepare
-      - run: just check-lint
-      - run: just install
-      - run: just test-project-generation-on-future-odra
-      - run: just test-workspace-generation-on-future-odra
+      # The generated test projects build Odra from source, so the registry and git
+      # checkouts are by far the most expensive thing to redo on every run.
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-odra-${{ hashFiles('Cargo.lock') }}
+          restore-keys: cargo-odra-
+      - name: Prepare environment
+        run: just prepare
+      - name: Run lints
+        run: just check-lint
+      - name: Run unit tests
+        run: just test
+      - name: Install cargo-odra
+        run: just install
+      - name: Test project generation
+        run: just test-project-generation-on-future-odra
+      - name: Test workspace generation
+        run: just test-workspace-generation-on-future-odra
+      # Generation against the latest Odra release has been disabled since 1.4.0 (2024).
       # - run: just test-project-generation-on-stable-odra
       # - run: just test-workspace-generation-on-stable-odra
