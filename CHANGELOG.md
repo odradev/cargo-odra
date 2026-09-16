@@ -4,6 +4,13 @@ Changelog for `cargo-odra`.
 
 ## [Unreleased]
 
+### Fixed
+- Contract crates that inherit fields from a workspace (`license = { workspace = true }` and the
+  like) no longer fail with `not all fields of ... have been present in workspace.package`.
+  The workspace root is now located the way Cargo does it: `package.workspace` first, otherwise
+  the nearest ancestor `Cargo.toml` with a `[workspace]` section, skipping plain package
+  manifests in between.
+
 ### Changed
 - `DEVELOPMENT_ODRA_BRANCH` in the justfile moved from `release/2.5.1` to `release/3.0.0`, so CI
   generates test projects against the Odra branch actually being developed.
