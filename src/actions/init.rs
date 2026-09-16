@@ -79,6 +79,8 @@ impl InitAction {
             name: Some(paths::to_snake_case(&init_command.name)),
             force: true,
             verbose: false,
+            quiet: false,
+            continue_on_error: false,
             template_values_file: None,
             silent: false,
             config: None,
@@ -86,6 +88,7 @@ impl InitAction {
             lib: false,
             bin: false,
             ssh_identity: None,
+            gitconfig: None,
             define: vec![format!("date={}", Utc::now().format("%Y-%m-%d"))],
             init,
             destination: None,
@@ -93,6 +96,7 @@ impl InitAction {
             allow_commands: false,
             overwrite: false,
             skip_submodules: true,
+            no_workspace: false,
             other_args: None,
         })
         .unwrap_or_else(|e| {

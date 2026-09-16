@@ -1,7 +1,5 @@
 use std::process::Command;
 
-use ureq::serde_json;
-
 use crate::{
     command,
     consts::ODRA_GITHUB_API_DATA,
@@ -102,7 +100,8 @@ pub fn odra_latest_version() -> String {
         .unwrap_or_else(|_| {
             Error::FailedToFetchTemplate(ODRA_GITHUB_API_DATA.to_string()).print_and_die()
         })
-        .into_json()
+        .body_mut()
+        .read_json()
         .unwrap_or_else(|_| {
             Error::FailedToParseTemplate(ODRA_GITHUB_API_DATA.to_string()).print_and_die()
         });

@@ -15,7 +15,8 @@ prepare:
     rustup toolchain install nightly
     rustup component add --toolchain nightly clippy
     rustup component add --toolchain nightly rustfmt
-    sudo apt install wabt
+    sudo apt-get update
+    sudo apt-get install -y wabt
     wget https://github.com/WebAssembly/binaryen/releases/download/{{ BINARYEN_VERSION }}/binaryen-{{ BINARYEN_VERSION }}-x86_64-linux.tar.gz || { echo "Download failed"; exit 1; }
     sha256sum binaryen-{{ BINARYEN_VERSION }}-x86_64-linux.tar.gz | grep {{ BINARYEN_CHECKSUM }} || { echo "Checksum verification failed"; exit 1; }
     tar -xzf binaryen-{{ BINARYEN_VERSION }}-x86_64-linux.tar.gz || { echo "Extraction failed"; exit 1; }
@@ -75,6 +76,26 @@ test-contract-name-flexibility project_dir source_file:
 # Run cargo-odra's own unit tests.
 test:
     cargo test
+
+# Audit dependencies for advisories, licenses, banned crates and sources.
+# Install with `cargo install cargo-deny --locked`.
+check-deny:
+    cargo deny check
+
+# Everything the CI pipeline runs, in the same order, against the current checkout.
+# `just prepare` is left out: it needs sudo and changes the machine. Run it once by hand.
+# Note that `install` replaces the cargo-odra on your PATH with the one from this checkout,
+# which is what makes the generation recipes below test your branch.
+ci: check-lint test check-deny install test-project-generation-on-future-odra test-workspace-generation-on-future-odra test-project-generation-on-stable-odra test-workspace-generation-on-stable-odra
+
+# The CI pipeline inside the GitHub Actions runner image, via nektos/act.
+# Needs docker and act (https://nektosact.com). Slower than `just ci` and it always starts
+# from a cold cargo cache, but it catches anything specific to the runner image.
+# Pass act flags through, e.g. `just ci-act -j build_and_test` for a single job.
+# Note: the `deny` job builds a container image, so it needs DNS to work inside
+# `docker build`, which some local Docker setups do not have.
+ci-act *ARGS:
+    act push -W .github/workflows/ci-cargo-odra.yml -P ubuntu-latest=catthehacker/ubuntu:act-latest {{ ARGS }}
 
 clippy:
     cargo +nightly clippy --all-targets -- -D warnings

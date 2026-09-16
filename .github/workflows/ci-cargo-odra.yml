@@ -57,6 +57,20 @@ jobs:
         run: just test-project-generation-on-future-odra
       - name: Test workspace generation
         run: just test-workspace-generation-on-future-odra
-      # Generation against the latest Odra release has been disabled since 1.4.0 (2024).
-      # - run: just test-project-generation-on-stable-odra
-      # - run: just test-workspace-generation-on-stable-odra
+      - name: Test project generation against the latest Odra release
+        run: just test-project-generation-on-stable-odra
+      - name: Test workspace generation against the latest Odra release
+        run: just test-workspace-generation-on-stable-odra
+
+  deny:
+    name: Audit dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      # Its own job: the audit needs no Rust build, so it reports in seconds
+      # instead of waiting behind the generation tests.
+      - name: Check advisories, licenses, bans and sources
+        uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check

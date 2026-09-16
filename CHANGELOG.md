@@ -4,7 +4,29 @@ Changelog for `cargo-odra`.
 
 ## [Unreleased]
 
+### Fixed
+- Contract crates that inherit fields from a workspace (`license = { workspace = true }` and the
+  like) no longer fail with `not all fields of ... have been present in workspace.package`.
+  The workspace root is now located the way Cargo does it: `package.workspace` first, otherwise
+  the nearest ancestor `Cargo.toml` with a `[workspace]` section, skipping plain package
+  manifests in between.
+
+### Added
+- `deny.toml`, `just check-deny` and a CI job auditing dependencies for security advisories,
+  licenses, banned crates and unexpected sources.
+- `just ci` runs the whole CI pipeline locally, in the same order, so a branch can be checked
+  without waiting on GitHub. `just ci-act` runs the workflow itself in the GitHub runner image
+  via [act](https://nektosact.com).
+
 ### Changed
+- All dependencies upgraded. Seven RUSTSEC advisories came from `cargo-generate` 0.21 and
+  `ureq` 2; both are on current majors and `rustls` is pinned to the patched 0.23.45. The one
+  remaining advisory, unmaintained `smartstring` reached through `rhai` <- `cargo-generate`, has
+  no published upgrade and is ignored in `deny.toml` with the reason recorded.
+- `serde_json` is a direct dependency; `ureq` 3 no longer re-exports it. `colored` was dropped,
+  nothing used it.
+- Project generation against the latest Odra release is tested in CI again. It had been commented
+  out since 1.4.0 in 2024. cargo-odra targets Odra 3.0 without dropping 2.x.
 - `DEVELOPMENT_ODRA_BRANCH` in the justfile moved from `release/2.5.1` to `release/3.0.0`, so CI
   generates test projects against the Odra branch actually being developed.
 - The justfile installs binaryen 125 instead of 116. Contracts are optimised with
@@ -16,7 +38,9 @@ Changelog for `cargo-odra`.
   checkouts are cached, and a new run on the same branch cancels the previous one.
 - CI now runs the unit tests (`just test`), which nothing executed before.
 - `just prepare` no longer hardcodes the `x86_64-unknown-linux-gnu` host triple when adding
-  nightly components.
+  nightly components, and installs `wabt` with `apt-get update` first and a non-interactive
+  `-y`, so it works on a machine whose package lists are cold rather than only on a warm
+  GitHub runner.
 
 ## [0.1.8] - 2026-08-04
 

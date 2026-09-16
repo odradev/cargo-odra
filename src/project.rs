@@ -6,7 +6,7 @@ use std::{
 use cargo_toml::{Dependency, DependencyDetail, Manifest};
 
 use crate::{
-    cargo_toml::load_cargo_toml,
+    cargo_toml::{load_cargo_toml, version_req_to_string},
     consts::ODRA_TEMPLATE_GH_REPO,
     errors::Error,
     odra_toml::OdraToml,
@@ -130,7 +130,7 @@ impl Project {
         OdraToml::load(&self.odra_toml_location)
     }
 
-    pub fn members(cargo_toml_path: &PathBuf, odra_toml_path: &Path) -> Vec<Member> {
+    pub fn members(cargo_toml_path: &Path, odra_toml_path: &Path) -> Vec<Member> {
         Self::detect_members(cargo_toml_path, odra_toml_path)
             .iter()
             .map(|member| {
@@ -162,7 +162,7 @@ impl Project {
     }
 
     /// Detects members of workspace which have Odra contracts.
-    fn detect_members(cargo_toml_path: &PathBuf, odra_toml_path: &Path) -> Vec<(String, String)> {
+    fn detect_members(cargo_toml_path: &Path, odra_toml_path: &Path) -> Vec<(String, String)> {
         let odra_toml = OdraToml::load(odra_toml_path);
         match load_cargo_toml(cargo_toml_path).workspace {
             Some(workspace) => workspace
@@ -202,30 +202,38 @@ impl OdraLocation {
             .1
             .clone();
 
-        match odra_dependency {
-            Dependency::Detailed(DependencyDetail {
+        let detail = match odra_dependency {
+            Dependency::Detailed(detail) => *detail,
+            _ => {
+                Error::FailedToReadCargo("Unsupported location of Odra.".to_string())
+                    .print_and_die();
+            }
+        };
+
+        match detail {
+            DependencyDetail {
                 version: Some(version),
                 git: None,
                 ..
-            }) => OdraLocation::CratesIO(version),
-            Dependency::Detailed(DependencyDetail {
+            } => OdraLocation::CratesIO(version_req_to_string(&version)),
+            DependencyDetail {
                 path: Some(path),
                 git: None,
                 ..
-            }) => {
+            } => {
                 let path = PathBuf::from(path);
                 OdraLocation::Local(PathBuf::from(path.parent().unwrap()))
             }
-            Dependency::Detailed(DependencyDetail {
+            DependencyDetail {
                 git: Some(git),
                 branch: Some(branch),
                 ..
-            }) => OdraLocation::Remote(git, Some(branch)),
-            Dependency::Detailed(DependencyDetail {
+            } => OdraLocation::Remote(git, Some(branch)),
+            DependencyDetail {
                 git: Some(git),
                 branch: None,
                 ..
-            }) => OdraLocation::Remote(git, None),
+            } => OdraLocation::Remote(git, None),
             _ => {
                 Error::FailedToReadCargo("Unsupported location of Odra.".to_string())
                     .print_and_die();
