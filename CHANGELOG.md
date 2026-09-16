@@ -5,6 +5,11 @@ Changelog for `cargo-odra`.
 ## [Unreleased]
 
 ### Fixed
+- The latest Odra release is now resolved from the `releases/latest` redirect on github.com
+  instead of the REST API. Unauthenticated API calls share 60 requests per hour per IP, which
+  shared CI runners exhaust routinely, and every `cargo odra new` without `--source` used to
+  die with `Failed to fetch template` when that happened. The API remains a fallback and uses
+  `GITHUB_TOKEN` or `GH_TOKEN` when set; the error now says which lookups failed and why.
 - Contract crates that inherit fields from a workspace (`license = { workspace = true }` and the
   like) no longer fail with `not all fields of ... have been present in workspace.package`.
   The workspace root is now located the way Cargo does it: `package.workspace` first, otherwise

@@ -61,6 +61,9 @@ pub enum Error {
     #[error("Failed to parse template: {0}")]
     FailedToParseTemplate(String),
 
+    #[error("Could not determine the latest Odra release: {0}.\nPass `--source <version>` to skip the lookup.")]
+    FailedToFetchLatestVersion(String),
+
     #[error("Could not determine the current directory, please make sure you have permissions to access it.")]
     CouldNotDetermineCurrentDirectory,
 
@@ -170,6 +173,7 @@ impl Error {
             Error::WasmoptNotInstalled => 38,
             Error::WasmoptTooOld(_, _) => 39,
             Error::WasmstripNotInstalled => 40,
+            Error::FailedToFetchLatestVersion(_) => 41,
         }
     }
 

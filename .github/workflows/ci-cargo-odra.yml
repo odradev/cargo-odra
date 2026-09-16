@@ -58,6 +58,10 @@ jobs:
       matrix:
         template: [full, blank, workspace, cep18, cep95]
         source: [future, stable]
+    env:
+      # Only the fallback path of the latest-release lookup talks to the REST API, and with
+      # the token it gets the repository's own rate limit instead of the runner IP's.
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Setup just
         uses: extractions/setup-just@v2
