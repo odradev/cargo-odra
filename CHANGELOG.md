@@ -25,8 +25,13 @@ Changelog for `cargo-odra`.
   no published upgrade and is ignored in `deny.toml` with the reason recorded.
 - `serde_json` is a direct dependency; `ureq` 3 no longer re-exports it. `colored` was dropped,
   nothing used it.
-- Project generation against the latest Odra release is tested in CI again. It had been commented
-  out since 1.4.0 in 2024. cargo-odra targets Odra 3.0 without dropping 2.x.
+- Project generation is tested for every template that differs in structure (`full`, `blank`,
+  `workspace`, `cep18`, `cep95`), each against both the Odra branch under development and the
+  latest release, as a CI matrix. Before, only `full` and `workspace` were covered, and the runs
+  against the latest release had been commented out since 1.4.0 in 2024. Each run now also
+  exercises `cargo odra schema`. cargo-odra targets Odra 3.0 without dropping 2.x.
+- `just test-template <template> [stable|future]` and `just test-all-templates [source]` replace
+  the four hand-written generation recipes.
 - `DEVELOPMENT_ODRA_BRANCH` in the justfile moved from `release/2.5.1` to `release/3.0.0`, so CI
   generates test projects against the Odra branch actually being developed.
 - The justfile installs binaryen 125 instead of 116. Contracts are optimised with

@@ -22,38 +22,31 @@ prepare:
     tar -xzf binaryen-{{ BINARYEN_VERSION }}-x86_64-linux.tar.gz || { echo "Extraction failed"; exit 1; }
     sudo cp binaryen-{{ BINARYEN_VERSION }}/bin/wasm-opt /usr/local/bin/wasm-opt
 
-test-project-generation-on-stable-odra:
-    rm -rf testproject
-    cargo odra new --name testproject
-    just test-testproject
+# Project templates that differ in structure: single crate with a contract, empty single
+# crate, a workspace with two contract crates and a CLI crate, and the CEP-18 / CEP-95
+# token templates that pull in odra-modules.
+TEMPLATES := "full blank workspace cep18 cep95"
 
-test-project-generation-on-future-odra:
+# Generates a project from `template` against the latest Odra release (`stable`) or
+# DEVELOPMENT_ODRA_BRANCH (`future`), then puts it through the cargo-odra commands:
+# generate, build, schema, test on both backends, clean.
+test-template template source="future":
     rm -rf testproject
-    cargo odra new --name testproject --source {{ DEVELOPMENT_ODRA_BRANCH }}
-    just test-testproject
+    cargo odra new --name testproject --template {{ template }} {{ if source == "stable" { "" } else { "--source " + DEVELOPMENT_ODRA_BRANCH } }}
+    just _exercise-testproject {{ template }}
 
-test-workspace-generation-on-stable-odra:
-    rm -rf testproject
-    cargo odra new --name testproject --template workspace
-    just test-workspace-project
+# `test-template` for every template, against one Odra source.
+test-all-templates source="future":
+    for template in {{ TEMPLATES }}; do just test-template $template {{ source }}; done
 
-test-workspace-generation-on-future-odra:
-    rm -rf testproject
-    cargo odra new --name testproject --template workspace --source {{ DEVELOPMENT_ODRA_BRANCH }}
-    just test-workspace-project
-
-test-testproject:
+# Adds a contract, builds, generates schemas, tests on both backends.
+_exercise-testproject template:
     cd testproject && rustup target add wasm32-unknown-unknown
-    cd testproject && cargo odra generate -c plascoin
-    just test-contract-name-flexibility testproject src/plascoin.rs
-    cd testproject && cargo odra test
-    cd testproject && cargo odra test -b casper
-    cd testproject && cargo odra clean
-
-test-workspace-project:
-    cd testproject && rustup target add wasm32-unknown-unknown
-    cd testproject && cargo odra generate -c plascoin -m flipper
-    just test-contract-name-flexibility testproject flipper/src/plascoin.rs
+    cd testproject && cargo odra generate -c plascoin {{ if template == "workspace" { "-m flipper" } else { "" } }}
+    {{ if template == "full" { "just test-contract-name-flexibility testproject src/plascoin.rs" } else if template == "workspace" { "just test-contract-name-flexibility testproject flipper/src/plascoin.rs" } else { "true" } }}
+    cd testproject && cargo odra build
+    cd testproject && cargo odra schema
+    cd testproject && ls resources/casper_contract_schemas/*.json
     cd testproject && cargo odra test
     cd testproject && cargo odra test -b casper
     cd testproject && cargo odra clean
@@ -86,7 +79,9 @@ check-deny:
 # `just prepare` is left out: it needs sudo and changes the machine. Run it once by hand.
 # Note that `install` replaces the cargo-odra on your PATH with the one from this checkout,
 # which is what makes the generation recipes below test your branch.
-ci: check-lint test check-deny install test-project-generation-on-future-odra test-workspace-generation-on-future-odra test-project-generation-on-stable-odra test-workspace-generation-on-stable-odra
+ci: check-lint test check-deny install
+    just test-all-templates future
+    just test-all-templates stable
 
 # The CI pipeline inside the GitHub Actions runner image, via nektos/act.
 # Needs docker and act (https://nektosact.com). Slower than `just ci` and it always starts

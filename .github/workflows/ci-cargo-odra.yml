@@ -20,9 +20,44 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build_and_test:
-    name: Build and test
+  lint_and_test:
+    name: Lint and unit tests
     runs-on: ubuntu-latest
+    steps:
+      - name: Setup just
+        uses: extractions/setup-just@v2
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly
+          components: rustfmt, clippy
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-odra-${{ hashFiles('Cargo.lock') }}
+          restore-keys: cargo-odra-
+      - name: Run lints
+        run: just check-lint
+      - name: Run unit tests
+        run: just test
+
+  # One job per (template, Odra source): every template that differs in structure, generated
+  # against both the Odra branch under development and the latest release, is taken through
+  # generate, build, schema and tests on both backends.
+  generation:
+    name: ${{ matrix.template }} template on ${{ matrix.source }} Odra
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        template: [full, blank, workspace, cep18, cep95]
+        source: [future, stable]
     steps:
       - name: Setup just
         uses: extractions/setup-just@v2
@@ -33,9 +68,8 @@ jobs:
         with:
           toolchain: stable
           targets: wasm32-unknown-unknown
-          components: rustfmt, clippy
-      # The generated test projects build Odra from source, so the registry and git
-      # checkouts are by far the most expensive thing to redo on every run.
+      # The generated project builds Odra from source, so the registry and git checkouts
+      # are by far the most expensive thing to redo on every run.
       - name: Cache cargo
         uses: actions/cache@v4
         with:
@@ -47,20 +81,10 @@ jobs:
           restore-keys: cargo-odra-
       - name: Prepare environment
         run: just prepare
-      - name: Run lints
-        run: just check-lint
-      - name: Run unit tests
-        run: just test
       - name: Install cargo-odra
         run: just install
-      - name: Test project generation
-        run: just test-project-generation-on-future-odra
-      - name: Test workspace generation
-        run: just test-workspace-generation-on-future-odra
-      - name: Test project generation against the latest Odra release
-        run: just test-project-generation-on-stable-odra
-      - name: Test workspace generation against the latest Odra release
-        run: just test-workspace-generation-on-stable-odra
+      - name: Generate and test the project
+        run: just test-template ${{ matrix.template }} ${{ matrix.source }}
 
   deny:
     name: Audit dependencies
