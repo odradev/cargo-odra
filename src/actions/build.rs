@@ -27,6 +27,7 @@ impl BuildAction<'_> {
         utils::validate_contract_names(self.project);
         self.build_wasm_files();
         self.optimize_wasm_files();
+        self.distribute_wasm_files();
     }
 
     /// Build .wasm files.
@@ -58,19 +59,35 @@ impl BuildAction<'_> {
             let target =
                 paths::wasm_path_in_wasm_dir(&contract.struct_name(), &self.project.project_root());
             log::info(format!("Saving {}", target.display()));
-            command::cp(source.clone(), target);
-            // if it's a workspace, copy the file also to the module wasm folder
-            if self.project.is_workspace() {
-                let module_wasm_dir = self
-                    .project
-                    .project_root()
-                    .join(contract.module_crate_name(self.project))
-                    .join("wasm");
-                command::mkdir(module_wasm_dir.clone()).unwrap_or_else(|err| err.print_and_die());
-                let mut module_wasm_path = module_wasm_dir.clone().join(contract.struct_name());
-                module_wasm_path.set_extension("wasm");
-                log::info(format!("Copying to {}", module_wasm_path.display()));
-                command::cp(source, module_wasm_path);
+            command::cp(source, target);
+        }
+    }
+
+    /// Copies the optimised wasm files into the `wasm` directory of every workspace member.
+    ///
+    /// The Casper test VM loads `wasm/<Contract>.wasm` relative to the working directory, and
+    /// Cargo runs each member's tests inside that member's directory. Tests that deploy a
+    /// contract can live in any member, not only in the crate that defines it, so every
+    /// member gets a copy.
+    fn distribute_wasm_files(&self) {
+        if !self.project.is_workspace() {
+            return;
+        }
+        let contracts =
+            utils::contracts(self.project, self.contracts_names()).unwrap_or_else(|_| {
+                Error::FailedToParseArgument("contracts_names".to_string()).print_and_die()
+            });
+        for member_root in &self.project.workspace_members {
+            let member_wasm_dir = paths::wasm_dir(member_root);
+            command::mkdir(member_wasm_dir.clone()).unwrap_or_else(|err| err.print_and_die());
+            for contract in &contracts {
+                let source = paths::wasm_path_in_wasm_dir(
+                    &contract.struct_name(),
+                    &self.project.project_root(),
+                );
+                let target = paths::wasm_path_in_wasm_dir(&contract.struct_name(), member_root);
+                log::info(format!("Copying to {}", target.display()));
+                command::cp(source, target);
             }
         }
     }
@@ -85,14 +102,6 @@ impl BuildAction<'_> {
 
         for contract in contracts {
             command::process_wasm(&contract.struct_name(), self.project.project_root());
-            if self.project.is_workspace() {
-                command::process_wasm(
-                    &contract.struct_name(),
-                    self.project
-                        .project_root()
-                        .join(contract.module_crate_name(self.project)),
-                );
-            }
         }
     }
 

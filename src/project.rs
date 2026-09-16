@@ -10,6 +10,7 @@ use crate::{
     consts::ODRA_TEMPLATE_GH_REPO,
     errors::Error,
     odra_toml::OdraToml,
+    paths,
     utils::odra_latest_version,
 };
 
@@ -24,8 +25,10 @@ pub struct Project {
     pub cargo_toml_location: PathBuf,
     /// Path to the Odra.toml file.
     pub odra_toml_location: PathBuf,
-    /// Members of the project.
+    /// Members of the project that have Odra contracts.
     pub members: Vec<Member>,
+    /// Root directories of every workspace member, contracts or not; empty for a single crate.
+    pub workspace_members: Vec<PathBuf>,
 }
 
 impl Project {
@@ -39,23 +42,24 @@ impl Project {
         });
         let root = odra_toml_path.parent().unwrap().to_path_buf();
         let members = Self::members(&cargo_toml_path, &odra_toml_path);
-        let name = match load_cargo_toml(&cargo_toml_path).package {
+        let manifest = load_cargo_toml(&cargo_toml_path);
+        let name = match &manifest.package {
+            // A workspace has no package name; use the directory name, made valid for Cargo.
             None => {
                 let cwd = env::current_dir().unwrap();
-                cwd.strip_prefix(cwd.parent().unwrap())
-                    .unwrap()
-                    .to_str()
-                    .unwrap()
-                    .to_string()
+                let dir_name = cwd.strip_prefix(cwd.parent().unwrap()).unwrap();
+                paths::to_crate_name(dir_name.to_string_lossy())
             }
-            Some(package) => package.name,
+            Some(package) => package.name.clone(),
         };
+        let workspace_members = Self::workspace_members(&root, &manifest);
         Project {
             name,
             project_root: root,
             cargo_toml_location: cargo_toml_path,
             odra_toml_location: odra_toml_path,
             members,
+            workspace_members,
         }
     }
 
@@ -159,6 +163,31 @@ impl Project {
             }
             path = path.parent().unwrap().to_path_buf();
         }
+    }
+
+    /// Resolves every `[workspace] members` entry, globs included, minus `exclude`, to the
+    /// directories that contain a `Cargo.toml`.
+    fn workspace_members(root: &Path, manifest: &Manifest) -> Vec<PathBuf> {
+        let Some(workspace) = &manifest.workspace else {
+            return vec![];
+        };
+        let excluded: Vec<PathBuf> = workspace
+            .exclude
+            .iter()
+            .map(|entry| root.join(entry))
+            .collect();
+        workspace
+            .members
+            .iter()
+            .flat_map(|pattern| {
+                let pattern = root.join(pattern).to_string_lossy().into_owned();
+                glob::glob(&pattern)
+                    .map(|paths| paths.filter_map(Result::ok).collect::<Vec<_>>())
+                    .unwrap_or_default()
+            })
+            .filter(|dir| dir.join("Cargo.toml").is_file())
+            .filter(|dir| !excluded.iter().any(|excluded| excluded == dir))
+            .collect()
     }
 
     /// Detects members of workspace which have Odra contracts.

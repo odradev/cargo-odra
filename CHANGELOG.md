@@ -5,6 +5,16 @@ Changelog for `cargo-odra`.
 ## [Unreleased]
 
 ### Fixed
+- In a workspace, built wasm files are copied into the `wasm` directory of every member, not only
+  the crate that defines the contract (#97). The Casper test VM loads `wasm/<Contract>.wasm`
+  relative to the working directory and Cargo runs each member's tests inside that member, so a
+  test that deploys a contract from a different member (a `cli` crate, say) could not find it.
+  `cargo odra clean` removes those copies. wasm-opt now runs once per contract instead of once per
+  copy.
+- Generated crates in a workspace whose directory name is not a valid package name (a clone into
+  `casper-delta.kubaplas.pl`, say) no longer produce a `Cargo.toml` Cargo rejects (#99). The name
+  is sanitised the way Cargo requires: characters outside alphanumerics, `-` and `_` become `-`,
+  and a leading digit gets a `_` prefix.
 - The latest Odra release is now resolved from the `releases/latest` redirect on github.com
   instead of the REST API. Unauthenticated API calls share 60 requests per hour per IP, which
   shared CI runners exhaust routinely, and every `cargo odra new` without `--source` used to
