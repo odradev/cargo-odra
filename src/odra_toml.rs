@@ -129,8 +129,10 @@ impl Contract {
                     .find(|member| member.name.replace('-', "_") == name)
                     .map(|member| member.root.clone())
                     .unwrap_or_else(|| project.project_root());
-                let package = package_name_of(&root.join("Cargo.toml"))
-                    .unwrap_or_else(|| name.replace('_', "-"));
+                // A member always has a `[package]`, and `load_cargo_toml` dies if it cannot be
+                // read; the fallback is here so a name is never invented from the fqn.
+                let package =
+                    package_name_of(&root.join("Cargo.toml")).unwrap_or_else(|| name.clone());
                 HostCrate {
                     name,
                     package,
