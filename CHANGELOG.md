@@ -5,12 +5,12 @@ Changelog for `cargo-odra`.
 ## [Unreleased]
 
 ### Fixed
-- In a workspace, built wasm files are copied into the `wasm` directory of every member, not only
-  the crate that defines the contract (#97). The Casper test VM loads `wasm/<Contract>.wasm`
-  relative to the working directory and Cargo runs each member's tests inside that member, so a
-  test that deploys a contract from a different member (a `cli` crate, say) could not find it.
-  `cargo odra clean` removes those copies. wasm-opt now runs once per contract instead of once per
-  copy.
+- In a workspace, a contract's wasm is written once, to the `wasm` directory at the project root,
+  and nowhere else (#97). 0.1.x also copied it into the crate that defines the contract, which left
+  a second, unoptimised file that the Casper test VM could pick up instead of the real one; Odra
+  3.0.0 looks for `wasm/<Contract>.wasm` in the working directory and then in each directory above
+  it, so one directory at the root serves every member. `cargo odra clean` removes the copies left
+  by older versions. wasm-opt now runs once per contract instead of once per copy.
 - Generated crates in a workspace whose directory name is not a valid package name (a clone into
   `casper-delta.kubaplas.pl`, say) no longer produce a `Cargo.toml` Cargo rejects (#99). The name
   is sanitised the way Cargo requires: characters outside alphanumerics, `-` and `_` become `-`,
