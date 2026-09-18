@@ -32,6 +32,19 @@ Changelog for `cargo-odra`.
   manifests in between.
 
 ### Added
+- Contracts can be built from crates the project depends on (odra#617). The first segment of an
+  `fqn` in `Odra.toml` may now be the name of a dependency (`fqn = "odra_modules::erc20::Erc20"`);
+  the contract is built by the crate that depends on it — the project crate, or the first
+  workspace member listing the dependency — and the wasm and schema files are named after the
+  struct, as for a local contract. The crate that builds such a contract has to reference the
+  dependency in its code (`use odra_modules;` in its `bin/build_contract.rs` is enough), as rust
+  links a dependency only where it is used; the build stops with an explanation instead of
+  producing a wasm without entry points when it does not.
+- `ODRA_MODULE` is now passed crate-qualified (`odra_modules::Erc20`), so two crates defining a
+  module of the same name do not both compile their entry points into one wasm (odra#321). The
+  qualified value is only used when the project's Odra is 3.0.0 or newer, or comes from a git
+  repository or a local path; for older releases from crates.io the bare struct name is passed,
+  as before.
 - `deny.toml`, `just check-deny` and a CI job auditing dependencies for security advisories,
   licenses, banned crates and unexpected sources.
 - `just ci` runs the whole CI pipeline locally, in the same order, so a branch can be checked

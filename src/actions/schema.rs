@@ -34,11 +34,12 @@ impl SchemaAction<'_> {
             utils::contracts(self.project, self.contracts_names()).unwrap_or_else(|_| {
                 Error::FailedToParseArgument("contracts_names".to_string()).print_and_die()
             });
+        utils::validate_external_contracts(self.project, &contracts);
         for contract in contracts {
             command::cargo_generate_schema_files(
                 self.project.project_root(),
-                &contract.struct_name(),
-                &contract.crate_name(self.project),
+                &contract.odra_module_value(self.project),
+                &contract.host_crate_name(self.project),
             );
         }
     }

@@ -70,7 +70,7 @@ pub enum Error {
     #[error("Contract {0} not found in Odra.toml")]
     ContractNotFound(String),
 
-    #[error("Contract {0} defined multiple times in Odra.toml, please make sure every contract has a unique name.")]
+    #[error("Contract {0} defined multiple times in Odra.toml, please make sure every contract has a unique name.\nTwo crates defining a module of the same name cannot both be listed - the built wasm file and the schema file are named after the struct.")]
     ContractDuplicate(String),
 
     #[error("Odra is not a dependency of this project.")]
@@ -94,8 +94,14 @@ pub enum Error {
     #[error("Project is a workspace, crate name is required")]
     CrateNotProvided,
 
-    #[error("Crate for contract {0} not found in workspace members")]
+    #[error("Crate for contract {0} not found.\nThe first segment of the fqn is neither a workspace member nor a crate this project depends on - check Odra.toml and the dependencies in Cargo.toml.")]
     CrateOfContractNotFound(String),
+
+    #[error("Contract {0} is defined in crate {1}, but crate {2} never references {1} in its code.\nThe wasm would be built without entry points: rust links a dependency only where it is used.\nAdd `use {1};` to the `bin/build_contract.rs` and `bin/build_schema.rs` of {2}, or use {1} in its sources.")]
+    HostCrateDoesNotUseDependency(String, String, String),
+
+    #[error("Contract {0} is defined in crate {1}, but no member of this workspace depends on {1}.\nAdd {1} to the dependencies of the member that should build it.")]
+    NoCrateDependsOn(String, String),
 
     #[error("Failed to fetch templates file from {0}")]
     FailedToFetchTemplatesFile(String),
@@ -174,6 +180,8 @@ impl Error {
             Error::WasmoptTooOld(_, _) => 39,
             Error::WasmstripNotInstalled => 40,
             Error::FailedToFetchLatestVersion(_) => 41,
+            Error::NoCrateDependsOn(_, _) => 42,
+            Error::HostCrateDoesNotUseDependency(_, _, _) => 43,
         }
     }
 
