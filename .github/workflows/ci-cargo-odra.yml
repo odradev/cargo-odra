@@ -3,36 +3,108 @@ name: ci-cargo-odra
 on:
   push:
     branches:
-      - master
-      - develop
       - release/*
     paths-ignore:
       - "**.md"
 
   pull_request:
     branches:
-      - master
-      - develop
       - feature/*
       - release/*
-      - '*.*.*'
     paths-ignore:
       - "**.md"
 
+# A new push to the same branch makes the previous run pointless.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
 jobs:
-  build_and_test:
-    name: Build and test
-    runs-on: buildjet-8vcpu-ubuntu-2204 # We use buildjet instead GH's free ubuntu-latest for faster builds
+  lint_and_test:
+    name: Lint and unit tests
+    runs-on: ubuntu-latest
     steps:
-      - uses: extractions/setup-just@v1
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - name: Setup just
+        uses: extractions/setup-just@v2
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup toolchain
+        uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: nightly
           components: rustfmt, clippy
-      - run: just prepare
-      - run: just check-lint
-      - run: just install
-      - run: just test-project-generation-on-future-odra
-      - run: just test-workspace-generation-on-future-odra
-      # - run: just test-project-generation-on-stable-odra
-      # - run: just test-workspace-generation-on-stable-odra
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-odra-${{ hashFiles('Cargo.lock') }}
+          restore-keys: cargo-odra-
+      - name: Run lints
+        run: just check-lint
+      - name: Run unit tests
+        run: just test
+
+  # One job per (template, Odra source): every template that differs in structure, generated
+  # against both the Odra branch under development and the latest release, is taken through
+  # generate, build, schema and tests on both backends.
+  generation:
+    name: ${{ matrix.template }} template on ${{ matrix.source }} Odra
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        template: [full, blank, workspace, cep18, cep95]
+        source: [future, stable]
+        exclude:
+          # A workspace project needs Odra 3.0.0: its contract wasm is written once, to the
+          # project root, and only 3.0.0 looks for it above the crate its tests run in. Put this
+          # leg back when 3.0.0 is released and `stable` means 3.x.
+          - template: workspace
+            source: stable
+    env:
+      # Only the fallback path of the latest-release lookup talks to the REST API, and with
+      # the token it gets the repository's own rate limit instead of the runner IP's.
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Setup just
+        uses: extractions/setup-just@v2
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+          targets: wasm32-unknown-unknown
+      # The generated project builds Odra from source, so the registry and git checkouts
+      # are by far the most expensive thing to redo on every run.
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-odra-${{ hashFiles('Cargo.lock') }}
+          restore-keys: cargo-odra-
+      - name: Prepare environment
+        run: just prepare
+      - name: Install cargo-odra
+        run: just install
+      - name: Generate and test the project
+        run: just test-template ${{ matrix.template }} ${{ matrix.source }}
+
+  deny:
+    name: Audit dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      # Its own job: the audit needs no Rust build, so it reports in seconds
+      # instead of waiting behind the generation tests.
+      - name: Check advisories, licenses, bans and sources
+        uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check

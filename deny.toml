@@ -1,0 +1,46 @@
+# cargo-deny configuration. Run with `just check-deny`.
+# See https://embarkstudios.github.io/cargo-deny/
+
+[advisories]
+yanked = "deny"
+ignore = [
+  # smartstring is unmaintained and has no successor. It reaches us through
+  # rhai -> cargo-generate, which we do not control, and the advisory itself
+  # says "No safe upgrade is available". cargo-odra is a developer tool, not
+  # something a contract links against.
+  { id = "RUSTSEC-2026-0249", reason = "unmaintained smartstring via rhai <- cargo-generate; no upgrade exists" },
+]
+
+# An explicit allow list, so a new license in the tree fails the build rather than
+# slipping in unnoticed. Dual-licensed crates such as r-efi resolve to one of these,
+# so their LGPL option is never taken.
+[licenses]
+allow = [
+  "0BSD",
+  "Apache-2.0",
+  "Apache-2.0 WITH LLVM-exception",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "CC0-1.0",
+  "CDLA-Permissive-2.0",
+  "ISC",
+  "MIT",
+  "MIT-0",
+  "Unicode-3.0",
+  "Unlicense",
+  "Zlib",
+]
+exceptions = [
+  # smartstring reaches us through rhai <- cargo-generate. MPL-2.0 is file-level
+  # copyleft: we link it unmodified in a developer tool, so the obligation does not
+  # extend to cargo-odra's own sources. Same crate as the ignored advisory above.
+  { allow = ["MPL-2.0"], name = "smartstring" },
+]
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"

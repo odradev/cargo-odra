@@ -80,6 +80,14 @@ $ cargo odra test -b casper
 
 To see exact syntax of each command, type `cargo odra command_name --help`.
 
+### Where the wasm files land
+
+A contract's wasm is written once, to `wasm/` at the project root, and `cargo odra clean` removes
+it. In a workspace that root directory is the only copy: Odra 3.0.0 looks for
+`wasm/<Contract>.wasm` in the working directory and then in each directory above it, so a test in
+any member finds it. Odra 2.x looked in the working directory only, so a workspace project on 2.x
+needs `cargo-odra` 0.1.x, which copied the wasm into the member that defines the contract.
+
 ## Workspaces
 
 `cargo-odra` supports workspaces. To use it, simply move your `Odra.toml`
