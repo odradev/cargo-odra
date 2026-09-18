@@ -4,13 +4,18 @@ Changelog for `cargo-odra`.
 
 ## [Unreleased]
 
+### Changed
+- **A workspace project now needs Odra 3.0.0.** A contract's wasm is written once, to the `wasm`
+  directory at the project root, and nowhere else (#97). 0.1.x also copied it into the crate that
+  defines the contract, leaving a duplicate that went stale and that the Casper test VM could pick
+  up instead of the freshly built one. Odra 3.0.0 looks for `wasm/<Contract>.wasm` in the working
+  directory and then in each directory above it, so one directory at the root serves every member;
+  Odra 2.x looks in the working directory only, so a 2.x workspace project needs cargo-odra 0.1.x.
+  Single-crate projects are unaffected on either version. `cargo odra build` deletes the copies an
+  older cargo-odra left in the members, and so does `cargo odra clean`. wasm-opt runs once per
+  contract instead of once per copy.
+
 ### Fixed
-- In a workspace, a contract's wasm is written once, to the `wasm` directory at the project root,
-  and nowhere else (#97). 0.1.x also copied it into the crate that defines the contract, which left
-  a second, unoptimised file that the Casper test VM could pick up instead of the real one; Odra
-  3.0.0 looks for `wasm/<Contract>.wasm` in the working directory and then in each directory above
-  it, so one directory at the root serves every member. `cargo odra clean` removes the copies left
-  by older versions. wasm-opt now runs once per contract instead of once per copy.
 - Generated crates in a workspace whose directory name is not a valid package name (a clone into
   `casper-delta.kubaplas.pl`, say) no longer produce a `Cargo.toml` Cargo rejects (#99). The name
   is sanitised the way Cargo requires: characters outside alphanumerics, `-` and `_` become `-`,
@@ -57,7 +62,8 @@ Changelog for `cargo-odra`.
   `workspace`, `cep18`, `cep95`), each against both the Odra branch under development and the
   latest release, as a CI matrix. Before, only `full` and `workspace` were covered, and the runs
   against the latest release had been commented out since 1.4.0 in 2024. Each run now also
-  exercises `cargo odra schema`. cargo-odra targets Odra 3.0 without dropping 2.x.
+  exercises `cargo odra schema`. The `workspace` template is not run against the latest release,
+  which is still Odra 2.x: see the wasm entry under Changed.
 - `just test-template <template> [stable|future]` and `just test-all-templates [source]` replace
   the four hand-written generation recipes.
 - `DEVELOPMENT_ODRA_BRANCH` in the justfile moved from `release/2.5.1` to `release/3.0.0`, so CI

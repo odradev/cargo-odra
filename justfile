@@ -36,8 +36,13 @@ test-template template source="future":
     just _exercise-testproject {{ template }}
 
 # `test-template` for every template, against one Odra source.
+# The `workspace` template is skipped against the latest release: a workspace project needs Odra
+# 3.0.0, which looks for the contract wasm above the crate whose tests are running.
 test-all-templates source="future":
-    for template in {{ TEMPLATES }}; do just test-template $template {{ source }}; done
+    for template in {{ TEMPLATES }}; do \
+        if [ "$template" = "workspace" ] && [ "{{ source }}" = "stable" ]; then continue; fi; \
+        just test-template $template {{ source }}; \
+    done
 
 # Adds a contract, builds, generates schemas, tests on both backends.
 _exercise-testproject template:
