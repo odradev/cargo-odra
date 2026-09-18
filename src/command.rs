@@ -58,6 +58,13 @@ pub fn cp(source: PathBuf, target: PathBuf) {
 }
 
 /// Remove a directory.
+/// Removes a file, if it is there.
+pub fn rm_file(path: PathBuf) {
+    if rm_rf::ensure_removed(path.clone()).is_err() {
+        Error::RemoveDirNotPossible(path).print_and_die();
+    }
+}
+
 pub fn rm_dir(path: PathBuf) {
     log::info(format!("Removing {}...", path.display()));
     let result = rm_rf::ensure_removed(path.clone());

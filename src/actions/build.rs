@@ -1,6 +1,6 @@
 //! Module for managing and building wasm files.
 
-use crate::{command, errors::Error, log, paths, project::Project, utils};
+use crate::{command, errors::Error, log, odra_toml::Contract, paths, project::Project, utils};
 
 /// BuildAction configuration.
 pub struct BuildAction<'a> {
@@ -59,6 +59,24 @@ impl BuildAction<'_> {
                 paths::wasm_path_in_wasm_dir(&contract.struct_name(), &self.project.project_root());
             log::info(format!("Saving {}", target.display()));
             command::cp(source, target);
+            self.remove_stale_member_copies(&contract);
+        }
+    }
+
+    /// Removes this contract's wasm from every workspace member.
+    ///
+    /// `cargo-odra` 0.1.x copied the built file into the crate that defines the contract. The
+    /// Casper test VM takes the first `wasm/<Contract>.wasm` it finds walking up from the
+    /// working directory, so a copy left behind by an older version shadows the file just
+    /// written at the project root, and the tests of that member would keep running the old
+    /// bytecode. Only files this command would itself produce are removed.
+    fn remove_stale_member_copies(&self, contract: &Contract) {
+        for member_root in &self.project.workspace_members {
+            let stale = paths::wasm_path_in_wasm_dir(&contract.struct_name(), member_root);
+            if stale.is_file() {
+                log::info(format!("Removing stale {}", stale.display()));
+                command::rm_file(stale);
+            }
         }
     }
 

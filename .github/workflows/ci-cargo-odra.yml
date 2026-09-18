@@ -58,6 +58,12 @@ jobs:
       matrix:
         template: [full, blank, workspace, cep18, cep95]
         source: [future, stable]
+        exclude:
+          # A workspace project needs Odra 3.0.0: its contract wasm is written once, to the
+          # project root, and only 3.0.0 looks for it above the crate its tests run in. Put this
+          # leg back when 3.0.0 is released and `stable` means 3.x.
+          - template: workspace
+            source: stable
     env:
       # Only the fallback path of the latest-release lookup talks to the REST API, and with
       # the token it gets the repository's own rate limit instead of the runner IP's.
