@@ -199,15 +199,16 @@ fn cargo(current_dir: PathBuf, command: &str, tail_args: Vec<&str>) {
 }
 
 /// Build wasm files.
+/// `odra_module` is the value of the `ODRA_MODULE` environment variable the contract is gated
+/// on, `host_crate_name` the crate whose build script generates the `_build_contract` binary.
 pub fn cargo_build_wasm_files(
     current_dir: PathBuf,
-    contract_name: &str,
-    module_name: &str,
+    odra_module: &str,
+    host_crate_name: &str,
     is_workspace: bool,
-    crate_name: String,
 ) {
-    env::set_var(ODRA_MODULE_ENV_KEY, contract_name);
-    let build_contract = format!("{module_name}_build_contract");
+    env::set_var(ODRA_MODULE_ENV_KEY, odra_module);
+    let build_contract = format!("{host_crate_name}_build_contract");
     let mut params = vec![
         "--target",
         "wasm32-unknown-unknown",
@@ -217,16 +218,16 @@ pub fn cargo_build_wasm_files(
     ];
     if is_workspace {
         params.push("--package");
-        params.push(crate_name.as_str());
+        params.push(host_crate_name);
     }
     cargo(current_dir, "build", params);
 }
 
 /// Build schema files.
-pub fn cargo_generate_schema_files(current_dir: PathBuf, contract_name: &str, module_name: &str) {
-    let module_name = module_name.replace('-', "_");
-    env::set_var(ODRA_MODULE_ENV_KEY, contract_name);
-    let gen_schema = format!("{module_name}_build_schema");
+pub fn cargo_generate_schema_files(current_dir: PathBuf, odra_module: &str, host_crate_name: &str) {
+    let host_crate_name = host_crate_name.replace('-', "_");
+    env::set_var(ODRA_MODULE_ENV_KEY, odra_module);
+    let gen_schema = format!("{host_crate_name}_build_schema");
     cargo(current_dir, "run", vec!["--bin", &gen_schema, "--release"]);
 }
 

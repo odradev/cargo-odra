@@ -14,6 +14,7 @@ This is the tooling only. The framework you write contracts against is
 * [Usage](#usage)
 * [Commands](#commands)
 * [Workspaces](#workspaces)
+* [Contracts from dependency crates](#contracts-from-dependency-crates)
 * [Templates](#templates)
 * [Working with an AI agent](#working-with-an-ai-agent)
 * [Links](#links)
@@ -91,6 +92,49 @@ You can use a template to create a project with workspace:
 ```bash
 $ cargo odra new --name myproject --template workspace && cd myproject
 ```
+
+## Contracts from dependency crates
+
+A contract does not have to live in your project. If the crate that defines it is a dependency,
+put its crate name as the first segment of the `fqn`:
+
+```toml
+[[contracts]]
+fqn = "odra_modules::erc20::Erc20"
+```
+
+```toml
+# Cargo.toml of the crate that builds it
+[dependencies]
+odra-modules = "3.0.0"
+```
+
+`cargo odra build -c Erc20` then builds `wasm/Erc20.wasm` and `cargo odra schema -c Erc20`
+writes `resources/casper_contract_schemas/erc20_schema.json`, exactly as for a local contract.
+The build is driven by the crate that depends on the contract's crate: the project crate in a
+single crate project, or the first workspace member that lists the dependency.
+
+That crate has to reference the dependency somewhere in its Rust code — rust links a dependency
+only where it is used, so a crate that never mentions `odra_modules` would produce a wasm without
+a single entry point. If it does not use the crate already, add a plain import to its build
+binaries:
+
+```rust
+// bin/build_contract.rs and bin/build_schema.rs
+use odra_modules;
+```
+
+`cargo odra build` stops with an explanation instead of building an empty wasm when the reference
+is missing.
+
+Requires Odra 3.0.0 or newer. Odra gates a module's wasm entry points on
+`ODRA_MODULE`; since 3.0.0 the value may be crate-qualified (`odra_modules::Erc20`), so two
+crates defining a module of the same name no longer clash. `cargo-odra` passes the qualified
+value only when the project's Odra is 3.0.0 or newer (or a git/path dependency); older releases
+keep getting the bare struct name.
+
+Two contracts with the same struct name still cannot be listed together — the wasm and the
+schema files are named after the struct.
 
 ## Templates
 

@@ -41,18 +41,16 @@ impl BuildAction<'_> {
                 Error::FailedToParseArgument("contracts_names".to_string()).print_and_die()
             });
 
+        utils::validate_external_contracts(self.project, &contracts);
+
         for contract in contracts {
-            let module_name = match self.project.is_workspace() {
-                true => contract.module_name(),
-                false => contract.crate_name(self.project),
-            };
-            let build_contract = format!("{}_build_contract", module_name);
+            let host_crate_name = contract.host_crate_name(self.project);
+            let build_contract = format!("{}_build_contract", host_crate_name);
             command::cargo_build_wasm_files(
                 self.project.project_root(),
-                &contract.struct_name(),
-                &module_name,
-                self.project.is_workspace(),
-                contract.module_crate_name(self.project),
+                &contract.odra_module_value(self.project),
+                &host_crate_name,
+                self.project.is_cargo_workspace(),
             );
 
             let source = paths::wasm_path_in_target(&build_contract, self.project.project_root());
@@ -70,7 +68,7 @@ impl BuildAction<'_> {
     /// contract can live in any member, not only in the crate that defines it, so every
     /// member gets a copy.
     fn distribute_wasm_files(&self) {
-        if !self.project.is_workspace() {
+        if !self.project.is_cargo_workspace() {
             return;
         }
         let contracts =
