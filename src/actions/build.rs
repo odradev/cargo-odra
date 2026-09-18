@@ -43,12 +43,12 @@ impl BuildAction<'_> {
         utils::validate_external_contracts(self.project, &contracts);
 
         for contract in contracts {
-            let host_crate_name = contract.host_crate_name(self.project);
-            let build_contract = format!("{}_build_contract", host_crate_name);
+            let host_crate = contract.host_crate(self.project);
+            let build_contract = format!("{}_build_contract", host_crate.name);
             command::cargo_build_wasm_files(
                 self.project.project_root(),
                 &contract.odra_module_value(self.project),
-                &host_crate_name,
+                &host_crate,
                 self.project.is_cargo_workspace(),
             );
 

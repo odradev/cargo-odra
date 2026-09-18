@@ -116,6 +116,8 @@ impl Contract {
     pub fn host_crate(&self, project: &Project) -> HostCrate {
         let project_crate = || HostCrate {
             name: project.project_crate_name(),
+            package: package_name_of(&project.cargo_toml_location)
+                .unwrap_or_else(|| project.name.clone()),
             root: project.project_root(),
         };
         match self.source(project) {
@@ -127,7 +129,13 @@ impl Contract {
                     .find(|member| member.name.replace('-', "_") == name)
                     .map(|member| member.root.clone())
                     .unwrap_or_else(|| project.project_root());
-                HostCrate { name, root }
+                let package = package_name_of(&root.join("Cargo.toml"))
+                    .unwrap_or_else(|| name.replace('_', "-"));
+                HostCrate {
+                    name,
+                    package,
+                    root,
+                }
             }
             ContractSource::Dependency(dependency) => {
                 if !project.is_cargo_workspace() {
@@ -162,8 +170,9 @@ impl Contract {
                 is_a_dependency(&member_root.join("Cargo.toml"), &dependency)
             })
             .filter_map(|member_root| {
-                package_name(&member_root.join("Cargo.toml")).map(|name| HostCrate {
-                    name,
+                package_name_of(&member_root.join("Cargo.toml")).map(|package| HostCrate {
+                    name: package.replace('-', "_"),
+                    package,
                     root: member_root.clone(),
                 })
             })
@@ -173,7 +182,11 @@ impl Contract {
 /// The crate that builds a contract: the name cargo knows it by and its root directory.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HostCrate {
+    /// Crate name with `-` replaced by `_`, the way the `_build_contract` binary is named.
     pub name: String,
+    /// Package name exactly as Cargo knows it, for `--package`. `cargo build -p my_flipper`
+    /// does not match a package called `my-flipper`.
+    pub package: String,
     pub root: PathBuf,
 }
 
@@ -214,10 +227,11 @@ fn major_version(version: &str) -> Option<u64> {
 }
 
 /// Package name of a manifest, with `-` replaced by `_`.
-fn package_name(manifest_path: &Path) -> Option<String> {
+/// The `[package] name` of a manifest, exactly as written.
+fn package_name_of(manifest_path: &Path) -> Option<String> {
     load_cargo_toml(manifest_path)
         .package
-        .map(|package| package.name.replace('-', "_"))
+        .map(|package| package.name)
 }
 
 /// Checks if `crate_name` is listed in the `[dependencies]` of a manifest. Dependencies
@@ -480,6 +494,54 @@ odra = { workspace = true }
         );
         assert_eq!(contract.defining_crate(&project), "flipper");
         assert_eq!(contract.host_crate_name(&project), "flipper");
+    }
+
+    #[test]
+    fn a_dashed_member_is_asked_for_by_its_real_package_name() {
+        // `cargo build -p my_flipper` does not match a package called `my-flipper`, while the
+        // `_build_contract` binary of that package is named with underscores.
+        let dir = TempDir::new();
+        let cargo_toml = dir.write(
+            "Cargo.toml",
+            r#"
+[workspace]
+members = ["my-flipper"]
+
+[workspace.dependencies]
+odra = "3.0.0"
+"#,
+        );
+        dir.write(
+            "my-flipper/Cargo.toml",
+            r#"
+[package]
+name = "my-flipper"
+version = "0.1.0"
+
+[dependencies]
+odra = { workspace = true }
+odra-modules = "3.0.0"
+"#,
+        );
+        let project = Project {
+            name: "workspace".to_string(),
+            project_root: dir.0.clone(),
+            cargo_toml_location: cargo_toml,
+            odra_toml_location: dir.0.join("Odra.toml"),
+            members: vec![Member {
+                name: "my-flipper".to_string(),
+                root: dir.0.join("my-flipper"),
+            }],
+            workspace_members: vec![dir.0.join("my-flipper")],
+        };
+
+        let own = contract("my_flipper::Flipper").host_crate(&project);
+        assert_eq!(own.name, "my_flipper");
+        assert_eq!(own.package, "my-flipper");
+
+        let external = contract("odra_modules::erc20::Erc20").host_crate(&project);
+        assert_eq!(external.name, "my_flipper");
+        assert_eq!(external.package, "my-flipper");
     }
 
     #[test]
