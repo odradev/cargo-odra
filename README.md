@@ -71,7 +71,7 @@ $ cargo odra test -b casper
 
 * `new` - creates a new project in a new folder,
 * `init` - creates a new project in an existing, empty folder,
-* `build` - builds the contracts, generates wasm files,
+* `build` - builds the contracts, generates schema and wasm files (use `--skip-schema` to skip schema generation),
 * `test` - runs tests,
 * `generate` - generates sample contract,
 * `list-templates` - lists available templates,

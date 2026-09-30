@@ -2,6 +2,12 @@
 
 Changelog for `cargo-odra`.
 
+## [Unreleased]
+
+### Changed
+- `cargo odra build` now generates schema files before building wasm files.
+  Pass `--skip-schema` to build wasm files only. `cargo odra test` does not generate schemas.
+
 ## [0.1.8] - 2026-08-04
 
 ### Fixed

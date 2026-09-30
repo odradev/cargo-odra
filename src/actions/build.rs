@@ -1,19 +1,29 @@
 //! Module for managing and building wasm files.
 
-use crate::{command, errors::Error, log, paths, project::Project, utils};
+use crate::{
+    actions::schema::SchemaAction,
+    command,
+    errors::Error,
+    log,
+    paths,
+    project::Project,
+    utils,
+};
 
 /// BuildAction configuration.
 pub struct BuildAction<'a> {
     contracts_names: Option<String>,
+    skip_schema: bool,
     project: &'a Project,
 }
 
 /// BuildAction implementation.
 impl<'a> BuildAction<'a> {
     /// Crate a new BuildAction for a given backend.
-    pub fn new(project: &'a Project, contracts_names: Option<String>) -> Self {
+    pub fn new(project: &'a Project, contracts_names: Option<String>, skip_schema: bool) -> Self {
         BuildAction {
             contracts_names,
+            skip_schema,
             project,
         }
     }
@@ -25,6 +35,9 @@ impl BuildAction<'_> {
         utils::check_target_requirements();
         utils::validate_contract_name_argument(self.project, self.contracts_names());
         utils::validate_contract_names(self.project);
+        if !self.skip_schema {
+            SchemaAction::new(self.project, self.contracts_names.clone()).build();
+        }
         self.build_wasm_files();
         self.optimize_wasm_files();
     }
@@ -45,7 +58,7 @@ impl BuildAction<'_> {
                 true => contract.module_name(),
                 false => contract.crate_name(self.project),
             };
-            let build_contract = format!("{}_build_contract", &module_name);
+            let build_contract = format!("{}_build_contract", module_name);
             command::cargo_build_wasm_files(
                 self.project.project_root(),
                 &contract.struct_name(),
