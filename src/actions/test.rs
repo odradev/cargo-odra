@@ -83,7 +83,7 @@ impl TestAction<'_> {
 
     /// Build *.wasm files before testing.
     fn build_wasm_files(&self) {
-        BuildAction::new(self.project, None).build();
+        BuildAction::new(self.project, None, true).build();
         log::info("Building finished.")
     }
 }
