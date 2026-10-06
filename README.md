@@ -84,10 +84,10 @@ To see exact syntax of each command, type `cargo odra command_name --help`.
 ### Where the wasm files land
 
 A contract's wasm is written once, to `wasm/` at the project root, and `cargo odra clean` removes
-it. In a workspace that root directory is the only copy: Odra 3.0.0 looks for
+it. In a workspace that root directory is the only copy: Odra 2.10.0 looks for
 `wasm/<Contract>.wasm` in the working directory and then in each directory above it, so a test in
-any member finds it. Odra 2.x looked in the working directory only, so a workspace project on 2.x
-needs `cargo-odra` 0.1.x, which copied the wasm into the member that defines the contract.
+any member finds it. Odra 2.9 and older looked in the working directory only, so a workspace project
+on those versions needs `cargo-odra` 0.1.x, which copied the wasm into the member that defines the contract.
 
 ## Workspaces
 
@@ -114,7 +114,7 @@ fqn = "odra_modules::erc20::Erc20"
 ```toml
 # Cargo.toml of the crate that builds it
 [dependencies]
-odra-modules = "3.0.0"
+odra-modules = "2.10.0"
 ```
 
 `cargo odra build -c Erc20` then builds `wasm/Erc20.wasm` and `cargo odra schema -c Erc20`
@@ -135,10 +135,10 @@ use odra_modules;
 `cargo odra build` stops with an explanation instead of building an empty wasm when the reference
 is missing.
 
-Requires Odra 3.0.0 or newer. Odra gates a module's wasm entry points on
-`ODRA_MODULE`; since 3.0.0 the value may be crate-qualified (`odra_modules::Erc20`), so two
+Requires Odra 2.10.0 or newer. Odra gates a module's wasm entry points on
+`ODRA_MODULE`; since 2.10.0 the value may be crate-qualified (`odra_modules::Erc20`), so two
 crates defining a module of the same name no longer clash. `cargo-odra` passes the qualified
-value only when the project's Odra is 3.0.0 or newer (or a git/path dependency); older releases
+value only when the project's Odra is 2.10.0 or newer (or a git/path dependency); older releases
 keep getting the bare struct name.
 
 Two contracts with the same struct name still cannot be listed together — the wasm and the

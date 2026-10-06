@@ -194,11 +194,11 @@ pub struct HostCrate {
 
 /// Value of the `ODRA_MODULE` environment variable for a struct defined in `defining_crate`.
 ///
-/// Odra 3.0.0 gates the wasm parts of a module on `any(odra_module = "<Struct>", odra_module =
+/// Odra 2.10.0 gates the wasm parts of a module on `any(odra_module = "<Struct>", odra_module =
 /// "<crate>::<Struct>")`, so that two crates defining a struct of the same name do not both
 /// compile their entry points into one wasm. Older Odra releases only know the bare name and
 /// would build an empty wasm if given the qualified one, so they keep getting the bare name.
-/// A git or local Odra is assumed to be 3.0.0 or newer, as that is what it is used for.
+/// A git or local Odra is assumed to be 2.10.0 or newer, as that is what it is used for.
 pub fn odra_module_value(
     defining_crate: &str,
     struct_name: &str,
@@ -215,17 +215,29 @@ pub fn odra_module_value(
 fn supports_qualified_odra_module(odra_location: &OdraLocation) -> bool {
     match odra_location {
         OdraLocation::Local(_) | OdraLocation::Remote(_, _) => true,
-        OdraLocation::CratesIO(version) => major_version(version).is_some_and(|major| major >= 3),
+        OdraLocation::CratesIO(version) => {
+            lower_bound(version).is_some_and(|major_minor| major_minor >= (2, 10))
+        }
     }
 }
 
-/// Major version of a version requirement such as `2.9.1`, `^3.0.0` or `>=2.9, <3`.
-fn major_version(version: &str) -> Option<u64> {
-    version
+/// `(major, minor)` of the lowest version a requirement such as `2.9.1`, `^2.10`, `~2.10.1` or
+/// `>=2.10, <3` allows. A missing minor counts as 0. `None` when the requirement has no lower
+/// bound (`<3`, `*`) or cannot be read.
+fn lower_bound(version: &str) -> Option<(u64, u64)> {
+    let version = version.trim();
+    if version.starts_with('<') {
+        return None;
+    }
+    let mut numbers = version
         .trim_start_matches(|c: char| !c.is_ascii_digit())
-        .split(|c: char| !c.is_ascii_digit())
+        .split(|c: char| !c.is_ascii_digit());
+    let major = numbers.next()?.parse().ok()?;
+    let minor = numbers
         .next()
-        .and_then(|major| major.parse().ok())
+        .and_then(|minor| minor.parse().ok())
+        .unwrap_or(0);
+    Some((major, minor))
 }
 
 /// Package name of a manifest, with `-` replaced by `_`.
@@ -361,8 +373,8 @@ name = "my-project"
 version = "0.1.0"
 
 [dependencies]
-odra = "3.0.0"
-odra-modules = "3.0.0"
+odra = "2.10.0"
+odra-modules = "2.10.0"
 "#,
         );
         Project {
@@ -385,7 +397,7 @@ odra-modules = "3.0.0"
 members = ["flipper", "cli"]
 
 [workspace.dependencies]
-odra = "3.0.0"
+odra = "2.10.0"
 "#,
         );
         dir.write(
@@ -397,7 +409,7 @@ version = "0.1.0"
 
 [dependencies]
 odra = { workspace = true }
-odra-modules = "3.0.0"
+odra-modules = "2.10.0"
 "#,
         );
         dir.write(
@@ -510,7 +522,7 @@ odra = { workspace = true }
 members = ["my-flipper"]
 
 [workspace.dependencies]
-odra = "3.0.0"
+odra = "2.10.0"
 "#,
         );
         dir.write(
@@ -522,7 +534,7 @@ version = "0.1.0"
 
 [dependencies]
 odra = { workspace = true }
-odra-modules = "3.0.0"
+odra-modules = "2.10.0"
 "#,
         );
         let project = Project {
@@ -574,7 +586,7 @@ odra-modules = "3.0.0"
     }
 
     #[test]
-    fn qualifies_the_odra_module_for_odra_3_and_newer() {
+    fn qualifies_the_odra_module_for_odra_2_10_and_newer() {
         let cases = [
             (
                 OdraLocation::CratesIO("3.0.0".to_string()),
@@ -596,10 +608,26 @@ odra-modules = "3.0.0"
                 OdraLocation::Remote("https://github.com/odradev/odra".to_string(), None),
                 "odra_modules::Erc20",
             ),
+            (
+                OdraLocation::CratesIO("2.10.0".to_string()),
+                "odra_modules::Erc20",
+            ),
+            (
+                OdraLocation::CratesIO("^2.10".to_string()),
+                "odra_modules::Erc20",
+            ),
+            (
+                OdraLocation::CratesIO(">=2.10, <3".to_string()),
+                "odra_modules::Erc20",
+            ),
             (OdraLocation::CratesIO("2.9.1".to_string()), "Erc20"),
             (OdraLocation::CratesIO("2.9".to_string()), "Erc20"),
             (OdraLocation::CratesIO("1.0.0".to_string()), "Erc20"),
-            // A range cannot be trusted to be 3.0.0 or newer.
+            // `2` allows 2.9 and older, `<3` and `*` have no lower bound.
+            (OdraLocation::CratesIO("2".to_string()), "Erc20"),
+            (OdraLocation::CratesIO("<3".to_string()), "Erc20"),
+            (OdraLocation::CratesIO("*".to_string()), "Erc20"),
+            // A range starting below 2.10 cannot be trusted to resolve to 2.10.0 or newer.
             (OdraLocation::CratesIO(">=2.9, <4".to_string()), "Erc20"),
         ];
         for (location, expected) in cases {

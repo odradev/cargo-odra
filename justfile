@@ -1,4 +1,4 @@
-DEVELOPMENT_ODRA_BRANCH := "release/3.0.0"
+DEVELOPMENT_ODRA_BRANCH := "release/2.10.0"
 # Must stay >= 121: contracts are optimised with --llvm-memory-copy-fill-lowering,
 # which older binaryen releases reject.
 BINARYEN_VERSION := "version_125"
@@ -37,7 +37,7 @@ test-template template source="future":
 
 # `test-template` for every template, against one Odra source.
 # The `workspace` template is skipped against the latest release: a workspace project needs Odra
-# 3.0.0, which looks for the contract wasm above the crate whose tests are running.
+# 2.10.0, which looks for the contract wasm above the crate whose tests are running.
 test-all-templates source="future":
     for template in {{ TEMPLATES }}; do \
         if [ "$template" = "workspace" ] && [ "{{ source }}" = "stable" ]; then continue; fi; \
