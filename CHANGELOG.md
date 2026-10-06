@@ -2,6 +2,86 @@
 
 Changelog for `cargo-odra`.
 
+## [Unreleased]
+
+### Changed
+- **A workspace project now needs Odra 2.10.0.** A contract's wasm is written once, to the `wasm`
+  directory at the project root, and nowhere else (#97). 0.1.x also copied it into the crate that
+  defines the contract, leaving a duplicate that went stale and that the Casper test VM could pick
+  up instead of the freshly built one. Odra 2.10.0 looks for `wasm/<Contract>.wasm` in the working
+  directory and then in each directory above it, so one directory at the root serves every member;
+  Odra 2.9 and older look in the working directory only, so a workspace project on those versions
+  needs cargo-odra 0.1.x. Single-crate projects are unaffected on either version. `cargo odra build` deletes the copies an
+  older cargo-odra left in the members, and so does `cargo odra clean`. wasm-opt runs once per
+  contract instead of once per copy.
+
+### Fixed
+- Generated crates in a workspace whose directory name is not a valid package name (a clone into
+  `casper-delta.kubaplas.pl`, say) no longer produce a `Cargo.toml` Cargo rejects (#99). The name
+  is sanitised the way Cargo requires: characters outside alphanumerics, `-` and `_` become `-`,
+  and a leading digit gets a `_` prefix.
+- The latest Odra release is now resolved from the `releases/latest` redirect on github.com
+  instead of the REST API. Unauthenticated API calls share 60 requests per hour per IP, which
+  shared CI runners exhaust routinely, and every `cargo odra new` without `--source` used to
+  die with `Failed to fetch template` when that happened. The API remains a fallback and uses
+  `GITHUB_TOKEN` or `GH_TOKEN` when set; the error now says which lookups failed and why.
+- Contract crates that inherit fields from a workspace (`license = { workspace = true }` and the
+  like) no longer fail with `not all fields of ... have been present in workspace.package`.
+  The workspace root is now located the way Cargo does it: `package.workspace` first, otherwise
+  the nearest ancestor `Cargo.toml` with a `[workspace]` section, skipping plain package
+  manifests in between.
+
+### Added
+- Contracts can be built from crates the project depends on (odra#617). The first segment of an
+  `fqn` in `Odra.toml` may now be the name of a dependency (`fqn = "odra_modules::erc20::Erc20"`);
+  the contract is built by the crate that depends on it — the project crate, or the first
+  workspace member listing the dependency — and the wasm and schema files are named after the
+  struct, as for a local contract. The crate that builds such a contract has to reference the
+  dependency in its code (`use odra_modules;` in its `bin/build_contract.rs` is enough), as rust
+  links a dependency only where it is used; the build stops with an explanation instead of
+  producing a wasm without entry points when it does not.
+- `ODRA_MODULE` is now passed crate-qualified (`odra_modules::Erc20`), so two crates defining a
+  module of the same name do not both compile their entry points into one wasm (odra#321). The
+  qualified value is only used when the project's Odra is 2.10.0 or newer, or comes from a git
+  repository or a local path; for older releases from crates.io the bare struct name is passed,
+  as before.
+- `deny.toml`, `just check-deny` and a CI job auditing dependencies for security advisories,
+  licenses, banned crates and unexpected sources.
+- `just ci` runs the whole CI pipeline locally, in the same order, so a branch can be checked
+  without waiting on GitHub. `just ci-act` runs the workflow itself in the GitHub runner image
+  via [act](https://nektosact.com).
+
+### Changed
+- All dependencies upgraded. Seven RUSTSEC advisories came from `cargo-generate` 0.21 and
+  `ureq` 2; both are on current majors and `rustls` is pinned to the patched 0.23.45. The one
+  remaining advisory, unmaintained `smartstring` reached through `rhai` <- `cargo-generate`, has
+  no published upgrade and is ignored in `deny.toml` with the reason recorded. So is unmaintained
+  `anymap2`, reached through `liquid-core` <- `cargo-generate`, whose latest release still uses it.
+- `serde_json` is a direct dependency; `ureq` 3 no longer re-exports it. `colored` was dropped,
+  nothing used it.
+- Project generation is tested for every template that differs in structure (`full`, `blank`,
+  `workspace`, `cep18`, `cep95`), each against both the Odra branch under development and the
+  latest release, as a CI matrix. Before, only `full` and `workspace` were covered, and the runs
+  against the latest release had been commented out since 1.4.0 in 2024. Each run now also
+  exercises `cargo odra schema`. The `workspace` template is not run against the latest release,
+  which is still Odra 2.9: see the wasm entry under Changed.
+- `just test-template <template> [stable|future]` and `just test-all-templates [source]` replace
+  the four hand-written generation recipes.
+- `DEVELOPMENT_ODRA_BRANCH` in the justfile moved from `release/2.5.1` to `release/2.10.0`, so CI
+  generates test projects against the Odra branch actually being developed.
+- The justfile installs binaryen 125 instead of 116. Contracts are optimised with
+  `--llvm-memory-copy-fill-lowering`, which binaryen below 121 rejects, so `just prepare` used to
+  set up an environment in which no contract could be built.
+- CI runs on `ubuntu-latest` instead of a BuildJet runner, with up-to-date actions
+  (`actions/checkout@v4`, `dtolnay/rust-toolchain`, `extractions/setup-just@v2`) in place of
+  `actions/checkout@v2` and the archived `actions-rs/toolchain`. Cargo's registry and git
+  checkouts are cached, and a new run on the same branch cancels the previous one.
+- CI now runs the unit tests (`just test`), which nothing executed before.
+- `just prepare` no longer hardcodes the `x86_64-unknown-linux-gnu` host triple when adding
+  nightly components, and installs `wabt` with `apt-get update` first and a non-interactive
+  `-y`, so it works on a machine whose package lists are cold rather than only on a warm
+  GitHub runner.
+
 ## [0.1.8] - 2026-08-04
 
 ### Fixed
