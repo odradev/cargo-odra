@@ -5,13 +5,13 @@ Changelog for `cargo-odra`.
 ## [Unreleased]
 
 ### Changed
-- **A workspace project now needs Odra 3.0.0.** A contract's wasm is written once, to the `wasm`
+- **A workspace project now needs Odra 2.10.0.** A contract's wasm is written once, to the `wasm`
   directory at the project root, and nowhere else (#97). 0.1.x also copied it into the crate that
   defines the contract, leaving a duplicate that went stale and that the Casper test VM could pick
-  up instead of the freshly built one. Odra 3.0.0 looks for `wasm/<Contract>.wasm` in the working
+  up instead of the freshly built one. Odra 2.10.0 looks for `wasm/<Contract>.wasm` in the working
   directory and then in each directory above it, so one directory at the root serves every member;
-  Odra 2.x looks in the working directory only, so a 2.x workspace project needs cargo-odra 0.1.x.
-  Single-crate projects are unaffected on either version. `cargo odra build` deletes the copies an
+  Odra 2.9 and older look in the working directory only, so a workspace project on those versions
+  needs cargo-odra 0.1.x. Single-crate projects are unaffected on either version. `cargo odra build` deletes the copies an
   older cargo-odra left in the members, and so does `cargo odra clean`. wasm-opt runs once per
   contract instead of once per copy.
 
@@ -32,6 +32,19 @@ Changelog for `cargo-odra`.
   manifests in between.
 
 ### Added
+- Contracts can be built from crates the project depends on (odra#617). The first segment of an
+  `fqn` in `Odra.toml` may now be the name of a dependency (`fqn = "odra_modules::erc20::Erc20"`);
+  the contract is built by the crate that depends on it — the project crate, or the first
+  workspace member listing the dependency — and the wasm and schema files are named after the
+  struct, as for a local contract. The crate that builds such a contract has to reference the
+  dependency in its code (`use odra_modules;` in its `bin/build_contract.rs` is enough), as rust
+  links a dependency only where it is used; the build stops with an explanation instead of
+  producing a wasm without entry points when it does not.
+- `ODRA_MODULE` is now passed crate-qualified (`odra_modules::Erc20`), so two crates defining a
+  module of the same name do not both compile their entry points into one wasm (odra#321). The
+  qualified value is only used when the project's Odra is 2.10.0 or newer, or comes from a git
+  repository or a local path; for older releases from crates.io the bare struct name is passed,
+  as before.
 - `deny.toml`, `just check-deny` and a CI job auditing dependencies for security advisories,
   licenses, banned crates and unexpected sources.
 - `just ci` runs the whole CI pipeline locally, in the same order, so a branch can be checked
@@ -50,10 +63,10 @@ Changelog for `cargo-odra`.
   latest release, as a CI matrix. Before, only `full` and `workspace` were covered, and the runs
   against the latest release had been commented out since 1.4.0 in 2024. Each run now also
   exercises `cargo odra schema`. The `workspace` template is not run against the latest release,
-  which is still Odra 2.x: see the wasm entry under Changed.
+  which is still Odra 2.9: see the wasm entry under Changed.
 - `just test-template <template> [stable|future]` and `just test-all-templates [source]` replace
   the four hand-written generation recipes.
-- `DEVELOPMENT_ODRA_BRANCH` in the justfile moved from `release/2.5.1` to `release/3.0.0`, so CI
+- `DEVELOPMENT_ODRA_BRANCH` in the justfile moved from `release/2.5.1` to `release/2.10.0`, so CI
   generates test projects against the Odra branch actually being developed.
 - The justfile installs binaryen 125 instead of 116. Contracts are optimised with
   `--llvm-memory-copy-fill-lowering`, which binaryen below 121 rejects, so `just prepare` used to

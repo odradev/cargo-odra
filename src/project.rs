@@ -103,9 +103,17 @@ impl Project {
         }
     }
 
-    /// Checks if the project is a workspace.
+    /// Checks if the project is a workspace with members that define contracts.
     pub fn is_workspace(&self) -> bool {
         !self.members.is_empty()
+    }
+
+    /// Checks if the project is a cargo workspace, whether or not its members define contracts.
+    ///
+    /// A workspace can list contracts that all come from dependency crates; `members` is then
+    /// empty, but the project still has to be built with `--package`.
+    pub fn is_cargo_workspace(&self) -> bool {
+        !self.workspace_members.is_empty()
     }
 
     /// Searches for main Projects' Cargo.toml.
@@ -191,6 +199,10 @@ impl Project {
     }
 
     /// Detects members of workspace which have Odra contracts.
+    ///
+    /// A contract whose fqn starts with something that is not a workspace member - a crate the
+    /// project depends on - belongs to no member and is simply skipped here; it is resolved
+    /// later, when the crate that builds it is looked up among `workspace_members`.
     fn detect_members(cargo_toml_path: &Path, odra_toml_path: &Path) -> Vec<(String, String)> {
         let odra_toml = OdraToml::load(odra_toml_path);
         match load_cargo_toml(cargo_toml_path).workspace {

@@ -1,10 +1,10 @@
-use std::process::Command;
+use std::{fs, path::Path, process::Command};
 
 use crate::{
     command,
     consts::{ODRA_GITHUB_API_DATA, ODRA_LATEST_RELEASE_URL},
     errors::Error,
-    odra_toml::Contract,
+    odra_toml::{Contract, ContractSource},
     paths::to_snake_case,
     project::Project,
 };
@@ -74,6 +74,44 @@ pub fn validate_contract_names(project: &Project) {
             Error::ContractDuplicate(contract.struct_name()).print_and_die();
         }
     });
+}
+
+/// Checks that every contract coming from a dependency can end up in the built wasm.
+///
+/// Rust links a dependency's object files only when something in the crate being built
+/// references them, so a host crate that depends on, say, `odra-modules` but never mentions it
+/// produces a wasm without a single entry point - and a linker error for the schema binary.
+/// The reference is looked for in the host crate's own Rust sources.
+pub fn validate_external_contracts(project: &Project, contracts: &[Contract]) {
+    for contract in contracts {
+        let ContractSource::Dependency(dependency) = contract.source(project) else {
+            continue;
+        };
+        let host = contract.host_crate(project);
+        if !crate_is_referenced(&host.root, &dependency) {
+            Error::HostCrateDoesNotUseDependency(contract.fqn.clone(), dependency, host.name)
+                .print_and_die();
+        }
+    }
+}
+
+/// Looks for `crate_name` as a whole word in the Rust sources of a crate.
+fn crate_is_referenced(crate_root: &Path, crate_name: &str) -> bool {
+    let pattern = regex::Regex::new(&format!(r"\b{}\b", regex::escape(crate_name)))
+        .expect("a crate name is a valid regex literal");
+    ["*.rs", "src/**/*.rs", "bin/**/*.rs"]
+        .iter()
+        .flat_map(|glob_pattern| {
+            let glob_pattern = crate_root.join(glob_pattern).to_string_lossy().into_owned();
+            glob::glob(&glob_pattern)
+                .map(|paths| paths.filter_map(Result::ok).collect::<Vec<_>>())
+                .unwrap_or_default()
+        })
+        .any(|path| {
+            fs::read_to_string(path)
+                .map(|source| pattern.is_match(&source))
+                .unwrap_or(false)
+        })
 }
 
 fn remove_extra_spaces(input: &str) -> Result<String, &'static str> {
@@ -163,7 +201,33 @@ fn latest_version_from_api() -> Result<String, String> {
 
 #[cfg(test)]
 mod tests {
-    use super::tag_from_release_location;
+    use std::fs;
+
+    use super::{crate_is_referenced, tag_from_release_location};
+
+    #[test]
+    fn finds_a_crate_referenced_in_the_sources_of_the_host_crate() {
+        let root = std::env::temp_dir().join(format!("cargo-odra-refs-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(root.join("src")).unwrap();
+        fs::create_dir_all(root.join("bin")).unwrap();
+        fs::write(root.join("src/lib.rs"), "pub mod flipper;\n").unwrap();
+        fs::write(root.join("bin/build_contract.rs"), "use flipper;\n").unwrap();
+
+        assert!(!crate_is_referenced(&root, "odra_modules"));
+        // A crate whose name is only a prefix of what is in the sources does not count.
+        assert!(!crate_is_referenced(&root, "flip"));
+        assert!(crate_is_referenced(&root, "flipper"));
+
+        fs::write(
+            root.join("bin/build_contract.rs"),
+            "use flipper;\nuse odra_modules;\n",
+        )
+        .unwrap();
+        assert!(crate_is_referenced(&root, "odra_modules"));
+
+        let _ = fs::remove_dir_all(&root);
+    }
 
     #[test]
     fn extracts_the_tag_from_a_release_page_url() {
