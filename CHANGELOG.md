@@ -55,7 +55,8 @@ Changelog for `cargo-odra`.
 - All dependencies upgraded. Seven RUSTSEC advisories came from `cargo-generate` 0.21 and
   `ureq` 2; both are on current majors and `rustls` is pinned to the patched 0.23.45. The one
   remaining advisory, unmaintained `smartstring` reached through `rhai` <- `cargo-generate`, has
-  no published upgrade and is ignored in `deny.toml` with the reason recorded.
+  no published upgrade and is ignored in `deny.toml` with the reason recorded. So is unmaintained
+  `anymap2`, reached through `liquid-core` <- `cargo-generate`, whose latest release still uses it.
 - `serde_json` is a direct dependency; `ureq` 3 no longer re-exports it. `colored` was dropped,
   nothing used it.
 - Project generation is tested for every template that differs in structure (`full`, `blank`,
