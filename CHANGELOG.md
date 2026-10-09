@@ -2,7 +2,7 @@
 
 Changelog for `cargo-odra`.
 
-## [Unreleased]
+## [0.2.0] - 2026-10-09
 
 ### Changed
 - **A workspace project now needs Odra 2.10.0.** A contract's wasm is written once, to the `wasm`
@@ -16,6 +16,13 @@ Changelog for `cargo-odra`.
   contract instead of once per copy.
 
 ### Fixed
+- `cargo odra new` run below an existing Cargo workspace no longer adds the new project to that
+  workspace. cargo-generate 0.24 (pulled in by the dependency upgrade) joins a generated project
+  to the nearest enclosing workspace by default: it appended the project to the parent's
+  `members`, rewrote the parent `Cargo.toml` (reformatting it, dropping comments and, in Odra's
+  repository, the whole `exclude` list), and made Cargo build the project into the parent's
+  `target`, so the wasm copy failed with `Couldn't copy .../target/wasm32-unknown-unknown/...`.
+  cargo-odra now always passes `no_workspace`, as 0.1.x effectively did.
 - Generated crates in a workspace whose directory name is not a valid package name (a clone into
   `casper-delta.kubaplas.pl`, say) no longer produce a `Cargo.toml` Cargo rejects (#99). The name
   is sanitised the way Cargo requires: characters outside alphanumerics, `-` and `_` become `-`,
