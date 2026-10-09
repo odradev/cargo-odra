@@ -2,7 +2,7 @@
 
 Changelog for `cargo-odra`.
 
-## [Unreleased]
+## [0.2.0] - 2026-10-09
 
 ### Changed
 - **A workspace project now needs Odra 2.10.0.** A contract's wasm is written once, to the `wasm`
