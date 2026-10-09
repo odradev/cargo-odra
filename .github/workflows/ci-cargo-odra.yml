@@ -96,6 +96,37 @@ jobs:
       - name: Generate and test the project
         run: just test-template ${{ matrix.template }} ${{ matrix.source }}
 
+  # Odra's own CI generates its templates inside the Odra repository, below a Cargo workspace
+  # that excludes the directory; the generated project must not join that workspace.
+  inside_workspace:
+    name: Generation inside an enclosing workspace
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup just
+        uses: extractions/setup-just@v2
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+          targets: wasm32-unknown-unknown
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-odra-${{ hashFiles('Cargo.lock') }}
+          restore-keys: cargo-odra-
+      - name: Prepare environment
+        run: just prepare
+      - name: Install cargo-odra
+        run: just install
+      - name: Generate inside a workspace and build
+        run: just test-new-inside-workspace full future
+
   deny:
     name: Audit dependencies
     runs-on: ubuntu-latest

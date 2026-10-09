@@ -73,32 +73,12 @@ impl InitAction {
             },
         };
 
-        let project_path = cargo_generate::generate(GenerateArgs {
+        let project_path = cargo_generate::generate(Self::generate_args(
             template_path,
-            list_favorites: false,
-            name: Some(paths::to_snake_case(&init_command.name)),
-            force: true,
-            verbose: false,
-            quiet: false,
-            continue_on_error: false,
-            template_values_file: None,
-            silent: false,
-            config: None,
-            vcs: Some(Vcs::Git),
-            lib: false,
-            bin: false,
-            ssh_identity: None,
-            gitconfig: None,
-            define: vec![format!("date={}", Utc::now().format("%Y-%m-%d"))],
+            paths::to_snake_case(&init_command.name),
             init,
-            destination: None,
-            force_git_init: false,
-            allow_commands: false,
-            overwrite: false,
-            skip_submodules: true,
-            no_workspace: false,
-            other_args: None,
-        })
+            None,
+        ))
         .unwrap_or_else(|e| {
             Error::FailedToGenerateProjectFromTemplate(e.to_string()).print_and_die();
         });
@@ -161,6 +141,47 @@ impl InitAction {
         log::info("Done!");
     }
 
+    /// Arguments for `cargo_generate::generate`. `destination` is `None` in production: the
+    /// project is generated in the current directory.
+    fn generate_args(
+        template_path: TemplatePath,
+        name: String,
+        init: bool,
+        destination: Option<PathBuf>,
+    ) -> GenerateArgs {
+        GenerateArgs {
+            template_path,
+            list_favorites: false,
+            name: Some(name),
+            force: true,
+            verbose: false,
+            quiet: false,
+            continue_on_error: false,
+            template_values_file: None,
+            silent: false,
+            config: None,
+            vcs: Some(Vcs::Git),
+            lib: false,
+            bin: false,
+            ssh_identity: None,
+            gitconfig: None,
+            define: vec![format!("date={}", Utc::now().format("%Y-%m-%d"))],
+            init,
+            destination,
+            force_git_init: false,
+            allow_commands: false,
+            overwrite: false,
+            skip_submodules: true,
+            // cargo-generate 0.24 adds the generated project to the `members` of the nearest
+            // enclosing Cargo workspace and rewrites that workspace's Cargo.toml - dropping
+            // entries it does not model and reformatting the rest. An Odra project is a
+            // standalone project (or its own workspace), never a member of whatever workspace
+            // happens to sit above the directory it is created in, so this is always off.
+            no_workspace: true,
+            other_args: None,
+        }
+    }
+
     fn replace_package_placeholder(
         init: bool,
         odra_location: &OdraLocation,
@@ -186,5 +207,68 @@ impl InitAction {
         if dir.read_dir().unwrap().next().is_some() {
             Error::CurrentDirIsNotEmpty.print_and_die();
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+
+    use super::*;
+
+    /// A parent workspace like Odra's own: the directory the project is generated in is
+    /// excluded, and the exclude entry names the directory, not the project inside it.
+    const PARENT_WORKSPACE: &str = r#"[workspace]
+exclude = [
+  "templates/full",
+  "tests",
+]
+members = ["core"]
+resolver = "2"
+
+# A comment that a rewrite would drop.
+[workspace.package]
+edition = "2021"
+"#;
+
+    #[test]
+    fn new_project_is_not_added_to_an_enclosing_workspace() {
+        let root =
+            std::env::temp_dir().join(format!("cargo-odra-init-test-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&root);
+
+        let template = root.join("template");
+        fs::create_dir_all(&template).unwrap();
+        fs::write(
+            template.join("Cargo.toml"),
+            "[package]\nname = \"{{project-name}}\"\nversion = \"0.1.0\"\nedition = \"2021\"\n",
+        )
+        .unwrap();
+
+        let parent = root.join("parent");
+        let destination = parent.join("tests");
+        fs::create_dir_all(&destination).unwrap();
+        fs::write(parent.join("Cargo.toml"), PARENT_WORKSPACE).unwrap();
+
+        let template_path = TemplatePath {
+            path: Some(template.to_str().unwrap().to_string()),
+            ..TemplatePath::default()
+        };
+        let project = cargo_generate::generate(InitAction::generate_args(
+            template_path,
+            "my_project".to_string(),
+            false,
+            Some(destination.clone()),
+        ))
+        .unwrap();
+
+        assert_eq!(project, destination.join("my_project"));
+        assert!(project.join("Cargo.toml").exists());
+        assert_eq!(
+            fs::read_to_string(parent.join("Cargo.toml")).unwrap(),
+            PARENT_WORKSPACE
+        );
+
+        let _ = fs::remove_dir_all(&root);
     }
 }

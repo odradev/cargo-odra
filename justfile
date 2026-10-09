@@ -44,7 +44,23 @@ test-all-templates source="future":
         just test-template $template {{ source }}; \
     done
 
-# Adds a contract, builds, generates schemas, tests on both backends.
+# Generates `template` in a directory a parent Cargo workspace excludes - the way Odra's CI
+# generates its templates inside the Odra repository - and checks the parent manifest is left
+# byte-identical and the project builds into its own target directory, not the parent's.
+test-new-inside-workspace template="full" source="future":
+    rm -rf parentws
+    mkdir -p parentws/tests
+    printf '[workspace]\nexclude = [\n  "tests",\n]\nmembers = []\nresolver = "2"\n' > parentws/Cargo.toml
+    cp parentws/Cargo.toml parentws/Cargo.toml.orig
+    cd parentws/tests && cargo odra new --name testproject --template {{ template }} {{ if source == "stable" { "" } else { "--source " + DEVELOPMENT_ODRA_BRANCH } }}
+    cmp parentws/Cargo.toml parentws/Cargo.toml.orig
+    cd parentws/tests/testproject && rustup target add wasm32-unknown-unknown
+    cd parentws/tests/testproject && cargo odra build
+    ls parentws/tests/testproject/target/wasm32-unknown-unknown/release/*_build_contract.wasm
+    ls parentws/tests/testproject/wasm/*.wasm
+    test ! -e parentws/target
+    rm -rf parentws
+
 _exercise-testproject template:
     cd testproject && rustup target add wasm32-unknown-unknown
     cd testproject && cargo odra generate -c plascoin {{ if template == "workspace" { "-m flipper" } else { "" } }}
@@ -85,6 +101,7 @@ check-deny:
 # Note that `install` replaces the cargo-odra on your PATH with the one from this checkout,
 # which is what makes the generation recipes below test your branch.
 ci: check-lint test check-deny install
+    just test-new-inside-workspace
     just test-all-templates future
     just test-all-templates stable
 
