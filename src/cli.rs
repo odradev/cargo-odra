@@ -99,6 +99,9 @@ pub struct BuildCommand {
     /// Contracts names separated by a space that matches the names in Odra.toml.
     #[clap(value_parser, long, short)]
     pub contracts_names: Option<String>,
+    /// Skip generating schema files before building wasm files.
+    #[clap(value_parser, long, default_value = "false")]
+    pub skip_schema: bool,
 }
 
 #[derive(clap::Args)]
@@ -178,7 +181,7 @@ pub fn make_action() {
     match args.subcommand {
         OdraSubcommand::Build(build) => {
             let project = Project::detect(current_dir);
-            BuildAction::new(&project, build.contracts_names).build();
+            BuildAction::new(&project, build.contracts_names, build.skip_schema).build();
         }
         OdraSubcommand::Test(test) => {
             let project = Project::detect(current_dir);
