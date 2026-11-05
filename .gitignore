@@ -3,3 +3,4 @@ testproject
 Cargo.lock
 .*
 !/.gitignore
+parentws

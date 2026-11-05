@@ -1,5 +1,5 @@
 use serde_derive::{Deserialize, Serialize};
-use ureq::{get, serde_json};
+use ureq::get;
 
 use crate::{
     command::read_file_content,
@@ -116,12 +116,13 @@ impl TemplateGenerator {
     }
 
     fn download_template(template_path: &String) -> String {
-        get(&template_path.clone())
+        get(template_path.as_str())
             .call()
             .unwrap_or_else(|_| {
                 Error::FailedToFetchTemplate(template_path.to_string()).print_and_die()
             })
-            .into_string()
+            .body_mut()
+            .read_to_string()
             .unwrap_or_else(|_| {
                 Error::FailedToParseTemplate(template_path.to_string()).print_and_die()
             })
