@@ -2,13 +2,9 @@
 
 Changelog for `cargo-odra`.
 
-## [Unreleased]
-
 ### Changed
-- `cargo odra build` now generates schema files before building wasm files.
-  Pass `--skip-schema` to build wasm files only. `cargo odra test` does not generate schemas.
 
-## [0.2.0] - 2026-10-09
+## [0.2.0] - 2026-11-05
 
 ### Changed
 - **A workspace project now needs Odra 2.10.0.** A contract's wasm is written once, to the `wasm`
@@ -20,6 +16,8 @@ Changelog for `cargo-odra`.
   needs cargo-odra 0.1.x. Single-crate projects are unaffected on either version. `cargo odra build` deletes the copies an
   older cargo-odra left in the members, and so does `cargo odra clean`. wasm-opt runs once per
   contract instead of once per copy.
+- `cargo odra build` now generates schema files before building wasm files.
+  Pass `--skip-schema` to build wasm files only. `cargo odra test` does not generate schemas.
 
 ### Fixed
 - `cargo odra new` run below an existing Cargo workspace no longer adds the new project to that
