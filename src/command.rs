@@ -233,11 +233,15 @@ pub fn cargo_build_wasm_files(
 }
 
 /// Build schema files.
+///
+/// The schema binary is built with the dev profile: its output does not depend on optimization,
+/// and the host crate is rebuilt once per contract, so a release build (with LTO in a typical
+/// contract project) would multiply that cost by the number of contracts.
 pub fn cargo_generate_schema_files(current_dir: PathBuf, odra_module: &str, host_crate_name: &str) {
     let host_crate_name = host_crate_name.replace('-', "_");
     env::set_var(ODRA_MODULE_ENV_KEY, odra_module);
     let gen_schema = format!("{host_crate_name}_build_schema");
-    cargo(current_dir, "run", vec!["--bin", &gen_schema, "--release"]);
+    cargo(current_dir, "run", vec!["--bin", &gen_schema]);
 }
 
 /// Runs cargo test.

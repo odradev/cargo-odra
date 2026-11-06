@@ -3,6 +3,9 @@
 Changelog for `cargo-odra`.
 
 ### Changed
+- The schema binary is built with the dev profile instead of release. Its output does not depend
+  on optimization, and the host crate is rebuilt once per contract, so under a release profile with
+  LTO each contract cost about 20 seconds of CI time for the schema alone.
 
 ## [0.2.0] - 2026-11-05
 
