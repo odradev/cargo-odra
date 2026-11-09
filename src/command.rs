@@ -277,6 +277,10 @@ pub fn cargo_build_wasm_files(
 /// The schema binary is built with the dev profile: its output does not depend on optimization,
 /// and the host crate is rebuilt once per contract, so a release build (with LTO in a typical
 /// contract project) would multiply that cost by the number of contracts.
+///
+/// Schemas are generated one at a time, unlike wasm files: a run costs about a second once the
+/// crate is compiled, while a worker's target directory would hold a copy of the host
+/// dependencies, close to 1 GB for a typical project.
 pub fn cargo_generate_schema_files(current_dir: PathBuf, odra_module: &str, host_crate_name: &str) {
     let host_crate_name = host_crate_name.replace('-', "_");
     let gen_schema = format!("{host_crate_name}_build_schema");

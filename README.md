@@ -68,14 +68,17 @@ If you want to test your code using real backend VM type:
 $ cargo odra test -b casper
 ```
 
-### Parallel wasm builds
+### Parallel builds
 
 Every contract is a separate `cargo build` of the same crate, since the contract is chosen with a
 cfg flag, so `cargo odra build` and `cargo odra test -b casper` build several contracts at the same
-time: a quarter of the CPUs by default, at most 8, or the number given with `--jobs` (`-j`). Every
-job past the first builds in its own target directory under `target/cargo-odra`, which compiles the
-dependencies once more on its first use (a few hundred MB for a typical project); `cargo clean`
-removes them with the rest. `-j 1` builds one contract at a time, as cargo-odra 0.2.0 did.
+time: half the CPUs by default, at most 8, or the number given with `--jobs` (`-j`) or the
+`CARGO_ODRA_JOBS` environment variable, which suits CI. Every job past the first builds in its own
+target directory under `target/cargo-odra`, which compiles the dependencies once more on its first
+use (a few hundred MB for a typical project); `cargo clean` removes them with the rest. `-j 1`
+builds one contract at a time, as cargo-odra 0.2.0 did. Schemas are still generated one at a time:
+a run costs about a second once the crate is compiled, while a worker's copy of the host
+dependencies would take close to 1 GB.
 
 ## Commands
 
