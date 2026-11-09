@@ -8,6 +8,7 @@ pub struct TestAction<'a> {
     backend: Option<String>,
     passthrough_args: Vec<String>,
     skip_build: bool,
+    jobs: Option<usize>,
     filters: TestFilters,
 }
 
@@ -21,12 +22,14 @@ impl<'a> TestAction<'a> {
         skip_build: bool,
         tests: Vec<String>,
         filter: Option<String>,
+        jobs: Option<usize>,
     ) -> TestAction<'_> {
         let filters = TestFilters::new(tests, filter);
         TestAction {
             backend,
             passthrough_args,
             skip_build,
+            jobs,
             project,
             filters,
         }
@@ -83,7 +86,7 @@ impl TestAction<'_> {
 
     /// Build *.wasm files before testing.
     fn build_wasm_files(&self) {
-        BuildAction::new(self.project, None, true).build();
+        BuildAction::new(self.project, None, true, self.jobs).build();
         log::info("Building finished.")
     }
 }

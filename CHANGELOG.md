@@ -2,7 +2,23 @@
 
 Changelog for `cargo-odra`.
 
+### Added
+- `cargo odra build` and `cargo odra test -b casper` build several contracts at the same time: a
+  quarter of the CPUs by default, at most 8, or `--jobs` (`-j`) of them. Every contract is a
+  separate `cargo build` of the same crate, so they were built one after another, each taking a
+  single CPU for about 5 seconds: the 71 contracts of the Odra repository took 6 minutes, 90% of
+  its `just test`. Cargo locks a target directory for the duration of a build, so every job past
+  the first builds in its own target directory under `target/cargo-odra`, which compiles the
+  dependencies once more on its first use (a few hundred MB for a typical project) and goes
+  away with `cargo clean`. `-j 1` builds one contract at a time, as before.
+
 ### Changed
+- wasm-opt and wasm-strip run on each wasm file right after it is built, instead of on all of
+  them after the last build, and wasm-opt is checked for before the first build rather than
+  after the last.
+- `ODRA_MODULE` is passed to the `cargo build` of a contract instead of being set in the
+  environment of cargo-odra itself, so it no longer leaks into the `cargo test` that
+  `cargo odra test -b casper` runs afterwards.
 - The schema binary is built with the dev profile instead of release. Its output does not depend
   on optimization, and the host crate is rebuilt once per contract, so under a release profile with
   LTO each contract cost about 20 seconds of CI time for the schema alone.
