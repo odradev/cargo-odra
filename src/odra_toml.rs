@@ -101,18 +101,13 @@ impl Contract {
         self.source(project).crate_name().to_string()
     }
 
-    /// Name of the crate whose `_build_contract` and `_build_schema` binaries build the
-    /// contract.
+    /// The crate whose `_build_contract` and `_build_schema` binaries build the contract, and
+    /// its root directory.
     ///
     /// For a contract defined in the project itself this is the crate that defines it. A
     /// contract that comes from a dependency is built by the crate that depends on it: the
     /// project crate in a single crate project, the first workspace member listing the
     /// dependency in a workspace.
-    pub fn host_crate_name(&self, project: &Project) -> String {
-        self.host_crate(project).name
-    }
-
-    /// The crate whose binaries build the contract, and its root directory.
     pub fn host_crate(&self, project: &Project) -> HostCrate {
         let project_crate = || HostCrate {
             name: project.project_crate_name(),
@@ -467,7 +462,7 @@ odra = { workspace = true }
             ContractSource::ProjectCrate("my_project".to_string())
         );
         assert_eq!(contract.defining_crate(&project), "my_project");
-        assert_eq!(contract.host_crate_name(&project), "my_project");
+        assert_eq!(contract.host_crate(&project).name, "my_project");
     }
 
     #[test]
@@ -493,7 +488,7 @@ odra = { workspace = true }
             ContractSource::Dependency("odra_modules".to_string())
         );
         assert_eq!(contract.defining_crate(&project), "odra_modules");
-        assert_eq!(contract.host_crate_name(&project), "my_project");
+        assert_eq!(contract.host_crate(&project).name, "my_project");
     }
 
     #[test]
@@ -507,7 +502,7 @@ odra = { workspace = true }
             ContractSource::Member("flipper".to_string())
         );
         assert_eq!(contract.defining_crate(&project), "flipper");
-        assert_eq!(contract.host_crate_name(&project), "flipper");
+        assert_eq!(contract.host_crate(&project).name, "flipper");
     }
 
     #[test]
@@ -569,7 +564,7 @@ odra-modules = "2.10.0"
             ContractSource::Dependency("odra_modules".to_string())
         );
         assert_eq!(contract.defining_crate(&project), "odra_modules");
-        assert_eq!(contract.host_crate_name(&project), "flipper");
+        assert_eq!(contract.host_crate(&project).name, "flipper");
         assert_eq!(contract.host_crate(&project).root, dir.0.join("flipper"));
     }
 
@@ -582,7 +577,7 @@ odra-modules = "2.10.0"
         let contract = contract("odra_modules::erc20::Erc20");
 
         assert!(project.is_cargo_workspace());
-        assert_eq!(contract.host_crate_name(&project), "flipper");
+        assert_eq!(contract.host_crate(&project).name, "flipper");
     }
 
     #[test]

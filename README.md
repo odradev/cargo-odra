@@ -71,24 +71,24 @@ $ cargo odra test -b casper
 ### Parallel builds
 
 Every contract is a separate `cargo build` of the same crate, since the contract is chosen with a
-cfg flag, so `cargo odra build` and `cargo odra test -b casper` build several contracts at the same
-time: half the CPUs by default, at most 8, or the number given with `--jobs` (`-j`) or the
-`CARGO_ODRA_JOBS` environment variable, which suits CI. Every job past the first builds in its own
+cfg flag, so `cargo odra build` and `cargo odra test -b casper` can build several contracts at the
+same time: as many as given with `--jobs` (`-j`) or the `CARGO_ODRA_JOBS` environment variable,
+which suits CI. One at a time unless asked, because every job past the first builds in its own
 target directory under `target/cargo-odra`, which compiles the dependencies once more on its first
-use (a few hundred MB for a typical project); `cargo clean` removes them with the rest. `-j 1`
-builds one contract at a time, as cargo-odra 0.2.0 did. Schemas are still generated one at a time:
-a run costs about a second once the crate is compiled, while a worker's copy of the host
-dependencies would take close to 1 GB.
+use (a few hundred MB for a typical project); `cargo clean` removes them with the rest. A build
+keeps less than one CPU busy on average, so on a 4-CPU machine four jobs finish in about a third of
+the time of one. Schemas are generated one at a time: a run costs about a second once the crate is
+compiled, while a worker's copy of the host dependencies would take close to 1 GB.
 
-### Up-to-date wasm files are not rebuilt
+### Up-to-date wasm and schema files are not rebuilt
 
 Cargo rebuilds the contract crate at every build, since each contract is chosen with a cfg flag, so
-cargo-odra keeps its own fingerprint per wasm file: a hash of every project file the wasm was
-compiled from (what Cargo's dep-info lists, build script and embedded schema included), of the
-manifests, `Cargo.lock`, the Cargo and rustup configuration, the toolchain, the build flags and the
-wasm itself. A contract whose fingerprint still matches is skipped. The fingerprints live under
-`target/cargo-odra/fingerprints`, per project, so `cargo clean` discards them; deleting a wasm
-file also forces its rebuild.
+cargo-odra keeps its own fingerprint per wasm file and per schema file: a hash of every project
+file it was generated from (what Cargo's dep-info lists, build script and embedded schema
+included), of the manifests, `Cargo.lock`, the Cargo and rustup configuration, the toolchain, the
+build flags and the output itself. A contract whose fingerprint still matches is skipped. The
+fingerprints live under `target/cargo-odra/fingerprints`, per project, so `cargo clean` discards
+them; deleting a wasm or schema file also forces its regeneration.
 
 ## Commands
 

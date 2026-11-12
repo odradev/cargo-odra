@@ -3,26 +3,27 @@
 Changelog for `cargo-odra`.
 
 ### Added
-- `cargo odra build` and `cargo odra test -b casper` build several contracts at the same time:
-  half the CPUs by default, at most 8, or as many as `--jobs` (`-j`) or the `CARGO_ODRA_JOBS`
-  environment variable says. Every contract is a separate `cargo build` of the same crate, so
-  they were built one after another, each taking a single CPU for about 5 seconds: the 71
-  contracts of the Odra repository took 6 minutes, 90% of its `just test`. Cargo locks a target
-  directory for the duration of a build, so every job past the first builds in its own target
-  directory under `target/cargo-odra`, which compiles the dependencies once more on its first use
-  (a few hundred MB for a typical project) and goes away with `cargo clean`. `-j 1` builds one
-  contract at a time, as before. Schemas are still generated one at a time: a run costs about a
-  second once the crate is compiled, while a worker's copy of the host dependencies would take
-  close to 1 GB.
+- `cargo odra build` and `cargo odra test -b casper` build several contracts at the same time
+  when asked with `--jobs` (`-j`) or the `CARGO_ODRA_JOBS` environment variable. Every contract
+  is a separate `cargo build` of the same crate, so they were built one after another, each
+  taking a single CPU for about 5 seconds: the 71 contracts of the Odra repository took 6
+  minutes, 90% of its `just test`; on 4 CPUs, four jobs finish in a third of the time of one.
+  Cargo locks a target directory for the duration of a build, so every job past the first builds
+  in its own target directory under `target/cargo-odra`, which compiles the dependencies once
+  more on its first use (a few hundred MB for a typical project) and goes away with
+  `cargo clean`; that is why one job stays the default. Schemas are generated one at a time: a
+  run costs about a second once the crate is compiled, while a worker's copy of the host
+  dependencies would take close to 1 GB.
 
-- `cargo odra build` and `cargo odra test -b casper` skip a contract whose wasm is up to date.
-  Cargo cannot tell, since the crate is rebuilt with a different cfg per contract, so cargo-odra
-  keeps a fingerprint per wasm file under `target/cargo-odra/fingerprints`: a content hash of
-  every project file the wasm was compiled from (Cargo's dep-info: sources, build script, the
-  embedded schema), of the manifests, `Cargo.lock`, the Cargo and rustup configuration, the
-  toolchain, the build flags and the wasm itself. Mtimes play no part, so a `git checkout` that
-  leaves the content as it was keeps the wasm fresh. `cargo clean` discards the fingerprints, and
-  deleting a wasm file forces its rebuild.
+- `cargo odra build`, `cargo odra schema` and `cargo odra test -b casper` skip a contract whose
+  wasm or schema file is up to date. Cargo cannot tell, since the crate is rebuilt with a
+  different cfg per contract, so cargo-odra keeps a fingerprint per wasm and per schema file
+  under `target/cargo-odra/fingerprints`: a content hash of every project file it was generated
+  from (Cargo's dep-info: sources, build script, the embedded schema), of the manifests,
+  `Cargo.lock`, the Cargo and rustup configuration, the toolchain, the build flags and the
+  output itself. Mtimes play no part, so a `git checkout` that leaves the content as it was keeps
+  the files fresh. `cargo clean` discards the fingerprints, and deleting a wasm or schema file
+  forces its regeneration.
 
 ### Changed
 - wasm-opt and wasm-strip run on each wasm file right after it is built, instead of on all of

@@ -7,9 +7,9 @@
 //! registry are not listed; their versions are fixed by `Cargo.lock`, which is hashed instead,
 //! as are the manifests and the toolchain.
 //!
-//! A fingerprint is written per contract after a build; the build of a contract whose
-//! fingerprint still matches is skipped. A fingerprint that cannot be written or read only
-//! costs a rebuild, never the build itself.
+//! A fingerprint is written per contract after a build, for its wasm and for its schema; the
+//! build of a contract whose fingerprint still matches is skipped. A fingerprint that cannot be
+//! written or read only costs a rebuild, never the build itself.
 
 use std::{
     collections::BTreeMap,
@@ -21,7 +21,7 @@ use std::{
 
 use serde_derive::{Deserialize, Serialize};
 
-use crate::{command, log};
+use crate::{command, log, project::Project};
 
 /// Bumped when the format or the meaning of a fingerprint changes, so older ones never match.
 const VERSION: u32 = 1;
@@ -46,8 +46,8 @@ pub struct Environment {
 }
 
 impl Environment {
-    /// Probes the toolchain. `wasm_opt` describes the wasm-opt the wasm files are passed through.
-    pub fn detect(wasm_opt: &str) -> Self {
+    /// Probes the toolchain.
+    pub fn detect() -> Self {
         let mut common = BTreeMap::new();
         common.insert(
             "cargo-odra".to_string(),
@@ -57,7 +57,6 @@ impl Environment {
             "rustc".to_string(),
             command::command_output("rustc --version --verbose"),
         );
-        common.insert("wasm-opt".to_string(), wasm_opt.to_string());
         for (name, value) in std::env::vars() {
             if ENV_INPUTS.contains(&name.as_str()) || name.starts_with("CARGO_PROFILE_") {
                 common.insert(format!("env:{name}"), value);
@@ -88,13 +87,24 @@ struct Fingerprint {
     files: BTreeMap<String, Option<String>>,
 }
 
-/// Where the fingerprint of `contract` of the project at `project_root` is kept: under the
-/// project's target directory, so `cargo clean` removes it along with the wasm's build.
+/// What a fingerprint is of.
+#[derive(Clone, Copy)]
+pub enum Output {
+    Wasm,
+    Schema,
+}
+
+/// Where the fingerprint of the `output` of `contract` of the project at `project_root` is
+/// kept: under the project's target directory, so `cargo clean` removes it along with the build.
 ///
 /// Projects that share a target directory, like the members of a workspace, may list a
 /// contract of the same name (one from a dependency crate, say), each with its own wasm and
 /// its own inputs, so the fingerprints are kept apart by project.
-pub fn path(target_dir: &Path, project_root: &Path, contract: &str) -> PathBuf {
+pub fn path(target_dir: &Path, project_root: &Path, contract: &str, output: Output) -> PathBuf {
+    let kind = match output {
+        Output::Wasm => "wasm",
+        Output::Schema => "schema",
+    };
     let mut hasher = std::hash::DefaultHasher::new();
     project_root.hash(&mut hasher);
     let project = format!(
@@ -109,7 +119,24 @@ pub fn path(target_dir: &Path, project_root: &Path, contract: &str) -> PathBuf {
         .join("cargo-odra")
         .join("fingerprints")
         .join(project)
-        .join(format!("{contract}.json"))
+        .join(format!("{contract}.{kind}.json"))
+}
+
+/// The files that shape a build without being listed in Cargo's dep-info: the manifests, the
+/// lock file, Cargo's and rustup's configuration. Paths that do not exist are listed too, so
+/// that the build is redone once they appear.
+pub fn manifests(project: &Project, host_crate_root: &Path) -> Vec<PathBuf> {
+    let root = project.project_root();
+    vec![
+        project.cargo_toml_location.clone(),
+        project.odra_toml_location.clone(),
+        host_crate_root.join("Cargo.toml"),
+        root.join("Cargo.lock"),
+        root.join(".cargo").join("config.toml"),
+        root.join(".cargo").join("config"),
+        root.join("rust-toolchain.toml"),
+        root.join("rust-toolchain"),
+    ]
 }
 
 /// Whether the wasm at `wasm` was built from exactly the files and environment recorded at
@@ -225,23 +252,32 @@ fn dep_info_files(dep_info: &str) -> Vec<PathBuf> {
 mod tests {
     use std::{collections::BTreeMap, fs, path::PathBuf};
 
-    use super::{dep_info_files, is_fresh, path, record};
+    use super::{dep_info_files, is_fresh, path, record, Output};
 
     #[test]
-    fn fingerprints_are_kept_apart_by_project() {
+    fn fingerprints_are_kept_apart_by_project_and_output() {
         let target = std::path::Path::new("/ws/target");
-        let modules = path(target, std::path::Path::new("/ws/modules"), "Erc20");
-        let examples = path(target, std::path::Path::new("/ws/examples"), "Erc20");
+        let modules_root = std::path::Path::new("/ws/modules");
+        let modules = path(target, modules_root, "Erc20", Output::Wasm);
+        let examples = path(
+            target,
+            std::path::Path::new("/ws/examples"),
+            "Erc20",
+            Output::Wasm,
+        );
         assert_ne!(modules, examples);
         assert!(modules.starts_with("/ws/target/cargo-odra/fingerprints"));
         assert!(modules
             .parent()
             .and_then(|dir| dir.file_name())
             .is_some_and(|dir| dir.to_string_lossy().starts_with("modules-")));
-        assert_eq!(modules.file_name().unwrap(), "Erc20.json");
+        assert_eq!(modules.file_name().unwrap(), "Erc20.wasm.json");
+        assert_eq!(modules, path(target, modules_root, "Erc20", Output::Wasm));
         assert_eq!(
-            modules,
-            path(target, std::path::Path::new("/ws/modules"), "Erc20")
+            path(target, modules_root, "Erc20", Output::Schema)
+                .file_name()
+                .unwrap(),
+            "Erc20.schema.json"
         );
     }
 

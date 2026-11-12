@@ -32,6 +32,15 @@ pub fn dep_info_path_in_target_dir(target_dir: &Path, build_contract: &str) -> P
     wasm_path_in_target_dir(target_dir, build_contract).with_extension("d")
 }
 
+/// Returns the path of Cargo's dep-info file of the `_build_schema` binary of `host_crate_name`
+/// built (with the dev profile) into `target_dir`.
+pub fn schema_dep_info_path_in_target_dir(target_dir: &Path, host_crate_name: &str) -> PathBuf {
+    target_dir.join("debug").join(format!(
+        "{}_build_schema.d",
+        host_crate_name.replace('-', "_")
+    ))
+}
+
 /// The target directory of the `index`-th worker of a parallel build, or `None` for worker 0,
 /// which builds in the project's target directory itself.
 ///
@@ -132,7 +141,20 @@ pub fn to_crate_name<T: AsRef<str>>(name: T) -> String {
 mod tests {
     use std::path::Path;
 
-    use super::{to_crate_name, wasm_path_in_target_dir, worker_target_dir};
+    use super::{
+        schema_dep_info_path_in_target_dir,
+        to_crate_name,
+        wasm_path_in_target_dir,
+        worker_target_dir,
+    };
+
+    #[test]
+    fn schema_dep_info_follows_the_binary_name() {
+        assert_eq!(
+            schema_dep_info_path_in_target_dir(Path::new("/p/target"), "my-flipper"),
+            Path::new("/p/target/debug/my_flipper_build_schema.d")
+        );
+    }
 
     #[test]
     fn worker_zero_builds_in_the_target_dir_and_the_others_under_it() {

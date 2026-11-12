@@ -14,20 +14,14 @@ use std::{
 
 use crate::{errors::Error, log, paths};
 
-/// Most contracts processed at the same time when `--jobs` is not given.
-const MAX_DEFAULT_JOBS: usize = 8;
-
-/// How many contracts to process at the same time on a machine with `cpus` CPUs when the user
-/// does not say: half of them, at least one and at most [`MAX_DEFAULT_JOBS`].
+/// Contracts processed at the same time when neither `--jobs` nor `CARGO_ODRA_JOBS` says.
 ///
-/// A contract build keeps less than one CPU busy on average (the crate compiles with a single
-/// codegen unit and links with fat LTO, with cargo's own work in between), so on 4 CPUs four
-/// jobs still finish 17 contracts in a third of the time of one. Every job past the first owns
-/// a target directory with its own copy of the dependencies though, a few hundred MB that are
-/// compiled once more on first use, so the default takes half the CPUs rather than all.
-fn default_jobs(cpus: usize) -> usize {
-    (cpus / 2).clamp(1, MAX_DEFAULT_JOBS)
-}
+/// One: parallel builds are opted into. Every job past the first owns a target directory with
+/// its own copy of the dependencies, a few hundred MB compiled once more on first use, which
+/// is a cost to take knowingly. A contract build keeps less than one CPU busy on average (the
+/// crate compiles with a single codegen unit and links with fat LTO, with cargo's own work in
+/// between), so even on 4 CPUs four jobs finish 17 contracts in a third of the time of one.
+const DEFAULT_JOBS: usize = 1;
 
 /// The workers of a project: how many, and where they build.
 pub struct Workers {
@@ -59,13 +53,10 @@ impl Worker {
 }
 
 impl Workers {
-    /// `jobs` workers, or the default for this machine ([`default_jobs`]) when not given.
+    /// `jobs` workers, or [`DEFAULT_JOBS`] when not given.
     pub fn new(jobs: Option<usize>, project_root: &Path) -> Self {
-        let jobs = jobs.unwrap_or_else(|| {
-            default_jobs(thread::available_parallelism().map_or(1, |cpus| cpus.get()))
-        });
         Workers {
-            jobs: jobs.max(1),
+            jobs: jobs.unwrap_or(DEFAULT_JOBS).max(1),
             target_dir: paths::build_target_dir(project_root),
         }
     }
@@ -146,19 +137,15 @@ mod tests {
         sync::Mutex,
     };
 
-    use super::{default_jobs, Workers, MAX_DEFAULT_JOBS};
+    use super::Workers;
     use crate::errors::Error;
 
     #[test]
-    fn default_jobs_is_half_the_cpus_within_bounds() {
-        assert_eq!(default_jobs(1), 1);
-        assert_eq!(default_jobs(2), 1);
-        assert_eq!(default_jobs(3), 1);
-        // A 4-CPU CI runner builds two at a time.
-        assert_eq!(default_jobs(4), 2);
-        assert_eq!(default_jobs(8), 4);
-        assert_eq!(default_jobs(16), MAX_DEFAULT_JOBS);
-        assert_eq!(default_jobs(128), MAX_DEFAULT_JOBS);
+    fn one_job_unless_asked_and_never_zero() {
+        let root = Path::new("/project");
+        assert_eq!(Workers::new(None, root).jobs, 1);
+        assert_eq!(Workers::new(Some(0), root).jobs, 1);
+        assert_eq!(Workers::new(Some(4), root).jobs, 4);
     }
 
     fn workers(jobs: usize) -> Workers {
