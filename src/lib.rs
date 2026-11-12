@@ -10,6 +10,7 @@ pub mod cli;
 mod command;
 mod consts;
 mod errors;
+mod fingerprint;
 mod log;
 mod odra_toml;
 mod paths;

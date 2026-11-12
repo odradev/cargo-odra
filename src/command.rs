@@ -117,15 +117,15 @@ fn probe_wasm_opt() -> WasmOpt {
 }
 
 /// Quits with an actionable message if `wasm-opt` is missing, or too old for the
-/// flags we are about to pass it.
-fn check_wasm_opt(needs_bulk_memory: bool) {
+/// flags we are about to pass it. Returns the binaryen version when it could be read.
+fn check_wasm_opt(needs_bulk_memory: bool) -> Option<u32> {
     match probe_wasm_opt() {
         WasmOpt::Missing => Error::WasmoptNotInstalled.print_and_die(),
         WasmOpt::Found(Some(version)) if needs_bulk_memory && version < MIN_BINARYEN_VERSION => {
             Error::WasmoptTooOld(version, MIN_BINARYEN_VERSION).print_and_die()
         }
         // An unreadable version is not worth failing over - let the build speak for itself.
-        WasmOpt::Found(_) => {}
+        WasmOpt::Found(version) => version,
     }
 }
 
@@ -135,14 +135,28 @@ fn check_wasm_opt(needs_bulk_memory: bool) {
 /// contract is compiled rather than after the last, and the probes do not run once per contract.
 pub struct WasmOptFlags {
     needs_bulk_memory: bool,
+    version: Option<u32>,
 }
 
 impl WasmOptFlags {
     /// Probes the toolchain and wasm-opt; quits if wasm-opt is missing or too old.
     pub fn detect() -> Self {
         let needs_bulk_memory = needs_bulk_memory_flags();
-        check_wasm_opt(needs_bulk_memory);
-        WasmOptFlags { needs_bulk_memory }
+        let version = check_wasm_opt(needs_bulk_memory);
+        WasmOptFlags {
+            needs_bulk_memory,
+            version,
+        }
+    }
+
+    /// What tells one wasm-opt setup from another, for the fingerprint of the wasm files.
+    pub fn description(&self) -> String {
+        format!(
+            "binaryen {}, bulk memory lowering {}",
+            self.version
+                .map_or("unknown".to_string(), |version| version.to_string()),
+            self.needs_bulk_memory
+        )
     }
 }
 

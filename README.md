@@ -80,6 +80,16 @@ builds one contract at a time, as cargo-odra 0.2.0 did. Schemas are still genera
 a run costs about a second once the crate is compiled, while a worker's copy of the host
 dependencies would take close to 1 GB.
 
+### Up-to-date wasm files are not rebuilt
+
+Cargo rebuilds the contract crate at every build, since each contract is chosen with a cfg flag, so
+cargo-odra keeps its own fingerprint per wasm file: a hash of every project file the wasm was
+compiled from (what Cargo's dep-info lists, build script and embedded schema included), of the
+manifests, `Cargo.lock`, the Cargo and rustup configuration, the toolchain, the build flags and the
+wasm itself. A contract whose fingerprint still matches is skipped. The fingerprints live under
+`target/cargo-odra/fingerprints`, per project, so `cargo clean` discards them; deleting a wasm
+file also forces its rebuild.
+
 ## Commands
 
 * `new` - creates a new project in a new folder,

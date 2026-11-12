@@ -26,6 +26,12 @@ pub fn wasm_path_in_target_dir(target_dir: &Path, build_contract: &str) -> PathB
         .join(wasm_file_name(build_contract))
 }
 
+/// Returns the path of Cargo's dep-info file of a `_build_contract` binary built into
+/// `target_dir`: the list of files the wasm next to it was compiled from.
+pub fn dep_info_path_in_target_dir(target_dir: &Path, build_contract: &str) -> PathBuf {
+    wasm_path_in_target_dir(target_dir, build_contract).with_extension("d")
+}
+
 /// The target directory of the `index`-th worker of a parallel build, or `None` for worker 0,
 /// which builds in the project's target directory itself.
 ///

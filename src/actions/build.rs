@@ -1,9 +1,15 @@
 //! Module for managing and building wasm files.
 
+use std::{
+    collections::BTreeMap,
+    path::{Path, PathBuf},
+};
+
 use crate::{
     actions::schema::SchemaAction,
     command::{self, WasmOptFlags},
     errors::Error,
+    fingerprint,
     log,
     odra_toml::Contract,
     paths,
@@ -52,7 +58,8 @@ impl BuildAction<'_> {
         self.build_wasm_files();
     }
 
-    /// Builds, saves and optimizes the wasm file of every selected contract, several at a time.
+    /// Builds, saves and optimizes the wasm file of every selected contract whose wasm is not up
+    /// to date (see the `fingerprint` module), several at a time.
     fn build_wasm_files(&self) {
         log::info("Generating wasm files...");
         let project_root = self.project.project_root();
@@ -67,19 +74,47 @@ impl BuildAction<'_> {
 
         // Checked before the first build, so a missing wasm-opt is not found out after the last.
         let wasm_opt = WasmOptFlags::detect();
+        let environment = fingerprint::Environment::detect(&wasm_opt.description());
+        let target_dir = paths::build_target_dir(&project_root);
+        let total = contracts.len();
+        let (fresh, stale): (Vec<_>, Vec<_>) = contracts.into_iter().partition(|contract| {
+            fingerprint::is_fresh(
+                &fingerprint::path(&target_dir, &project_root, &contract.struct_name()),
+                &paths::wasm_path_in_wasm_dir(&contract.struct_name(), &project_root),
+                &self.build_inputs(contract, &environment),
+            )
+        });
+        if !fresh.is_empty() {
+            log::info(format!(
+                "{} of {total} wasm files are up to date: {}",
+                fresh.len(),
+                fresh
+                    .iter()
+                    .map(Contract::struct_name)
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ));
+        }
+        if stale.is_empty() {
+            return;
+        }
+
         Workers::new(self.jobs, &project_root)
-            .run("Building", contracts, |contract, worker| {
-                self.build_contract(contract, worker, &wasm_opt)
+            .run("Building", stale, |contract, worker| {
+                self.build_contract(contract, worker, &wasm_opt, &environment, &target_dir)
             })
             .unwrap_or_else(|error| error.print_and_die());
     }
 
-    /// Builds one contract, saves its wasm to the `wasm` directory and optimizes it.
+    /// Builds one contract, saves its wasm to the `wasm` directory, optimizes it and records
+    /// what it was built from.
     fn build_contract(
         &self,
         contract: &Contract,
         worker: &Worker,
         wasm_opt: &WasmOptFlags,
+        environment: &fingerprint::Environment,
+        project_target_dir: &Path,
     ) -> Result<(), Error> {
         let project_root = self.project.project_root();
         let host_crate = contract.host_crate(self.project);
@@ -98,7 +133,48 @@ impl BuildAction<'_> {
         log::info(format!("Saving {}", target.display()));
         command::copy_file(&source, &target)?;
         self.remove_stale_member_copies(contract);
-        command::process_wasm(&contract.struct_name(), &project_root, wasm_opt)
+        command::process_wasm(&contract.struct_name(), &project_root, wasm_opt)?;
+
+        let mut extra_files = self.manifests(&host_crate.root);
+        extra_files.push(target);
+        fingerprint::record_or_warn(
+            &fingerprint::path(project_target_dir, &project_root, &contract.struct_name()),
+            &paths::dep_info_path_in_target_dir(&worker.target_dir, &build_contract),
+            &extra_files,
+            self.build_inputs(contract, environment),
+        );
+        Ok(())
+    }
+
+    /// The environment a contract's wasm is built under, for its fingerprint.
+    fn build_inputs(
+        &self,
+        contract: &Contract,
+        environment: &fingerprint::Environment,
+    ) -> BTreeMap<String, String> {
+        let host_crate = contract.host_crate(self.project);
+        environment.inputs(&[
+            ("odra-module", &contract.odra_module_value(self.project)),
+            ("package", &host_crate.package),
+            ("workspace", &self.project.is_cargo_workspace().to_string()),
+        ])
+    }
+
+    /// The files that shape a build without being listed in Cargo's dep-info: the manifests,
+    /// the lock file, Cargo's and rustup's configuration. Paths that do not exist are listed
+    /// too, so that the build is redone once they appear.
+    fn manifests(&self, host_crate_root: &Path) -> Vec<PathBuf> {
+        let root = self.project.project_root();
+        vec![
+            self.project.cargo_toml_location.clone(),
+            self.project.odra_toml_location.clone(),
+            host_crate_root.join("Cargo.toml"),
+            root.join("Cargo.lock"),
+            root.join(".cargo").join("config.toml"),
+            root.join(".cargo").join("config"),
+            root.join("rust-toolchain.toml"),
+            root.join("rust-toolchain"),
+        ]
     }
 
     /// Removes this contract's wasm from every workspace member.

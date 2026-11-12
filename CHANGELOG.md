@@ -15,6 +15,15 @@ Changelog for `cargo-odra`.
   second once the crate is compiled, while a worker's copy of the host dependencies would take
   close to 1 GB.
 
+- `cargo odra build` and `cargo odra test -b casper` skip a contract whose wasm is up to date.
+  Cargo cannot tell, since the crate is rebuilt with a different cfg per contract, so cargo-odra
+  keeps a fingerprint per wasm file under `target/cargo-odra/fingerprints`: a content hash of
+  every project file the wasm was compiled from (Cargo's dep-info: sources, build script, the
+  embedded schema), of the manifests, `Cargo.lock`, the Cargo and rustup configuration, the
+  toolchain, the build flags and the wasm itself. Mtimes play no part, so a `git checkout` that
+  leaves the content as it was keeps the wasm fresh. `cargo clean` discards the fingerprints, and
+  deleting a wasm file forces its rebuild.
+
 ### Changed
 - wasm-opt and wasm-strip run on each wasm file right after it is built, instead of on all of
   them after the last build, and wasm-opt is checked for before the first build rather than
