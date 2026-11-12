@@ -12,16 +12,46 @@ pub fn wasm_file_name(contract_name: &str) -> PathBuf {
     PathBuf::from(contract_name).with_extension("wasm")
 }
 
-/// Returns *.wasm file path in target directory.
-pub fn wasm_path_in_target(contract_name: &str, project_root: PathBuf) -> PathBuf {
-    // extract target dir
-    let target_dir = get_build_target_dir();
-    project_root
-        .join(format!(
-            "{}/wasm32-unknown-unknown/release",
-            target_dir.display()
-        ))
-        .join(wasm_file_name(contract_name))
+/// The target directory of the project: `build.target-dir` from the Cargo configuration,
+/// `target` by default, under `project_root`.
+pub fn build_target_dir(project_root: &Path) -> PathBuf {
+    project_root.join(get_build_target_dir())
+}
+
+/// Returns the path of the wasm file of a `_build_contract` binary built into `target_dir`.
+pub fn wasm_path_in_target_dir(target_dir: &Path, build_contract: &str) -> PathBuf {
+    target_dir
+        .join("wasm32-unknown-unknown")
+        .join("release")
+        .join(wasm_file_name(build_contract))
+}
+
+/// Returns the path of Cargo's dep-info file of a `_build_contract` binary built into
+/// `target_dir`: the list of files the wasm next to it was compiled from.
+pub fn dep_info_path_in_target_dir(target_dir: &Path, build_contract: &str) -> PathBuf {
+    wasm_path_in_target_dir(target_dir, build_contract).with_extension("d")
+}
+
+/// Returns the path of Cargo's dep-info file of the `_build_schema` binary of `host_crate_name`
+/// built (with the dev profile) into `target_dir`.
+pub fn schema_dep_info_path_in_target_dir(target_dir: &Path, host_crate_name: &str) -> PathBuf {
+    target_dir.join("debug").join(format!(
+        "{}_build_schema.d",
+        host_crate_name.replace('-', "_")
+    ))
+}
+
+/// The target directory of the `index`-th worker of a parallel build, or `None` for worker 0,
+/// which builds in the project's target directory itself.
+///
+/// It lives under the project's target directory, so `cargo clean` removes it along with
+/// everything else, and a tool that caches `target` keeps it.
+pub fn worker_target_dir(build_target_dir: &Path, index: usize) -> Option<PathBuf> {
+    (index > 0).then(|| {
+        build_target_dir
+            .join("cargo-odra")
+            .join(format!("worker-{index}"))
+    })
 }
 
 fn get_build_target_dir() -> PathBuf {
@@ -109,7 +139,41 @@ pub fn to_crate_name<T: AsRef<str>>(name: T) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::to_crate_name;
+    use std::path::Path;
+
+    use super::{
+        schema_dep_info_path_in_target_dir,
+        to_crate_name,
+        wasm_path_in_target_dir,
+        worker_target_dir,
+    };
+
+    #[test]
+    fn schema_dep_info_follows_the_binary_name() {
+        assert_eq!(
+            schema_dep_info_path_in_target_dir(Path::new("/p/target"), "my-flipper"),
+            Path::new("/p/target/debug/my_flipper_build_schema.d")
+        );
+    }
+
+    #[test]
+    fn worker_zero_builds_in_the_target_dir_and_the_others_under_it() {
+        let target = Path::new("/project/target");
+        assert_eq!(worker_target_dir(target, 0), None);
+        assert_eq!(
+            worker_target_dir(target, 1).as_deref(),
+            Some(Path::new("/project/target/cargo-odra/worker-1"))
+        );
+        assert_eq!(
+            wasm_path_in_target_dir(
+                &worker_target_dir(target, 3).unwrap(),
+                "flipper_build_contract"
+            ),
+            target.join(
+                "cargo-odra/worker-3/wasm32-unknown-unknown/release/flipper_build_contract.wasm"
+            )
+        );
+    }
 
     #[test]
     fn keeps_valid_names_as_they_are() {

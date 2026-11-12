@@ -102,6 +102,11 @@ pub struct BuildCommand {
     /// Skip generating schema files before building wasm files.
     #[clap(value_parser, long, default_value = "false")]
     pub skip_schema: bool,
+    /// Number of contracts to build at the same time; one unless given. Every job past the first
+    /// builds in its own target directory under `target/cargo-odra`, which compiles the
+    /// dependencies once more on its first use.
+    #[clap(value_parser, long, short = 'j', env = "CARGO_ODRA_JOBS")]
+    pub jobs: Option<usize>,
 }
 
 #[derive(clap::Args)]
@@ -130,6 +135,11 @@ pub struct TestCommand {
     /// Run only tests containing the given name.
     #[clap(value_parser)]
     pub filter: Option<String>,
+    /// Number of contracts to build at the same time, when a backend needs wasm files; one unless
+    /// given. Every job past the first builds in its own target directory under
+    /// `target/cargo-odra`, which compiles the dependencies once more on its first use.
+    #[clap(value_parser, long, short = 'j', env = "CARGO_ODRA_JOBS")]
+    pub jobs: Option<usize>,
 }
 
 #[derive(clap::Args, Debug)]
@@ -181,7 +191,13 @@ pub fn make_action() {
     match args.subcommand {
         OdraSubcommand::Build(build) => {
             let project = Project::detect(current_dir);
-            BuildAction::new(&project, build.contracts_names, build.skip_schema).build();
+            BuildAction::new(
+                &project,
+                build.contracts_names,
+                build.skip_schema,
+                build.jobs,
+            )
+            .build();
         }
         OdraSubcommand::Test(test) => {
             let project = Project::detect(current_dir);
@@ -192,6 +208,7 @@ pub fn make_action() {
                 test.skip_build,
                 test.test,
                 test.filter,
+                test.jobs,
             )
             .test();
         }

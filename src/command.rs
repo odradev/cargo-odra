@@ -4,8 +4,8 @@ use std::{
     env,
     fs::{self, File, OpenOptions},
     io::Write,
-    path::PathBuf,
-    process::{Command, ExitStatus},
+    path::{Path, PathBuf},
+    process::Command,
 };
 
 use clap::Parser;
@@ -34,28 +34,15 @@ pub fn command_output(command: &str) -> String {
         .to_string()
 }
 
-/// Quits if status of a command is not successful.
-pub fn parse_command_result(status: ExitStatus, error: Error) {
-    if !status.success() {
-        error.print_and_die();
-    }
-}
-
-/// Copies file
-pub fn cp(source: PathBuf, target: PathBuf) {
-    let status = Command::new("cp")
-        .args([&source, &target])
-        .status()
-        .unwrap();
-
-    parse_command_result(
-        status,
+/// Copies a file.
+pub fn copy_file(source: &Path, target: &Path) -> Result<(), Error> {
+    fs::copy(source, target).map(|_| ()).map_err(|error| {
         Error::CommandFailed(format!(
-            "Couldn't copy {} to {}",
+            "Couldn't copy {} to {}: {error}",
             source.display(),
             target.display()
-        )),
-    );
+        ))
+    })
 }
 
 /// Remove a directory.
@@ -130,93 +117,149 @@ fn probe_wasm_opt() -> WasmOpt {
 }
 
 /// Quits with an actionable message if `wasm-opt` is missing, or too old for the
-/// flags we are about to pass it.
-fn check_wasm_opt(needs_bulk_memory: bool) {
+/// flags we are about to pass it. Returns the binaryen version when it could be read.
+fn check_wasm_opt(needs_bulk_memory: bool) -> Option<u32> {
     match probe_wasm_opt() {
         WasmOpt::Missing => Error::WasmoptNotInstalled.print_and_die(),
         WasmOpt::Found(Some(version)) if needs_bulk_memory && version < MIN_BINARYEN_VERSION => {
             Error::WasmoptTooOld(version, MIN_BINARYEN_VERSION).print_and_die()
         }
         // An unreadable version is not worth failing over - let the build speak for itself.
-        WasmOpt::Found(_) => {}
+        WasmOpt::Found(version) => version,
     }
 }
 
-/// Runs wasm-strip and wasm-opt on a given contract's wasm file.
-pub fn process_wasm(contract_name: &str, project_root: PathBuf) {
-    let needs_bulk_memory = needs_bulk_memory_flags();
-    check_wasm_opt(needs_bulk_memory);
+/// The flags `process_wasm` passes to wasm-opt, which depend on the toolchain.
+///
+/// Detected once, up front: a missing or too old wasm-opt is then reported before the first
+/// contract is compiled rather than after the last, and the probes do not run once per contract.
+pub struct WasmOptFlags {
+    needs_bulk_memory: bool,
+    version: Option<u32>,
+}
+
+impl WasmOptFlags {
+    /// Probes the toolchain and wasm-opt; quits if wasm-opt is missing or too old.
+    pub fn detect() -> Self {
+        let needs_bulk_memory = needs_bulk_memory_flags();
+        let version = check_wasm_opt(needs_bulk_memory);
+        WasmOptFlags {
+            needs_bulk_memory,
+            version,
+        }
+    }
+
+    /// What tells one wasm-opt setup from another, for the fingerprint of the wasm files.
+    pub fn description(&self) -> String {
+        format!(
+            "binaryen {}, bulk memory lowering {}",
+            self.version
+                .map_or("unknown".to_string(), |version| version.to_string()),
+            self.needs_bulk_memory
+        )
+    }
+}
+
+/// Runs wasm-opt and wasm-strip on a given contract's wasm file.
+pub fn process_wasm(
+    contract_name: &str,
+    project_root: &Path,
+    flags: &WasmOptFlags,
+) -> Result<(), Error> {
+    let wasm = paths::wasm_path_in_wasm_dir(contract_name, project_root);
 
     let mut cmd = Command::new("wasm-opt");
-    cmd.current_dir(project_root.clone());
-
-    cmd.arg("--signext-lowering");
-
-    if needs_bulk_memory {
+    cmd.current_dir(project_root).arg("--signext-lowering");
+    if flags.needs_bulk_memory {
         cmd.arg("--enable-bulk-memory")
             .arg("--llvm-memory-copy-fill-lowering");
     }
-
-    let command = cmd
-        .arg(paths::wasm_path_in_wasm_dir(contract_name, &project_root))
-        .arg("-o")
-        .arg(paths::wasm_path_in_wasm_dir(contract_name, &project_root))
-        .status();
-
-    if command.is_err() || !command.unwrap().success() {
-        Error::WasmoptDidNotFinish.print_and_die();
+    match cmd.arg(&wasm).arg("-o").arg(&wasm).status() {
+        Ok(status) if status.success() => {}
+        _ => return Err(Error::WasmoptDidNotFinish),
     }
 
     let command = Command::new("wasm-strip")
-        .current_dir(project_root.clone())
-        .arg(paths::wasm_path_in_wasm_dir(contract_name, &project_root))
+        .current_dir(project_root)
+        .arg(&wasm)
         .status();
-
     match command {
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-            Error::WasmstripNotInstalled.print_and_die()
+            Err(Error::WasmstripNotInstalled)
         }
-        Err(_) => Error::WasmstripDidNotFinish.print_and_die(),
-        Ok(status) if !status.success() => Error::WasmstripDidNotFinish.print_and_die(),
-        Ok(_) => {}
+        Err(_) => Err(Error::WasmstripDidNotFinish),
+        Ok(status) if !status.success() => Err(Error::WasmstripDidNotFinish),
+        Ok(_) => Ok(()),
     }
 }
 
 /// Runs cargo with given args.
 fn cargo(current_dir: PathBuf, command: &str, tail_args: Vec<&str>) {
-    let mut args = vec![command];
-
-    if let Some(verbosity) = verbosity_arg() {
-        args.push(verbosity);
-    }
-
-    for arg in tail_args {
-        args.push(arg);
-    }
-
-    let command = Command::new("cargo")
-        .current_dir(current_dir)
-        .args(args.as_slice())
-        .status()
-        .unwrap();
-
-    parse_command_result(
-        command,
-        Error::CommandFailed(format!("Couldn't run cargo with args {args:?}")),
-    );
+    cargo_checked(&current_dir, command, tail_args, &[], false)
+        .unwrap_or_else(|error| error.print_and_die());
 }
 
-/// Build wasm files.
+/// Runs cargo with the given args and extra environment, and reports a failure instead of
+/// quitting, so a build running on a worker thread can hand it back.
+///
+/// With `capture_output`, what cargo prints is held back and written out in one piece once it
+/// has finished, so the output of builds running side by side does not interleave. Cargo is
+/// quietened then, unless a verbosity was asked for: its progress lines are meant for a
+/// terminal it has to itself, and the warnings and errors still come through.
+fn cargo_checked(
+    current_dir: &Path,
+    command: &str,
+    tail_args: Vec<&str>,
+    env: &[(&str, &str)],
+    capture_output: bool,
+) -> Result<(), Error> {
+    let mut args = vec![command];
+    match verbosity_arg() {
+        Some(verbosity) => args.push(verbosity),
+        None if capture_output => args.push("--quiet"),
+        None => {}
+    }
+    args.extend(tail_args);
+
+    let mut cargo = Command::new("cargo");
+    cargo
+        .current_dir(current_dir)
+        .args(args.as_slice())
+        .envs(env.iter().copied());
+    let status = if capture_output {
+        let output = cargo.output()?;
+        let mut stderr = std::io::stderr().lock();
+        stderr.write_all(&output.stdout)?;
+        stderr.write_all(&output.stderr)?;
+        output.status
+    } else {
+        cargo.status()?
+    };
+
+    if status.success() {
+        Ok(())
+    } else {
+        Err(Error::CommandFailed(format!(
+            "Couldn't run cargo with args {args:?}"
+        )))
+    }
+}
+
+/// Builds the wasm file of one contract.
+///
 /// `odra_module` is the value of the `ODRA_MODULE` environment variable the contract is gated
 /// on, `host_crate` the crate whose binaries build it: its `name` names the binary and its
-/// `package` is what Cargo is asked for with `--package`.
+/// `package` is what Cargo is asked for with `--package`. The build happens in `target_dir`
+/// when given, in the project's target directory otherwise; see `cargo_checked` for
+/// `capture_output`.
 pub fn cargo_build_wasm_files(
-    current_dir: PathBuf,
+    current_dir: &Path,
     odra_module: &str,
     host_crate: &HostCrate,
     is_workspace: bool,
-) {
-    env::set_var(ODRA_MODULE_ENV_KEY, odra_module);
+    target_dir: Option<&Path>,
+    capture_output: bool,
+) -> Result<(), Error> {
     let build_contract = format!("{}_build_contract", host_crate.name);
     let mut params = vec![
         "--target",
@@ -229,7 +272,18 @@ pub fn cargo_build_wasm_files(
         params.push("--package");
         params.push(&host_crate.package);
     }
-    cargo(current_dir, "build", params);
+    let target_dir = target_dir.map(|dir| dir.to_string_lossy().into_owned());
+    if let Some(target_dir) = &target_dir {
+        params.push("--target-dir");
+        params.push(target_dir);
+    }
+    cargo_checked(
+        current_dir,
+        "build",
+        params,
+        &[(ODRA_MODULE_ENV_KEY, odra_module)],
+        capture_output,
+    )
 }
 
 /// Build schema files.
@@ -237,11 +291,21 @@ pub fn cargo_build_wasm_files(
 /// The schema binary is built with the dev profile: its output does not depend on optimization,
 /// and the host crate is rebuilt once per contract, so a release build (with LTO in a typical
 /// contract project) would multiply that cost by the number of contracts.
+///
+/// Schemas are generated one at a time, unlike wasm files: a run costs about a second once the
+/// crate is compiled, while a worker's target directory would hold a copy of the host
+/// dependencies, close to 1 GB for a typical project.
 pub fn cargo_generate_schema_files(current_dir: PathBuf, odra_module: &str, host_crate_name: &str) {
     let host_crate_name = host_crate_name.replace('-', "_");
-    env::set_var(ODRA_MODULE_ENV_KEY, odra_module);
     let gen_schema = format!("{host_crate_name}_build_schema");
-    cargo(current_dir, "run", vec!["--bin", &gen_schema]);
+    cargo_checked(
+        &current_dir,
+        "run",
+        vec!["--bin", &gen_schema],
+        &[(ODRA_MODULE_ENV_KEY, odra_module)],
+        false,
+    )
+    .unwrap_or_else(|error| error.print_and_die());
 }
 
 /// Runs cargo test.

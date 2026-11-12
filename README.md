@@ -68,12 +68,34 @@ If you want to test your code using real backend VM type:
 $ cargo odra test -b casper
 ```
 
+### Parallel builds
+
+Every contract is a separate `cargo build` of the same crate, since the contract is chosen with a
+cfg flag, so `cargo odra build` and `cargo odra test -b casper` can build several contracts at the
+same time: as many as given with `--jobs` (`-j`) or the `CARGO_ODRA_JOBS` environment variable,
+which suits CI. One at a time unless asked, because every job past the first builds in its own
+target directory under `target/cargo-odra`, which compiles the dependencies once more on its first
+use (a few hundred MB for a typical project); `cargo clean` removes them with the rest. A build
+keeps less than one CPU busy on average, so on a 4-CPU machine four jobs finish in about a third of
+the time of one. Schemas are generated one at a time: a run costs about a second once the crate is
+compiled, while a worker's copy of the host dependencies would take close to 1 GB.
+
+### Up-to-date wasm and schema files are not rebuilt
+
+Cargo rebuilds the contract crate at every build, since each contract is chosen with a cfg flag, so
+cargo-odra keeps its own fingerprint per wasm file and per schema file: a hash of every project
+file it was generated from (what Cargo's dep-info lists, build script and embedded schema
+included), of the manifests, `Cargo.lock`, the Cargo and rustup configuration, the toolchain, the
+build flags and the output itself. A contract whose fingerprint still matches is skipped. The
+fingerprints live under `target/cargo-odra/fingerprints`, per project, so `cargo clean` discards
+them; deleting a wasm or schema file also forces its regeneration.
+
 ## Commands
 
 * `new` - creates a new project in a new folder,
 * `init` - creates a new project in an existing, empty folder,
 * `build` - builds the contracts, generates schema and wasm files (use `--skip-schema` to skip schema generation),
-* `test` - runs tests,
+* `test` - runs tests (with `-b casper`, builds the wasm files first),
 * `generate` - generates sample contract,
 * `list-templates` - lists available templates,
 * `clean` - removes temporary files (builders and wasm files),
