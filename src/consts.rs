@@ -9,6 +9,15 @@ pub const ODRA_BACKEND_ENV_KEY: &str = "ODRA_BACKEND";
 /// Odra module env key
 pub const ODRA_MODULE_ENV_KEY: &str = "ODRA_MODULE";
 
+/// Prefix of the variable naming the module of one crate: `ODRA_MODULE__odra_modules=Erc20`.
+pub const ODRA_CRATE_MODULE_ENV_PREFIX: &str = "ODRA_MODULE__";
+
+/// Tells `odra-build` to read the module from the per-crate variable.
+pub const ODRA_BUILD_PROTOCOL_ENV_KEY: &str = "ODRA_BUILD_PROTOCOL";
+
+/// The `ODRA_BUILD_PROTOCOL` value of a build with a per-crate module variable.
+pub const ODRA_BUILD_PROTOCOL: &str = "2";
+
 /// Template repository path.
 pub const ODRA_TEMPLATE_GH_REPO: &str = "https://github.com/odradev/odra.git";
 

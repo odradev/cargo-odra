@@ -14,7 +14,13 @@ use Error::InvalidInternalCommand;
 use crate::{
     actions::test::TestFilters,
     cli::Cargo,
-    consts::{ODRA_BACKEND_ENV_KEY, ODRA_MODULE_ENV_KEY},
+    consts::{
+        ODRA_BACKEND_ENV_KEY,
+        ODRA_BUILD_PROTOCOL,
+        ODRA_BUILD_PROTOCOL_ENV_KEY,
+        ODRA_CRATE_MODULE_ENV_PREFIX,
+        ODRA_MODULE_ENV_KEY,
+    },
     errors::Error,
     log,
     odra_toml::HostCrate,
@@ -210,7 +216,7 @@ fn cargo_checked(
     current_dir: &Path,
     command: &str,
     tail_args: Vec<&str>,
-    env: &[(&str, &str)],
+    env: &[(String, String)],
     capture_output: bool,
 ) -> Result<(), Error> {
     let mut args = vec![command];
@@ -225,7 +231,7 @@ fn cargo_checked(
     cargo
         .current_dir(current_dir)
         .args(args.as_slice())
-        .envs(env.iter().copied());
+        .envs(env.iter().map(|(name, value)| (name, value)));
     let status = if capture_output {
         let output = cargo.output()?;
         let mut stderr = std::io::stderr().lock();
@@ -243,6 +249,30 @@ fn cargo_checked(
             "Couldn't run cargo with args {args:?}"
         )))
     }
+}
+
+/// The environment that tells `odra-build` which module a crate is built for.
+///
+/// `ODRA_MODULE` is what every Odra release reads. Every crate with the `odra-build` build script
+/// watches it, and Cargo rebuilds a crate when a variable it watches changes, so with it alone a
+/// crate like `odra-modules` is rebuilt for every contract of the project. For a crate-qualified
+/// value (`my_token::Token`) the module is therefore also named in a variable of the crate that
+/// defines it (`ODRA_MODULE__my_token=Token`), and `ODRA_BUILD_PROTOCOL=2` tells an `odra-build`
+/// that knows about it (Odra 2.11.0) to watch that variable instead: the other crates stay built.
+/// An older `odra-build` ignores both.
+fn module_env(odra_module: &str) -> Vec<(String, String)> {
+    let mut env = vec![(ODRA_MODULE_ENV_KEY.to_string(), odra_module.to_string())];
+    if let Some((defining_crate, struct_name)) = odra_module.rsplit_once("::") {
+        env.push((
+            ODRA_BUILD_PROTOCOL_ENV_KEY.to_string(),
+            ODRA_BUILD_PROTOCOL.to_string(),
+        ));
+        env.push((
+            format!("{ODRA_CRATE_MODULE_ENV_PREFIX}{defining_crate}"),
+            struct_name.to_string(),
+        ));
+    }
+    env
 }
 
 /// Builds the wasm file of one contract.
@@ -281,7 +311,7 @@ pub fn cargo_build_wasm_files(
         current_dir,
         "build",
         params,
-        &[(ODRA_MODULE_ENV_KEY, odra_module)],
+        &module_env(odra_module),
         capture_output,
     )
 }
@@ -302,7 +332,7 @@ pub fn cargo_generate_schema_files(current_dir: PathBuf, odra_module: &str, host
         &current_dir,
         "run",
         vec!["--bin", &gen_schema],
-        &[(ODRA_MODULE_ENV_KEY, odra_module)],
+        &module_env(odra_module),
         false,
     )
     .unwrap_or_else(|error| error.print_and_die());
@@ -406,5 +436,34 @@ fn verbosity_arg<'a>() -> Option<&'a str> {
         Some("--quiet")
     } else {
         None
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::module_env;
+
+    fn pairs(env: &[(String, String)]) -> Vec<(&str, &str)> {
+        env.iter()
+            .map(|(name, value)| (name.as_str(), value.as_str()))
+            .collect()
+    }
+
+    #[test]
+    fn module_env_names_the_module_per_crate() {
+        assert_eq!(
+            pairs(&module_env("odra_modules::Erc20")),
+            [
+                ("ODRA_MODULE", "odra_modules::Erc20"),
+                ("ODRA_BUILD_PROTOCOL", "2"),
+                ("ODRA_MODULE__odra_modules", "Erc20"),
+            ]
+        );
+    }
+
+    /// An Odra older than 2.10 gets the bare struct name and knows no per-crate variable.
+    #[test]
+    fn module_env_of_a_bare_name_is_odra_module_only() {
+        assert_eq!(pairs(&module_env("Erc20")), [("ODRA_MODULE", "Erc20")]);
     }
 }

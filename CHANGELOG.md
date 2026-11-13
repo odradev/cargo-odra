@@ -26,6 +26,14 @@ Changelog for `cargo-odra`.
   forces its regeneration.
 
 ### Changed
+- `cargo odra build`, `cargo odra schema` and `cargo odra test -b casper` no longer make Cargo
+  rebuild the crates that do not define the contract being built (#112). Every crate with the
+  `odra-build` build script watches `ODRA_MODULE`, so a crate like `odra-modules` was rebuilt for
+  every contract of a project that depends on it. The module is now also named in a variable of
+  the crate that defines it (`ODRA_MODULE__my_token=Token`), together with
+  `ODRA_BUILD_PROTOCOL=2`; Odra 2.11.0 then watches that variable only: 7.3 s to 5.1 s per
+  contract in Odra's examples. `ODRA_MODULE` is still set, so older Odra releases build as
+  before.
 - wasm-opt and wasm-strip run on each wasm file right after it is built, instead of on all of
   them after the last build, and wasm-opt is checked for before the first build rather than
   after the last.
