@@ -163,6 +163,11 @@ crates defining a module of the same name no longer clash. `cargo-odra` passes t
 value only when the project's Odra is 2.10.0 or newer (or a git/path dependency); older releases
 keep getting the bare struct name.
 
+Next to a qualified `ODRA_MODULE`, `cargo-odra` sets `ODRA_MODULE__<crate>=<Struct>` for the crate
+that defines the contract and `ODRA_BUILD_PROTOCOL=2`. Odra 2.11.0 and newer then rebuild only
+that crate (and the crates that depend on it) when the contract changes, instead of every crate
+with the `odra-build` build script; older releases ignore both variables.
+
 Two contracts with the same struct name still cannot be listed together — the wasm and the
 schema files are named after the struct.
 
