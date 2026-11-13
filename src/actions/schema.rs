@@ -81,7 +81,8 @@ impl SchemaAction<'_> {
             command::cargo_generate_schema_files(
                 project_root.clone(),
                 &contract.odra_module_value(self.project),
-                &host_crate.name,
+                &host_crate,
+                self.project.is_cargo_workspace(),
             );
             let Some(schema) = find_contract_schema(&project_root, &contract.struct_name()) else {
                 log::warn(format!(

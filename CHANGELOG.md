@@ -44,6 +44,26 @@ Changelog for `cargo-odra`.
   on optimization, and the host crate is rebuilt once per contract, so under a release profile with
   LTO each contract cost about 20 seconds of CI time for the schema alone.
 
+### Fixed
+- `cargo odra test -- --nocapture` passes the arguments after `--` to the test binary, as
+  `cargo test -- --nocapture` does (#108). They were appended to `cargo test`'s own arguments, so
+  the documented command failed with "unexpected argument"; `-- -- --nocapture` failed as well,
+  only a lone name filter (`cargo odra test -- two`) got through.
+  Arguments for `cargo test` itself now go before a second `--`:
+  `cargo odra test -- --release -- --nocapture`; a command that passed only Cargo arguments
+  (`cargo odra test -- --release`) needs a trailing `--`.
+- The last argument after `--` is no longer taken for the test name filter:
+  `cargo odra test -- two --nocapture` ran `cargo test --nocapture two`. The filter may be given
+  before the `--` now (`cargo odra test two -- --nocapture`), which was refused.
+- `cargo odra schema` asks for the schema binary with `--package` in a workspace, like the wasm
+  build does (#109), so two members with a binary of the same name no longer break it.
+- `cargo odra build` fails when the wasm it built has no `call` entry point, instead of saving a
+  file that cannot be installed (#110). That is what a contract from a dependency crate builds
+  into when nothing in the host crate refers to the crate, and the check of the sources before
+  the build passed on a mention in a comment. The check of the sources also accepts
+  `odra::link_contract_crates!()` (Odra 2.11.0), which makes the reference from `Odra.toml`, so a
+  project using it lists a dependency's contract without editing its binaries.
+
 ## [0.2.0] - 2026-11-05
 
 ### Changed

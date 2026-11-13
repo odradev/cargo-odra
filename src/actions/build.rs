@@ -11,10 +11,11 @@ use crate::{
     errors::Error,
     fingerprint,
     log,
-    odra_toml::Contract,
+    odra_toml::{Contract, ContractSource},
     paths,
     project::Project,
     utils,
+    wasm,
     workers::{Worker, Workers},
 };
 
@@ -134,6 +135,7 @@ impl BuildAction<'_> {
 
         let build_contract = format!("{}_build_contract", host_crate.name);
         let source = paths::wasm_path_in_target_dir(&worker.target_dir, &build_contract);
+        self.check_entry_points(contract, &host_crate.name, &source)?;
         let target = paths::wasm_path_in_wasm_dir(&contract.struct_name(), &project_root);
         log::info(format!("Saving {}", target.display()));
         command::copy_file(&source, &target)?;
@@ -154,6 +156,35 @@ impl BuildAction<'_> {
             self.build_inputs(contract, environment, wasm_opt),
         );
         Ok(())
+    }
+
+    /// Fails if the wasm just built at `wasm` cannot be installed: every Odra contract exports
+    /// the `call` function the VM runs on install.
+    ///
+    /// The build itself succeeds without it. The usual cause is a contract from a dependency
+    /// crate that nothing in the host crate refers to, so Rust did not link it; the check of the
+    /// sources before the build (`utils::validate_external_contracts`) is fooled by a comment.
+    /// The wasm is checked before it is saved, so a file that cannot be deployed is never left
+    /// in the `wasm` directory.
+    fn check_entry_points(
+        &self,
+        contract: &Contract,
+        host_crate_name: &str,
+        wasm: &Path,
+    ) -> Result<(), Error> {
+        let unreadable = |reason: String| Error::UnreadableWasm(contract.fqn.clone(), reason);
+        let bytes = std::fs::read(wasm).map_err(|error| unreadable(error.to_string()))?;
+        if wasm::exports_function(&bytes, wasm::INSTALLER_ENTRY_POINT).map_err(unreadable)? {
+            return Ok(());
+        }
+        Err(match contract.source(self.project) {
+            ContractSource::Dependency(dependency) => Error::DependencyNotLinked(
+                contract.fqn.clone(),
+                dependency,
+                host_crate_name.to_string(),
+            ),
+            _ => Error::WasmWithoutEntryPoints(contract.fqn.clone()),
+        })
     }
 
     /// The environment a contract's wasm is built under, for its fingerprint.

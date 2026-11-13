@@ -81,7 +81,12 @@ pub fn validate_contract_names(project: &Project) {
 /// Rust links a dependency's object files only when something in the crate being built
 /// references them, so a host crate that depends on, say, `odra-modules` but never mentions it
 /// produces a wasm without a single entry point - and a linker error for the schema binary.
-/// The reference is looked for in the host crate's own Rust sources.
+/// The reference is looked for in the host crate's own Rust sources: either the crate's name or
+/// `odra::link_contract_crates!()`, which names every such dependency.
+///
+/// This is a search of the text, there to explain the mistake before a build fails on it: a
+/// comment passes it too. What settles it is the wasm itself, see
+/// `BuildAction::check_entry_points`.
 pub fn validate_external_contracts(project: &Project, contracts: &[Contract]) {
     for contract in contracts {
         let ContractSource::Dependency(dependency) = contract.source(project) else {
@@ -95,10 +100,14 @@ pub fn validate_external_contracts(project: &Project, contracts: &[Contract]) {
     }
 }
 
-/// Looks for `crate_name` as a whole word in the Rust sources of a crate.
+/// Looks for `crate_name` as a whole word, or for a `link_contract_crates!` call, in the Rust
+/// sources of a crate.
 fn crate_is_referenced(crate_root: &Path, crate_name: &str) -> bool {
-    let pattern = regex::Regex::new(&format!(r"\b{}\b", regex::escape(crate_name)))
-        .expect("a crate name is a valid regex literal");
+    let pattern = regex::Regex::new(&format!(
+        r"\b{}\b|\blink_contract_crates\s*!",
+        regex::escape(crate_name)
+    ))
+    .expect("a crate name is a valid regex literal");
     ["*.rs", "src/**/*.rs", "bin/**/*.rs"]
         .iter()
         .flat_map(|glob_pattern| {
@@ -222,6 +231,14 @@ mod tests {
         fs::write(
             root.join("bin/build_contract.rs"),
             "use flipper;\nuse odra_modules;\n",
+        )
+        .unwrap();
+        assert!(crate_is_referenced(&root, "odra_modules"));
+
+        // `odra::link_contract_crates!()` references every dependency with contracts.
+        fs::write(
+            root.join("bin/build_contract.rs"),
+            "use flipper;\nodra::link_contract_crates!();\n",
         )
         .unwrap();
         assert!(crate_is_referenced(&root, "odra_modules"));
