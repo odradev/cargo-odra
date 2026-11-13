@@ -136,17 +136,20 @@ impl<'a> GenerateClientAction<'a> {
         );
     }
 
+    /// Keeps the client crate out of the project's workspace: it is built on its own, for another
+    /// target and with its own dependencies.
+    ///
+    /// A workspace lists it in `exclude`, or Cargo would refuse to build a package that sits in
+    /// the workspace directory without being a member. A single crate project has no workspace
+    /// to keep it out of: a package in a subdirectory of another package is on its own already.
     fn add_to_workspace_if_needed(&self) -> Result<(), Error> {
         let cargo_toml_location = self.project.cargo_toml_location.clone();
         let name = format!("{}-client", self.project.project_crate_name()).to_case(Case::Snake);
         let mut cargo_toml = cargo_toml::load_cargo_toml(&cargo_toml_location);
-        let client_exists = cargo_toml
-            .workspace
-            .as_ref()
-            .ok_or(Error::NotWorkspace)?
-            .exclude
-            .iter()
-            .any(|member| member == &name);
+        let Some(workspace) = cargo_toml.workspace.as_ref() else {
+            return Ok(());
+        };
+        let client_exists = workspace.exclude.iter().any(|member| member == &name);
 
         if client_exists {
             return Err(Error::ClientAlreadyExists);
