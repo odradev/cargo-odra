@@ -97,8 +97,17 @@ pub enum Error {
     #[error("Crate for contract {0} not found.\nThe first segment of the fqn is neither a workspace member nor a crate this project depends on - check Odra.toml and the dependencies in Cargo.toml.")]
     CrateOfContractNotFound(String),
 
-    #[error("Contract {0} is defined in crate {1}, but crate {2} never references {1} in its code.\nThe wasm would be built without entry points: rust links a dependency only where it is used.\nAdd `use {1};` to the `bin/build_contract.rs` and `bin/build_schema.rs` of {2}, or use {1} in its sources.")]
+    #[error("Contract {0} is defined in crate {1}, but crate {2} never references {1} in its code.\nThe wasm would be built without entry points: rust links a dependency only where it is used.\nAdd `odra::link_contract_crates!();` (Odra 2.11.0 or newer) or `use {1};` to the `bin/build_contract.rs` and `bin/build_schema.rs` of {2}, or use {1} in its sources.")]
     HostCrateDoesNotUseDependency(String, String, String),
+
+    #[error("The wasm built for contract {0} has no entry points: crate {1}, which defines it, was not linked into {2}.\nRust links a dependency only where it is used. Add `odra::link_contract_crates!();` (Odra 2.11.0 or newer) or `use {1};` to the `bin/build_contract.rs` and `bin/build_schema.rs` of {2}; an optional or target-specific dependency needs the `use`.")]
+    DependencyNotLinked(String, String, String),
+
+    #[error("The wasm built for contract {0} has no `call` entry point, so it cannot be installed.\nCheck that the fqn in Odra.toml names a struct with `#[odra::module]`.")]
+    WasmWithoutEntryPoints(String),
+
+    #[error("Could not read the wasm built for contract {0}: {1}")]
+    UnreadableWasm(String, String),
 
     #[error("Contract {0} is defined in crate {1}, but no member of this workspace depends on {1}.\nAdd {1} to the dependencies of the member that should build it.")]
     NoCrateDependsOn(String, String),
@@ -182,6 +191,9 @@ impl Error {
             Error::FailedToFetchLatestVersion(_) => 41,
             Error::NoCrateDependsOn(_, _) => 42,
             Error::HostCrateDoesNotUseDependency(_, _, _) => 43,
+            Error::DependencyNotLinked(_, _, _) => 44,
+            Error::WasmWithoutEntryPoints(_) => 45,
+            Error::UnreadableWasm(_, _) => 46,
         }
     }
 

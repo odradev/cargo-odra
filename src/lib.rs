@@ -17,4 +17,5 @@ mod paths;
 mod project;
 mod template;
 mod utils;
+mod wasm;
 mod workers;
