@@ -57,6 +57,10 @@ Changelog for `cargo-odra`.
   before the `--` now (`cargo odra test two -- --nocapture`), which was refused.
 - `cargo odra schema` asks for the schema binary with `--package` in a workspace, like the wasm
   build does (#109), so two members with a binary of the same name no longer break it.
+- `cargo odra generate-client` works in a single crate project, such as one from the `full`
+  template; it stopped with "Project is not a workspace." (#104). A workspace was only needed
+  to list the client crate in its `exclude`, and a project without a workspace has nothing to
+  keep the client out of, so its `Cargo.toml` is left as it is.
 - `cargo odra build` fails when the wasm it built has no `call` entry point, instead of saving a
   file that cannot be installed (#110). That is what a contract from a dependency crate builds
   into when nothing in the host crate refers to the crate, and the check of the sources before

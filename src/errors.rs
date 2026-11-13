@@ -130,9 +130,6 @@ pub enum Error {
     #[error("Couldn't create client.")]
     ClientCreateFailed,
 
-    #[error("Project is not a workspace.")]
-    NotWorkspace,
-
     #[error(
         "wasm-pack is not installed. Please install it from https://github.com/drager/wasm-pack"
     )]
@@ -181,7 +178,6 @@ impl Error {
             Error::ContractDuplicate(_) => 31,
             Error::ClientAlreadyExists => 32,
             Error::ClientCreateFailed => 33,
-            Error::NotWorkspace => 34,
             Error::WasmPackNotInstalled => 35,
             Error::TomlSerializationFailed(_) => 36,
             Error::IO(_) => 37,
