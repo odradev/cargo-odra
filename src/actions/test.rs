@@ -81,7 +81,7 @@ impl TestAction<'_> {
 
     /// Returns passthrough args to be appended at the end of `cargo test` command.
     fn get_passthrough_args(&self) -> Vec<&str> {
-        self.passthrough_args.iter().map(AsRef::as_ref).collect()
+        cargo_test_tail(&self.passthrough_args)
     }
 
     /// Build *.wasm files before testing.
@@ -89,6 +89,21 @@ impl TestAction<'_> {
         BuildAction::new(self.project, None, true, self.jobs).build();
         log::info("Building finished.")
     }
+}
+
+/// What follows `cargo test [filters]` for the arguments given after `cargo odra test --`.
+///
+/// They go to the test binary, as they do after `cargo test --`: `cargo odra test -- --nocapture`
+/// runs `cargo test .. -- --nocapture`. Arguments for Cargo itself come before a second `--`:
+/// `cargo odra test -- --release -- --nocapture` runs `cargo test .. --release -- --nocapture`.
+fn cargo_test_tail(passthrough_args: &[String]) -> Vec<&str> {
+    let args: Vec<&str> = passthrough_args.iter().map(AsRef::as_ref).collect();
+    if args.is_empty() || args.contains(&"--") {
+        return args;
+    }
+    let mut tail = vec!["--"];
+    tail.extend(args);
+    tail
 }
 
 pub struct TestFilters {
@@ -116,5 +131,39 @@ impl TestFilters {
         }
 
         args
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::cargo_test_tail;
+
+    fn tail(args: &[&str]) -> Vec<String> {
+        let args: Vec<String> = args.iter().map(|arg| arg.to_string()).collect();
+        cargo_test_tail(&args)
+            .into_iter()
+            .map(str::to_string)
+            .collect()
+    }
+
+    #[test]
+    fn passthrough_args_go_to_the_test_binary() {
+        assert!(tail(&[]).is_empty());
+        assert_eq!(tail(&["--nocapture"]), ["--", "--nocapture"]);
+        assert_eq!(
+            tail(&["two", "--test-threads", "1"]),
+            ["--", "two", "--test-threads", "1"]
+        );
+    }
+
+    #[test]
+    fn a_second_separator_splits_cargo_args_from_test_binary_args() {
+        assert_eq!(
+            tail(&["--release", "--", "--nocapture"]),
+            ["--release", "--", "--nocapture"]
+        );
+        assert_eq!(tail(&["--release", "--"]), ["--release", "--"]);
+        // What worked before the arguments went to the test binary still does.
+        assert_eq!(tail(&["--", "--nocapture"]), ["--", "--nocapture"]);
     }
 }

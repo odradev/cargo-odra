@@ -325,17 +325,23 @@ pub fn cargo_build_wasm_files(
 /// Schemas are generated one at a time, unlike wasm files: a run costs about a second once the
 /// crate is compiled, while a worker's target directory would hold a copy of the host
 /// dependencies, close to 1 GB for a typical project.
-pub fn cargo_generate_schema_files(current_dir: PathBuf, odra_module: &str, host_crate_name: &str) {
-    let host_crate_name = host_crate_name.replace('-', "_");
-    let gen_schema = format!("{host_crate_name}_build_schema");
-    cargo_checked(
-        &current_dir,
-        "run",
-        vec!["--bin", &gen_schema],
-        &module_env(odra_module),
-        false,
-    )
-    .unwrap_or_else(|error| error.print_and_die());
+///
+/// In a workspace the binary is asked for with `--package`, like the wasm build: without it Cargo
+/// looks the name up in every member, and fails when two of them have a binary of that name.
+pub fn cargo_generate_schema_files(
+    current_dir: PathBuf,
+    odra_module: &str,
+    host_crate: &HostCrate,
+    is_workspace: bool,
+) {
+    let gen_schema = format!("{}_build_schema", host_crate.name.replace('-', "_"));
+    let mut params = vec!["--bin", &gen_schema];
+    if is_workspace {
+        params.push("--package");
+        params.push(&host_crate.package);
+    }
+    cargo_checked(&current_dir, "run", params, &module_env(odra_module), false)
+        .unwrap_or_else(|error| error.print_and_die());
 }
 
 /// Runs cargo test.

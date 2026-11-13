@@ -44,6 +44,18 @@ Changelog for `cargo-odra`.
   on optimization, and the host crate is rebuilt once per contract, so under a release profile with
   LTO each contract cost about 20 seconds of CI time for the schema alone.
 
+### Fixed
+- `cargo odra test -- --nocapture` passes the arguments after `--` to the test binary, as
+  `cargo test -- --nocapture` does (#108). They were appended to `cargo test`'s own arguments, so
+  the documented command failed with "unexpected argument" and needed `-- -- --nocapture`.
+  Arguments for `cargo test` itself now go before a second `--`:
+  `cargo odra test -- --release -- --nocapture`; a command that passed only Cargo arguments
+  (`cargo odra test -- --release`) needs a trailing `--`.
+- The last argument after `--` is no longer taken for the test name filter:
+  `cargo odra test -- two --nocapture` ran `cargo test --nocapture two`.
+- `cargo odra schema` asks for the schema binary with `--package` in a workspace, like the wasm
+  build does (#109), so two members with a binary of the same name no longer break it.
+
 ## [0.2.0] - 2026-11-05
 
 ### Changed

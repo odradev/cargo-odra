@@ -123,7 +123,14 @@ pub struct TestCommand {
     /// If set, runs tests against a backend VM with the given name (e.g. casper).
     #[clap(value_parser, long, short, value_parser = [consts::ODRA_CASPER_BACKEND])]
     pub backend: Option<String>,
-    /// A list of arguments is passed to the cargo test command.
+    /// Run only tests containing the given name.
+    // Declared before `args`: clap fills positionals in declaration order, and gave the last
+    // argument after `--` to a filter declared after them.
+    #[clap(value_parser)]
+    pub filter: Option<String>,
+    /// Arguments for the test binary, as after `cargo test --`: `cargo odra test -- --nocapture`.
+    /// Arguments for `cargo test` itself go before a second `--`:
+    /// `cargo odra test -- --release -- --nocapture`.
     #[clap(raw = true)]
     pub args: Vec<String>,
     /// Skip building wasm files.
@@ -132,9 +139,6 @@ pub struct TestCommand {
     /// Test only the specified test target.
     #[clap(value_parser, long, short)]
     pub test: Vec<String>,
-    /// Run only tests containing the given name.
-    #[clap(value_parser)]
-    pub filter: Option<String>,
     /// Number of contracts to build at the same time, when a backend needs wasm files; one unless
     /// given. Every job past the first builds in its own target directory under
     /// `target/cargo-odra`, which compiles the dependencies once more on its first use.
