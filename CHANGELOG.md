@@ -2,6 +2,8 @@
 
 Changelog for `cargo-odra`.
 
+## [0.2.1]
+
 ### Added
 - `cargo odra build` and `cargo odra test -b casper` build several contracts at the same time
   when asked with `--jobs` (`-j`) or the `CARGO_ODRA_JOBS` environment variable. Every contract
