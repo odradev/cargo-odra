@@ -31,6 +31,11 @@ regex = "1"
 clap_complete_command = "0.6"
 serde_json = "1"
 semver = "1"
+casper-types = { version = "6.1", features = ["std-fs-io"] }
+dotenvy = "0.15"
+# The account manager wasm and its checks. A git dependency until the Odra release that contains
+# it (odradev/odra#724) is on crates.io; then `version = "2.11"`.
+odra-casper-account-manager = { git = "https://github.com/odradev/odra", branch = "feature/account-manager", version = "2.10.0" }
 
 [[bin]]
 name = "cargo-odra"

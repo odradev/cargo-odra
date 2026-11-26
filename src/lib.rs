@@ -4,6 +4,7 @@
 //! To see examples on how to use cargo odra, visit project's
 //! [Github Page](https://github.com/odradev/cargo-odra).
 
+mod account;
 mod actions;
 mod cargo_toml;
 pub mod cli;

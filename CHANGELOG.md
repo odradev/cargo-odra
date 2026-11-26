@@ -2,6 +2,19 @@
 
 Changelog for `cargo-odra`.
 
+## [Unreleased]
+
+### Added
+- `cargo odra account`: reads and changes a Casper account's associated keys, their weights and
+  the `deployment` and `key_management` thresholds (#120). `info` shows them with the balance;
+  `set-key`, `remove-key`, `set-thresholds` and `configure` (several changes in one transaction)
+  send the account manager session code of `odra-casper-account-manager`. A key is a public key or
+  an account hash, with or without the `account-hash-` prefix. The node, chain and key come from
+  odra-cli's `ODRA_CASPER_LIVENET_*` variables or `.env`, so the commands work outside a project.
+  Before sending, the change is shown before and after and checked: a threshold above the total
+  weight or `deployment` above `key_management` stop the command, removing your own key or losing
+  the weight to sign asks for confirmation (`--yes` answers it).
+
 ## [0.2.1]
 
 ### Added

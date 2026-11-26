@@ -1,11 +1,13 @@
 //! Module containing code that parses CLI input.
 
-use std::env;
+use std::{env, path::PathBuf, time::Duration};
 
 use clap::{CommandFactory, Parser, Subcommand};
 
 use crate::{
+    account::{config::Overrides, key::KeyArg},
     actions::{
+        account as account_action,
         build::BuildAction,
         clean::clean_action,
         client::GenerateClientAction,
@@ -72,6 +74,222 @@ pub enum OdraSubcommand {
     },
     /// Generates client code for a given contract.
     GenerateClient(GenerateClientCommand),
+    /// Reads and changes a Casper account's associated keys and action thresholds (multisig).
+    Account(Box<AccountCommand>),
+}
+
+#[derive(clap::Args, Debug)]
+/// `cargo odra account`
+pub struct AccountCommand {
+    #[clap(subcommand)]
+    pub subcommand: AccountSubcommand,
+}
+
+#[derive(Subcommand, Debug)]
+/// Subcommands of `cargo odra account`.
+///
+/// A key is a public key in hex (01 + 64 characters for ed25519, 02 + 66 for secp256k1) or an
+/// account hash (64 hex characters, with or without the account-hash- prefix). The node, the
+/// chain and the secret key come from the variables odra-cli uses
+/// (ODRA_CASPER_LIVENET_NODE_ADDRESS, ODRA_CASPER_LIVENET_CHAIN_NAME,
+/// ODRA_CASPER_LIVENET_SECRET_KEY_PATH, also read from .env), or from the flags.
+pub enum AccountSubcommand {
+    /// Shows an account's associated keys, their weights, the thresholds and the balance.
+    Info(AccountInfoCommand),
+    /// Adds an associated key, or changes its weight.
+    SetKey(SetKeyCommand),
+    /// Removes an associated key.
+    RemoveKey(RemoveKeyCommand),
+    /// Sets the deployment and/or key_management threshold.
+    SetThresholds(SetThresholdsCommand),
+    /// Applies several changes in one transaction.
+    Configure(ConfigureCommand),
+}
+
+#[derive(clap::Args, Debug, Clone)]
+/// Where to connect.
+pub struct NodeArgs {
+    /// Node address (overrides ODRA_CASPER_LIVENET_NODE_ADDRESS); /rpc is added if missing.
+    #[clap(long)]
+    pub node_address: Option<String>,
+    /// Secret key file (overrides ODRA_CASPER_LIVENET_SECRET_KEY_PATH).
+    #[clap(long)]
+    pub secret_key: Option<PathBuf>,
+}
+
+#[derive(clap::Args, Debug)]
+/// `cargo odra account info`
+pub struct AccountInfoCommand {
+    /// The account to show; the secret key's account if not given.
+    #[clap(value_parser = parse_key)]
+    pub key: Option<KeyArg>,
+    #[clap(flatten)]
+    pub node: NodeArgs,
+}
+
+#[derive(clap::Args, Debug)]
+/// Options of every command that sends a change.
+pub struct ChangeArgs {
+    #[clap(flatten)]
+    pub node: NodeArgs,
+    /// Chain name (overrides ODRA_CASPER_LIVENET_CHAIN_NAME).
+    #[clap(long)]
+    pub chain_name: Option<String>,
+    /// The account to change, when it is not the secret key's own account (the secret key must
+    /// be one of its associated keys).
+    #[clap(long, value_parser = parse_key)]
+    pub account: Option<KeyArg>,
+    /// Payment limit in CSPR. On a local Casper 2.0 network a change consumed 0.17 to 0.5 CSPR
+    /// of gas; the node charges part of an unused limit too, so keep it close.
+    #[clap(long, default_value = "2.5")]
+    pub gas: String,
+    /// Send without asking about the warnings. Errors still stop the command.
+    #[clap(long, short)]
+    pub yes: bool,
+    /// Seconds to wait for the execution result.
+    #[clap(long, default_value = "300")]
+    pub timeout: u64,
+}
+
+#[derive(clap::Args, Debug)]
+/// `cargo odra account set-key`
+pub struct SetKeyCommand {
+    /// The key to add or update.
+    #[clap(value_parser = parse_key)]
+    pub key: KeyArg,
+    /// Its weight, from 1 to 255.
+    #[clap(long, short)]
+    pub weight: u8,
+    #[clap(flatten)]
+    pub change: ChangeArgs,
+}
+
+#[derive(clap::Args, Debug)]
+/// `cargo odra account remove-key`
+pub struct RemoveKeyCommand {
+    /// The key to remove.
+    #[clap(value_parser = parse_key)]
+    pub key: KeyArg,
+    #[clap(flatten)]
+    pub change: ChangeArgs,
+}
+
+#[derive(clap::Args, Debug)]
+/// `cargo odra account set-thresholds`
+pub struct SetThresholdsCommand {
+    /// The weight needed to send a transaction.
+    #[clap(long, short)]
+    pub deployment: Option<u8>,
+    /// The weight needed to change keys and thresholds.
+    #[clap(long, short)]
+    pub key_management: Option<u8>,
+    #[clap(flatten)]
+    pub change: ChangeArgs,
+}
+
+#[derive(clap::Args, Debug)]
+/// `cargo odra account configure`
+pub struct ConfigureCommand {
+    /// A key to add or update, as <key>:<weight>; repeatable.
+    #[clap(long = "set-key", value_parser = parse_key_weight)]
+    pub set_keys: Vec<(KeyArg, u8)>,
+    /// A key to remove; repeatable.
+    #[clap(long = "remove-key", value_parser = parse_key)]
+    pub remove_keys: Vec<KeyArg>,
+    /// The weight needed to send a transaction.
+    #[clap(long, short)]
+    pub deployment: Option<u8>,
+    /// The weight needed to change keys and thresholds.
+    #[clap(long, short)]
+    pub key_management: Option<u8>,
+    #[clap(flatten)]
+    pub change: ChangeArgs,
+}
+
+fn parse_key(input: &str) -> Result<KeyArg, String> {
+    input
+        .parse()
+        .map_err(|error: crate::account::key::InvalidKey| error.to_string())
+}
+
+fn parse_key_weight(input: &str) -> Result<(KeyArg, u8), String> {
+    let (key, weight) = input
+        .rsplit_once(':')
+        .ok_or_else(|| format!("'{input}' is not <key>:<weight>"))?;
+    let weight = weight
+        .parse()
+        .map_err(|_| format!("'{weight}' is not a weight from 1 to 255"))?;
+    Ok((parse_key(key)?, weight))
+}
+
+impl NodeArgs {
+    fn overrides(&self, chain_name: Option<String>) -> Overrides {
+        Overrides {
+            node_address: self.node_address.clone(),
+            chain_name,
+            secret_key: self.secret_key.clone(),
+        }
+    }
+}
+
+fn account_change(
+    set_keys: Vec<(KeyArg, u8)>,
+    remove_keys: Vec<KeyArg>,
+    deployment: Option<u8>,
+    key_management: Option<u8>,
+    args: ChangeArgs,
+) -> Result<(), Error> {
+    let mut change = odra_casper_account_manager::AccountChange::new();
+    for (key, weight) in set_keys {
+        let hash = key.account_hash();
+        if change.set_keys.insert(hash, weight).is_some() {
+            return Err(Error::InvalidAccountChange(format!(
+                "{} is given twice",
+                hash.to_formatted_string()
+            )));
+        }
+    }
+    for key in remove_keys {
+        change.remove_keys.insert(key.account_hash());
+    }
+    change.deployment_threshold = deployment;
+    change.key_management_threshold = key_management;
+    account_action::change(
+        change,
+        account_action::ChangeOptions {
+            overrides: args.node.overrides(args.chain_name),
+            account: args.account,
+            gas: args.gas,
+            yes: args.yes,
+            timeout: Duration::from_secs(args.timeout),
+        },
+    )
+}
+
+fn run_account(command: AccountCommand) -> Result<(), Error> {
+    match command.subcommand {
+        AccountSubcommand::Info(info) => account_action::info(&info.node.overrides(None), info.key),
+        AccountSubcommand::SetKey(cmd) => {
+            account_change(vec![(cmd.key, cmd.weight)], vec![], None, None, cmd.change)
+        }
+        AccountSubcommand::RemoveKey(cmd) => {
+            account_change(vec![], vec![cmd.key], None, None, cmd.change)
+        }
+        AccountSubcommand::SetThresholds(cmd) => account_change(
+            vec![],
+            vec![],
+            cmd.deployment,
+            cmd.key_management,
+            cmd.change,
+        ),
+        AccountSubcommand::Configure(cmd) => account_change(
+            cmd.set_keys,
+            cmd.remove_keys,
+            cmd.deployment,
+            cmd.key_management,
+            cmd.change,
+        ),
+    }
 }
 
 #[derive(clap::Args)]
@@ -256,6 +474,9 @@ pub fn make_action() {
 
             ListTemplatesAction::list(odra_location);
         }
+        OdraSubcommand::Account(account) => {
+            run_account(*account).unwrap_or_else(|error| error.print_and_die());
+        }
         OdraSubcommand::GenerateClient(_generate_client) => {
             let mut project = Project::detect(current_dir);
             GenerateClientAction::new(&mut project)
@@ -264,5 +485,83 @@ pub fn make_action() {
                     err.print_and_die();
                 });
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const HASH: &str = "a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90";
+
+    fn public_key() -> String {
+        use casper_types::{PublicKey, SecretKey};
+        PublicKey::from(&SecretKey::ed25519_from_bytes([5u8; 32]).unwrap()).to_hex_string()
+    }
+
+    fn account(args: &[&str]) -> Result<AccountSubcommand, clap::Error> {
+        let mut argv = vec!["cargo", "odra", "account"];
+        argv.extend_from_slice(args);
+        let Cargo::Odra(odra) = Cargo::try_parse_from(argv)?;
+        match odra.subcommand {
+            OdraSubcommand::Account(account) => Ok(account.subcommand),
+            _ => unreachable!(),
+        }
+    }
+
+    #[test]
+    fn parses_the_account_commands() {
+        match account(&["set-key", HASH, "--weight", "2", "--yes", "--gas", "2.5"]).unwrap() {
+            AccountSubcommand::SetKey(cmd) => {
+                assert!(matches!(cmd.key, KeyArg::AccountHash(_)));
+                assert_eq!(cmd.weight, 2);
+                assert!(cmd.change.yes);
+                assert_eq!(cmd.change.gas, "2.5");
+            }
+            other => panic!("{other:?}"),
+        }
+        match account(&[
+            "configure",
+            "--set-key",
+            &format!("{}:1", public_key()),
+            "--set-key",
+            &format!("account-hash-{HASH}:3"),
+            "--remove-key",
+            HASH,
+            "-d",
+            "2",
+            "-k",
+            "3",
+            "--account",
+            HASH,
+        ])
+        .unwrap()
+        {
+            AccountSubcommand::Configure(cmd) => {
+                assert_eq!(cmd.set_keys.len(), 2);
+                assert!(matches!(cmd.set_keys[0], (KeyArg::PublicKey(_), 1)));
+                assert!(matches!(cmd.set_keys[1], (KeyArg::AccountHash(_), 3)));
+                assert_eq!(cmd.remove_keys.len(), 1);
+                assert_eq!((cmd.deployment, cmd.key_management), (Some(2), Some(3)));
+                assert!(cmd.change.account.is_some());
+                assert_eq!(cmd.change.gas, "2.5");
+            }
+            other => panic!("{other:?}"),
+        }
+        assert!(matches!(
+            account(&["info"]).unwrap(),
+            AccountSubcommand::Info(AccountInfoCommand { key: None, .. })
+        ));
+    }
+
+    #[test]
+    fn rejects_bad_keys_and_weights() {
+        let error = account(&["remove-key", "abc"]).unwrap_err().to_string();
+        assert!(error.contains("is not a key"), "{error}");
+        assert!(account(&["set-key", HASH, "--weight", "256"]).is_err());
+        let error = account(&["configure", "--set-key", HASH])
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains("<key>:<weight>"), "{error}");
     }
 }
