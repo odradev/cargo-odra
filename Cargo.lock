@@ -3120,8 +3120,9 @@ dependencies = [
 
 [[package]]
 name = "odra-casper-account-manager"
-version = "2.10.0"
-source = "git+https://github.com/odradev/odra?branch=release%2F2.11.0#3397cee3c2c4eb0a62f9087bfc3c1733ed2b556e"
+version = "2.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "16cfad6710cecf5c32d666688bea1af0ba0014fa87e39f62de37fd78de83399a"
 dependencies = [
  "casper-types",
 ]

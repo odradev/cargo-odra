@@ -51,6 +51,3 @@ wildcards = "deny"
 [sources]
 unknown-registry = "deny"
 unknown-git = "deny"
-# odra-casper-account-manager comes from the Odra repository until the release that contains it
-# (odradev/odra#724) is published; then this goes away with the git dependency.
-allow-git = ["https://github.com/odradev/odra"]
