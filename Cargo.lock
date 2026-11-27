@@ -3167,7 +3167,7 @@ dependencies = [
 [[package]]
 name = "odra-casper-account-manager"
 version = "2.10.0"
-source = "git+https://github.com/odradev/odra?branch=feature%2Faccount-manager#22a20908298c62b71a7ac175c27a8430ef60474d"
+source = "git+https://github.com/odradev/odra?branch=feature%2Faccount-manager#367eb1618b99b38fea995cb8fb5fb645f8bf609b"
 dependencies = [
  "casper-types",
 ]
