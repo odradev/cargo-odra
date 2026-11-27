@@ -7,6 +7,7 @@
 
 use std::{
     collections::VecDeque,
+    fs,
     path::{Path, PathBuf},
     sync::Mutex,
     thread,
@@ -22,6 +23,13 @@ use crate::{errors::Error, log, paths};
 /// crate compiles with a single codegen unit and links with fat LTO, with cargo's own work in
 /// between), so even on 4 CPUs four jobs finish 17 contracts in a third of the time of one.
 const DEFAULT_JOBS: usize = 1;
+
+/// What cargo writes into a target directory it creates, so backup tools skip it
+/// (<https://bford.info/cachedir/>).
+const CACHEDIR_TAG: &str = "Signature: 8a477f597d28d172789f06886806bc55
+# This file is a cache directory tag created by cargo.
+# For information about cache directory tags see https://bford.info/cachedir/
+";
 
 /// The workers of a project: how many, and where they build.
 pub struct Workers {
@@ -80,30 +88,36 @@ impl Workers {
             ));
         }
 
+        let workers: Vec<Worker> = (0..jobs)
+            .map(|index| self.worker(index, jobs > 1))
+            .collect();
+        if jobs > 1 {
+            for worker in &workers {
+                if !worker.is_project_target_dir && !worker.target_dir.exists() {
+                    log::info(format!(
+                        "Build directory {} is new; its first build compiles the dependencies.",
+                        worker.target_dir.display()
+                    ));
+                }
+            }
+            create_target_dirs(&workers)?;
+        }
+
         let queue = Mutex::new(VecDeque::from(items));
         let failure: Mutex<Option<Error>> = Mutex::new(None);
         thread::scope(|scope| {
-            for index in 0..jobs {
-                let worker = self.worker(index, jobs > 1);
+            for worker in &workers {
                 let (queue, failure, step) = (&queue, &failure, &step);
-                scope.spawn(move || {
-                    if !worker.is_project_target_dir && !worker.target_dir.exists() {
-                        log::info(format!(
-                            "Build directory {} is new; its first build compiles the dependencies.",
-                            worker.target_dir.display()
-                        ));
+                scope.spawn(move || loop {
+                    if failure.lock().unwrap().is_some() {
+                        return;
                     }
-                    loop {
-                        if failure.lock().unwrap().is_some() {
-                            return;
-                        }
-                        let Some(item) = queue.lock().unwrap().pop_front() else {
-                            return;
-                        };
-                        if let Err(error) = step(&item, &worker) {
-                            *failure.lock().unwrap() = Some(error);
-                            return;
-                        }
+                    let Some(item) = queue.lock().unwrap().pop_front() else {
+                        return;
+                    };
+                    if let Err(error) = step(&item, worker) {
+                        *failure.lock().unwrap() = Some(error);
+                        return;
                     }
                 });
             }
@@ -130,11 +144,35 @@ impl Workers {
     }
 }
 
+/// Creates the target directory of every worker before any of them runs cargo.
+///
+/// Left to cargo, the workers race: cargo creates a missing target directory as a temporary
+/// directory renamed into place, which replaces an empty directory of the same name, while the
+/// cargo of another worker is creating `target/cargo-odra` inside it with `create_dir_all`. One
+/// of them then fails with "failed to create directory `target/cargo-odra`: No such file or
+/// directory". Created here, one after another, every directory exists before cargo looks.
+/// Worker 0, the project's own target directory, comes first. A target directory created here
+/// gets the `CACHEDIR.TAG` cargo would have written.
+fn create_target_dirs(workers: &[Worker]) -> Result<(), Error> {
+    for worker in workers {
+        let dir = &worker.target_dir;
+        if dir.exists() {
+            continue;
+        }
+        fs::create_dir_all(dir)?;
+        fs::write(dir.join("CACHEDIR.TAG"), CACHEDIR_TAG)?;
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use std::{
-        path::{Path, PathBuf},
-        sync::Mutex,
+        path::Path,
+        sync::{
+            atomic::{AtomicUsize, Ordering},
+            Mutex,
+        },
     };
 
     use super::Workers;
@@ -148,23 +186,31 @@ mod tests {
         assert_eq!(Workers::new(Some(4), root).jobs, 4);
     }
 
+    /// Workers over a fresh target directory of their own, which `run` creates.
     fn workers(jobs: usize) -> Workers {
+        static NEXT: AtomicUsize = AtomicUsize::new(0);
+        let n = NEXT.fetch_add(1, Ordering::Relaxed);
+        let root =
+            std::env::temp_dir().join(format!("cargo-odra-workers-{}-{n}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
         Workers {
             jobs,
-            target_dir: PathBuf::from("/project/target"),
+            target_dir: root.join("target"),
         }
     }
 
     #[test]
     fn every_item_is_processed_once_and_worker_zero_uses_the_project_target_dir() {
         let seen = Mutex::new(Vec::new());
-        workers(3)
+        let workers = workers(3);
+        let project_target_dir = workers.target_dir.clone();
+        workers
             .run("Testing", (0..10).collect(), |item, worker| {
                 let parallel_dir = worker.cargo_target_dir().map(Path::to_path_buf);
                 assert!(worker.capture_output());
                 assert_eq!(
                     parallel_dir.is_none(),
-                    worker.target_dir == Path::new("/project/target")
+                    worker.target_dir == project_target_dir
                 );
                 seen.lock().unwrap().push(*item);
                 Ok(())
@@ -173,6 +219,26 @@ mod tests {
         let mut seen = seen.into_inner().unwrap();
         seen.sort();
         assert_eq!(seen, (0..10).collect::<Vec<_>>());
+    }
+
+    #[test]
+    fn parallel_workers_find_their_target_dirs_created() {
+        let workers = workers(3);
+        let project_target_dir = workers.target_dir.clone();
+        workers
+            .run("Testing", vec![(); 3], |_, worker| {
+                assert!(worker.target_dir.is_dir());
+                assert!(worker.target_dir.join("CACHEDIR.TAG").is_file());
+                Ok(())
+            })
+            .unwrap();
+        for index in 1..3 {
+            assert!(project_target_dir
+                .join("cargo-odra")
+                .join(format!("worker-{index}"))
+                .is_dir());
+        }
+        let _ = std::fs::remove_dir_all(project_target_dir.parent().unwrap());
     }
 
     #[test]

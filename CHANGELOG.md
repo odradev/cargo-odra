@@ -47,6 +47,12 @@ Changelog for `cargo-odra`.
   LTO each contract cost about 20 seconds of CI time for the schema alone.
 
 ### Fixed
+- A parallel build (`--jobs`) with no target directory yet, such as the first CI run of a branch, could
+  fail with "failed to create directory `target/cargo-odra`: No such file or directory". The cargo of
+  worker 0 creates the project's target directory as a temporary directory renamed into place, which
+  replaces an empty directory of the same name, while the cargo of another worker was creating
+  `target/cargo-odra` inside it. cargo-odra creates the target directory of every worker, with the
+  `CACHEDIR.TAG` cargo writes, before the workers start.
 - `cargo odra test -- --nocapture` passes the arguments after `--` to the test binary, as
   `cargo test -- --nocapture` does (#108). They were appended to `cargo test`'s own arguments, so
   the documented command failed with "unexpected argument"; `-- -- --nocapture` failed as well,
