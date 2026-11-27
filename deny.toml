@@ -12,6 +12,10 @@ ignore = [
   # anymap2 is unmaintained; it reaches us through liquid-core <- cargo-generate, and
   # liquid-core 0.26.11, the latest release, still depends on it. Same reasoning as above.
   { id = "RUSTSEC-2026-0319", reason = "unmaintained anymap2 via liquid-core <- cargo-generate; no upgrade exists" },
+  # crypto-bigint 0.5.5 (timing side channel) reaches us through casper-types -> k256 ->
+  # elliptic-curve 0.13.8, which pins it to ^0.5; the fix needs 0.7.6 and no k256 release uses
+  # it yet. Odra's deny.toml ignores it for the same reason. Remove once k256 moves on.
+  { id = "RUSTSEC-2026-0387", reason = "crypto-bigint 0.5 pinned by elliptic-curve <- k256 <- casper-types; no upgrade exists" },
 ]
 
 # An explicit allow list, so a new license in the tree fails the build rather than

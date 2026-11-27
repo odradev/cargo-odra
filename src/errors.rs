@@ -140,6 +140,30 @@ pub enum Error {
 
     #[error("IO error: {0}")]
     IO(#[from] std::io::Error),
+
+    #[error("Missing configuration: give {0}.")]
+    MissingAccountConfig(String),
+
+    #[error("Cannot read the secret key {0}.")]
+    AccountSecretKey(String),
+
+    #[error("Node request failed: {0}.")]
+    Rpc(String),
+
+    #[error("The change cannot be applied: {0}.")]
+    InvalidAccountChange(String),
+
+    #[error("Nothing was sent: {0}.")]
+    AccountChangeNotConfirmed(String),
+
+    #[error("{0}")]
+    Transaction(String),
+
+    #[error("The transaction failed: {0}.")]
+    AccountTransactionFailed(String),
+
+    #[error("No result yet: {0}.")]
+    AccountTransactionTimeout(String),
 }
 
 impl Error {
@@ -190,6 +214,14 @@ impl Error {
             Error::DependencyNotLinked(_, _, _) => 44,
             Error::WasmWithoutEntryPoints(_) => 45,
             Error::UnreadableWasm(_, _) => 46,
+            Error::MissingAccountConfig(_) => 48,
+            Error::AccountSecretKey(_) => 49,
+            Error::Rpc(_) => 50,
+            Error::InvalidAccountChange(_) => 51,
+            Error::AccountChangeNotConfirmed(_) => 52,
+            Error::Transaction(_) => 53,
+            Error::AccountTransactionFailed(_) => 54,
+            Error::AccountTransactionTimeout(_) => 55,
         }
     }
 

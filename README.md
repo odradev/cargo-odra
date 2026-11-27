@@ -13,6 +13,7 @@ This is the tooling only. The framework you write contracts against is
 * [Install](#install)
 * [Usage](#usage)
 * [Commands](#commands)
+* [Account management (multisig)](#account-management-multisig)
 * [Workspaces](#workspaces)
 * [Contracts from dependency crates](#contracts-from-dependency-crates)
 * [Templates](#templates)
@@ -99,7 +100,8 @@ them; deleting a wasm or schema file also forces its regeneration.
 * `generate` - generates sample contract,
 * `list-templates` - lists available templates,
 * `clean` - removes temporary files (builders and wasm files),
-* `completions` - generates autocomplete script for given shell
+* `completions` - generates autocomplete script for given shell,
+* `account` - reads and changes a Casper account's associated keys and thresholds (see below).
 
 To see exact syntax of each command, type `cargo odra command_name --help`.
 
@@ -110,6 +112,49 @@ it. In a workspace that root directory is the only copy: Odra 2.10.0 looks for
 `wasm/<Contract>.wasm` in the working directory and then in each directory above it, so a test in
 any member finds it. Odra 2.9 and older looked in the working directory only, so a workspace project
 on those versions needs `cargo-odra` 0.1.x, which copied the wasm into the member that defines the contract.
+
+## Account management (multisig)
+
+A Casper account can require several signatures: its associated keys have weights, and two
+thresholds say how much weight the signers of a transaction need, `deployment` to send it and
+`key_management` to change keys and thresholds. `cargo odra account` reads and changes them. It
+works outside an Odra project too.
+
+```bash
+cargo odra account info [<key>]                  # keys, weights, thresholds, balance
+cargo odra account set-key <key> --weight 2      # add a key, or change its weight
+cargo odra account remove-key <key>
+cargo odra account set-thresholds --deployment 2 --key-management 3
+cargo odra account configure --set-key <key>:1 --remove-key <key> --deployment 2 --key-management 2
+```
+
+* `<key>` is a public key in hex (`01` + 64 characters for ed25519, `02` + 66 for secp256k1) or an
+  account hash (64 hex characters, with or without the `account-hash-` prefix).
+* The node, the chain and the signing key come from the variables odra-cli uses, also read from
+  `.env`: `ODRA_CASPER_LIVENET_NODE_ADDRESS`, `ODRA_CASPER_LIVENET_CHAIN_NAME`,
+  `ODRA_CASPER_LIVENET_SECRET_KEY_PATH` (and `ODRA_CASPER_LIVENET_TTL`,
+  `ODRA_CASPER_LIVENET_GAS_PRICE_TOLERANCE`, `CSPR_CLOUD_AUTH_TOKEN`). `--node-address`,
+  `--chain-name` and `--secret-key` override them.
+* The changed account is the signing key's own, or the one given with `--account` when the
+  signing key is one of its associated keys.
+* Every change is one transaction running the account manager session code of
+  `odra-casper-account-manager`, which applies it in an order that never breaks a threshold on the
+  way, so one key can set up a 2-of-2 account at once. `--gas` sets the payment limit in CSPR
+  (2.5 by default; a change consumed 0.17 to 0.5 CSPR on a local Casper 2.0 network).
+
+Before sending, the command reads the account, shows it before and after the change, and checks
+the result:
+
+* it stops with an error when the node would reject the change: a threshold above the total weight
+  of all keys, `deployment` above `key_management`, a weight or threshold of 0, more than 100 keys,
+  removing a key the account does not have;
+* it warns and asks `[y/N]` when you are about to remove your own key, when your key would no longer
+  reach a threshold, when the total weight equals `key_management` (losing any key would lock key
+  management), or when your key does not reach the current `key_management` and the transaction
+  would fail. `--yes` answers for you; without a terminal and without `--yes` nothing is sent.
+
+Changing an account whose `key_management` threshold needs more than one key is not supported
+yet: these commands sign with a single key.
 
 ## Workspaces
 
