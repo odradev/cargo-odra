@@ -47,6 +47,10 @@ Changelog for `cargo-odra`.
   LTO each contract cost about 20 seconds of CI time for the schema alone.
 
 ### Fixed
+- Dependencies with security advisories: `rustls` 0.23.46 (RUSTSEC-2026-0346 to 0349), `rustls-webpki`
+  0.103.17 (RUSTSEC-2026-0382), `webpki-roots` and `webpki-root-certs` 1.0.12 (RUSTSEC-2026-0381, 0383) and
+  `url` 2.5.9 (RUSTSEC-2026-0592). `cargo odra new` writes the `date` of the template with `jiff` instead of
+  `chrono`, which is unmaintained (RUSTSEC-2026-0543).
 - A parallel build (`--jobs`) with no target directory yet, such as the first CI run of a branch, could
   fail with "failed to create directory `target/cargo-odra`: No such file or directory". The cargo of
   worker 0 creates the project's target directory as a temporary directory renamed into place, which

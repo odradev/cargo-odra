@@ -3,7 +3,7 @@
 use std::path::{Path, PathBuf};
 
 use cargo_generate::{GenerateArgs, TemplatePath, Vcs};
-use chrono::Utc;
+use jiff::Timestamp;
 
 use crate::{
     cargo_toml,
@@ -165,7 +165,7 @@ impl InitAction {
             bin: false,
             ssh_identity: None,
             gitconfig: None,
-            define: vec![format!("date={}", Utc::now().format("%Y-%m-%d"))],
+            define: vec![format!("date={}", Timestamp::now().strftime("%Y-%m-%d"))],
             init,
             destination,
             force_git_init: false,

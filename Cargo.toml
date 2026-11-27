@@ -24,7 +24,7 @@ rm_rf = "0.6.2"
 glob = "0.3.4"
 cargo_toml = "1"
 prettycli = "0.1"
-chrono = "0.4.45"
+jiff = { version = "0.2", default-features = false, features = ["std"] }
 thiserror = "2"
 ureq = { version = "3", features = ["json"] }
 regex = "1"
